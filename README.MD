@@ -512,7 +512,7 @@ This project is licensed under the MIT License - see LICENSE file for details.
 
 Inspired by discussions around the transformative impact of AGI and the urgent need for organizations to prepare for AI-driven automation. This project aims to help businesses navigate the transition by providing concrete, actionable insights into their automation opportunities.
 
-Built by [Ian Baumeister](https://ianworks.dev) | [LinkedIn](https://linkedin.com/in/yourprofile) | [GitHub](https://github.com/ibxibx)
+Built by [Ian Baumeister](https://ianworks.dev) | [LinkedIn](https://linkedin.com/in/avoiann) | [GitHub](https://github.com/ibxibx)
 
 ---
 
@@ -521,8 +521,6 @@ Built by [Ian Baumeister](https://ianworks.dev) | [LinkedIn](https://linkedin.co
 ---
 
 ## 🎯 Next Steps
-
-Ready to start building? Follow this action plan:
 
 **Environment Setup**
 Create your project directory structure with separate folders for backend and frontend components.
