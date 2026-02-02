@@ -1,0 +1,22 @@
+# FastAPI Framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# Database (SQLite - no PostgreSQL needed for development)
+sqlalchemy==2.0.36
+alembic==1.14.0
+
+# AI/LLM
+anthropic==0.43.2
+langchain==0.3.21
+langchain-anthropic==0.3.4
+
+# Utilities  
+pydantic==2.10.6
+pydantic-settings>=2.0.0
+python-dotenv==1.0.1
+
+# Testing
+pytest==8.3.4
+httpx==0.28.1
