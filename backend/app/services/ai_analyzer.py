@@ -1,10 +1,9 @@
 """
-Simple AI Analysis Service using Claude API
+Simple AI service for workflow analysis using Claude API
 """
 import os
-import json
-from typing import List, Dict
 from anthropic import Anthropic
+from typing import List, Dict
 
 
 class AIAnalyzer:
@@ -14,135 +13,102 @@ class AIAnalyzer:
             raise ValueError("ANTHROPIC_API_KEY not found in environment")
         self.client = Anthropic(api_key=api_key)
     
-    def analyze_tasks(self, tasks: List[Dict]) -> Dict:
+    def analyze_task(self, task: Dict) -> Dict:
         """
-        Analyze tasks for automation potential
-        Returns: {
-            "automation_score": float,
-            "results": [
-                {
-                    "task_id": int,
-                    "ai_readiness_score": float,
-                    "recommendation": str,
-                    ...
-                }
-            ]
-        }
+        Analyze a single task for automation potential
+        Returns: AI readiness score and recommendation
         """
-        # Create prompt for Claude
-        prompt = self._create_analysis_prompt(tasks)
-        
-        # Call Claude API
+        prompt = f"""Analyze this work task for AI automation potential:
+
+Task: {task['name']}
+Description: {task.get('description', 'Not provided')}
+Frequency: {task.get('frequency', 'Unknown')}
+Time per task: {task.get('time_per_task', 'Unknown')} minutes
+Category: {task.get('category', 'Unknown')}
+Complexity: {task.get('complexity', 'Unknown')}
+
+Provide:
+1. AI Readiness Score (0-100): How easily can this be automated?
+2. Time Saved Percentage (0-100): How much time could be saved?
+3. Difficulty (easy/medium/hard): Implementation difficulty
+4. Recommendation: One sentence on how to automate this
+
+Respond in this exact format:
+SCORE: [number]
+TIME_SAVED: [number]
+DIFFICULTY: [easy/medium/hard]
+RECOMMENDATION: [one sentence]"""
+
         try:
-            response = self.client.messages.create(
+            message = self.client.messages.create(
                 model="claude-sonnet-4-20250514",
-                max_tokens=2000,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
+                max_tokens=500,
+                messages=[{"role": "user", "content": prompt}]
             )
             
-            # Parse response
-            result_text = response.content[0].text
-            return self._parse_analysis_result(result_text, tasks)
+            response_text = message.content[0].text
+            
+            # Parse the response
+            lines = response_text.strip().split('\n')
+            result = {}
+            
+            for line in lines:
+                if line.startswith('SCORE:'):
+                    result['ai_readiness_score'] = float(line.split(':')[1].strip())
+                elif line.startswith('TIME_SAVED:'):
+                    result['time_saved_percentage'] = float(line.split(':')[1].strip())
+                elif line.startswith('DIFFICULTY:'):
+                    result['difficulty'] = line.split(':')[1].strip().lower()
+                elif line.startswith('RECOMMENDATION:'):
+                    result['recommendation'] = line.split(':', 1)[1].strip()
+            
+            return result
             
         except Exception as e:
-            print(f"Error calling Claude API: {e}")
-            # Return simple fallback analysis
-            return self._fallback_analysis(tasks)
+            print(f"AI analysis error: {e}")
+            # Return default values on error
+            return {
+                'ai_readiness_score': 50.0,
+                'time_saved_percentage': 25.0,
+                'difficulty': 'medium',
+                'recommendation': 'Could not analyze - using default values'
+            }
     
-    def _create_analysis_prompt(self, tasks: List[Dict]) -> str:
-        """Create analysis prompt for Claude"""
-        task_list = "\n".join([
-            f"{i+1}. {task['name']} - {task.get('description', 'No description')}"
-            f"\n   Frequency: {task.get('frequency', 'unknown')}"
-            f"\n   Time: {task.get('time_per_task', 'unknown')} minutes"
-            f"\n   Complexity: {task.get('complexity', 'unknown')}"
-            for i, task in enumerate(tasks)
-        ])
-        
-        return f"""Analyze these workflow tasks for AI automation potential.
-
-TASKS:
-{task_list}
-
-For each task, provide:
-1. AI Readiness Score (0-100): How suitable for AI automation
-2. Time Saved % (0-100): Percentage of time that could be saved
-3. Difficulty (easy/medium/hard): Implementation difficulty
-4. Recommendation: Brief actionable recommendation
-
-Return ONLY valid JSON in this exact format:
-{{
-  "automation_score": 75,
-  "results": [
-    {{
-      "task_id": 0,
-      "ai_readiness_score": 85,
-      "time_saved_percentage": 70,
-      "difficulty": "medium",
-      "recommendation": "Automate with Python script"
-    }}
-  ]
-}}"""
-    
-    def _parse_analysis_result(self, text: str, tasks: List[Dict]) -> Dict:
-        """Parse Claude's response into structured data"""
-        try:
-            # Try to extract JSON from response
-            start = text.find("{")
-            end = text.rfind("}") + 1
-            if start >= 0 and end > start:
-                json_str = text[start:end]
-                result = json.loads(json_str)
-                return result
-        except:
-            pass
-        
-        # Fallback if parsing fails
-        return self._fallback_analysis(tasks)
-    
-    def _fallback_analysis(self, tasks: List[Dict]) -> Dict:
-        """Simple rule-based fallback analysis"""
-        results = []
+    def calculate_roi(self, tasks_analysis: List[Dict], hourly_rate: float) -> Dict:
+        """
+        Calculate ROI metrics from analyzed tasks
+        """
         total_score = 0
+        total_hours_saved = 0
         
-        for i, task in enumerate(tasks):
-            # Simple scoring based on complexity and frequency
-            complexity = task.get('complexity', 'medium')
-            frequency = task.get('frequency', 'daily')
+        for analysis in tasks_analysis:
+            total_score += analysis['ai_readiness_score']
             
-            # Base score
-            if complexity == 'low':
-                base_score = 85
-            elif complexity == 'medium':
-                base_score = 65
+            # Calculate hours saved per year
+            task = analysis['task']
+            time_per_task = task.get('time_per_task', 0) / 60  # Convert to hours
+            time_saved_pct = analysis.get('time_saved_percentage', 0) / 100
+            
+            # Estimate frequency
+            freq = task.get('frequency', 'weekly')
+            if freq == 'daily':
+                yearly_occurrences = 250  # work days
+            elif freq == 'weekly':
+                yearly_occurrences = 52
+            elif freq == 'monthly':
+                yearly_occurrences = 12
             else:
-                base_score = 45
+                yearly_occurrences = 52  # default to weekly
             
-            # Adjust for frequency
-            if frequency == 'daily':
-                base_score += 10
-            elif frequency == 'weekly':
-                base_score += 5
-            
-            base_score = min(base_score, 100)
-            
-            results.append({
-                "task_id": i,
-                "ai_readiness_score": base_score,
-                "time_saved_percentage": base_score * 0.7,
-                "difficulty": "medium",
-                "recommendation": f"Task '{task['name']}' is suitable for automation"
-            })
-            total_score += base_score
+            hours_saved = time_per_task * time_saved_pct * yearly_occurrences
+            total_hours_saved += hours_saved
+            analysis['estimated_hours_saved'] = hours_saved
         
-        avg_score = total_score / len(tasks) if tasks else 0
+        avg_score = total_score / len(tasks_analysis) if tasks_analysis else 0
+        annual_savings = total_hours_saved * hourly_rate
         
         return {
-            "automation_score": avg_score,
-            "results": results
+            'automation_score': round(avg_score, 2),
+            'hours_saved': round(total_hours_saved, 2),
+            'annual_savings': round(annual_savings, 2)
         }

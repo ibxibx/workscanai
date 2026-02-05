@@ -1,20 +1,19 @@
 import Link from 'next/link'
-import { ArrowRight, Brain, Calculator, Clock, MapPin, TrendingUp, Zap } from 'lucide-react'
+import { ArrowRight, Sparkles } from 'lucide-react'
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-black text-white">
       {/* Navigation */}
-      <nav className="border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <Brain className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">WorkScanAI</span>
-            </div>
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-b border-gray-800">
+        <div className="max-w-[980px] mx-auto px-6">
+          <div className="flex justify-between items-center h-[44px]">
+            <Link href="/" className="text-[21px] font-semibold tracking-tight">
+              WorkScanAI
+            </Link>
             <Link 
               href="/dashboard"
-              className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              className="text-[12px] text-gray-300 hover:text-white transition-colors"
             >
               Dashboard
             </Link>
@@ -23,380 +22,177 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 opacity-70" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-8">
-              <Zap className="h-4 w-4" />
-              <span>AI-Powered Workflow Analysis</span>
-            </div>
+      <section className="pt-[88px] pb-[60px]">
+        <div className="max-w-[980px] mx-auto px-6 text-center">
+          <h1 className="text-[56px] leading-[1.07] font-semibold tracking-tight mb-[6px] bg-gradient-to-br from-white via-white to-gray-500 bg-clip-text text-transparent">
+            The future of work
+            <br />
+            starts with knowing
+            <br />
+            what to automate.
+          </h1>
+          
+          <p className="text-[21px] leading-[1.381] font-normal text-gray-400 mb-[30px] max-w-[700px] mx-auto mt-[18px]">
+            AI-powered analysis reveals which tasks are ready for automation — and exactly how much you'll save.
+          </p>
+          
+          <div className="flex gap-[16px] justify-center items-center">
+            <Link 
+              href="/dashboard/analyze"
+              className="group inline-flex items-center gap-[8px] bg-blue-600 hover:bg-blue-500 text-white text-[17px] leading-[1.17] font-normal px-[22px] py-[12px] rounded-full transition-all"
+            >
+              <span>Analyze now</span>
+              <ArrowRight className="h-[16px] w-[16px] group-hover:translate-x-[2px] transition-transform" />
+            </Link>
             
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 mb-6 leading-tight">
-              Discover What AI Can
-              <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Automate Today
-              </span>
-            </h1>
-            
-            <p className="text-xl sm:text-2xl text-gray-600 mb-4 max-w-3xl mx-auto">
-              Upload your task list. Get instant ROI analysis and a clear automation roadmap.
-            </p>
-            
-            <p className="text-lg text-gray-500 mb-10 max-w-2xl mx-auto">
-              Stop guessing which workflows to automate. WorkScanAI analyzes your tasks with AI 
-              and shows you exactly where to invest for maximum impact.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link 
-                href="/dashboard/analyze"
-                className="group inline-flex items-center space-x-2 bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
-              >
-                <span>Start Free Analysis</span>
-                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              
-              <Link 
-                href="#example"
-                className="inline-flex items-center space-x-2 bg-white text-gray-700 px-8 py-4 rounded-lg text-lg font-semibold border-2 border-gray-200 hover:border-gray-300 transition-all"
-              >
-                <span>See Example</span>
-              </Link>
-            </div>
+            <Link 
+              href="#example"
+              className="text-blue-500 hover:text-blue-400 text-[17px] leading-[1.17] font-normal transition-colors"
+            >
+              See how it works
+            </Link>
+          </div>
 
-            {/* Stats */}
-            <div className="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto">
-              <div>
-                <div className="text-3xl font-bold text-gray-900">< 5 min</div>
-                <div className="text-sm text-gray-600">Analysis Time</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-gray-900">0-100</div>
-                <div className="text-sm text-gray-600">AI Readiness Score</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-gray-900">$$$</div>
-                <div className="text-sm text-gray-600">ROI Calculated</div>
-              </div>
+          {/* Stats - Minimalist */}
+          <div className="flex gap-[40px] justify-center mt-[60px] text-[14px]">
+            <div>
+              <div className="text-[32px] font-semibold tracking-tight mb-[4px]">&lt;5 min</div>
+              <div className="text-gray-500">to analyze</div>
+            </div>
+            <div>
+              <div className="text-[32px] font-semibold tracking-tight mb-[4px]">0–100</div>
+              <div className="text-gray-500">automation score</div>
+            </div>
+            <div>
+              <div className="text-[32px] font-semibold tracking-tight mb-[4px]">$28K+</div>
+              <div className="text-gray-500">avg. savings</div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Problem/Solution Section */}
-      <div className="py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            {/* Problem */}
-            <div>
-              <div className="inline-block bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium mb-4">
-                The Challenge
+      {/* Features - Ultra Compact */}
+      <section className="py-[60px] border-y border-gray-900">
+        <div className="max-w-[980px] mx-auto px-6">
+          <div className="grid grid-cols-3 gap-[40px]">
+            <div className="text-center">
+              <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <Sparkles className="h-[20px] w-[20px]" />
               </div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                The Bumpy Transition to AGI
-              </h2>
-              <p className="text-lg text-gray-600 mb-4">
-                Within 3-7 years, AI will automate most white-collar work—anything involving 
-                "bits manipulation" like typing, clicking, and data entry.
-              </p>
-              <p className="text-lg text-gray-600 mb-6">
-                But today, companies face a critical question:
-              </p>
-              <div className="bg-white border-l-4 border-red-500 p-6 rounded-r-lg shadow-sm">
-                <p className="text-xl font-semibold text-gray-900">
-                  "Which of our tasks can be automated <span className="text-red-600">right now</span>, 
-                  and what's the ROI?"
-                </p>
-              </div>
-            </div>
-
-            {/* Solution */}
-            <div>
-              <div className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium mb-4">
-                The Solution
-              </div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                WorkScanAI Answers That Question
-              </h2>
-              <p className="text-lg text-gray-600 mb-6">
-                Stop spending months evaluating automation opportunities. Get instant, 
-                AI-powered analysis of your workflows.
-              </p>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-4 bg-white p-4 rounded-lg shadow-sm">
-                  <div className="bg-blue-100 p-2 rounded-lg">
-                    <Zap className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Upload Task List</h3>
-                    <p className="text-gray-600">Paste your workflows or upload a CSV</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-4 bg-white p-4 rounded-lg shadow-sm">
-                  <div className="bg-purple-100 p-2 rounded-lg">
-                    <Brain className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">AI Analysis</h3>
-                    <p className="text-gray-600">Claude evaluates automation potential</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-4 bg-white p-4 rounded-lg shadow-sm">
-                  <div className="bg-green-100 p-2 rounded-lg">
-                    <TrendingUp className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Get Actionable Roadmap</h3>
-                    <p className="text-gray-600">Prioritized plan with ROI estimates</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Features Grid */}
-      <div className="py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need to Make Smart Automation Decisions
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Comprehensive analysis powered by cutting-edge AI
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="group bg-white border border-gray-200 rounded-xl p-8 hover:border-blue-300 hover:shadow-lg transition-all">
-              <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-6 group-hover:bg-blue-200 transition-colors">
-                <Brain className="h-6 w-6 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Workflow Parser</h3>
-              <p className="text-gray-600">
-                Automatically breaks down complex jobs into analyzable micro-tasks using advanced NLP
+              <h3 className="text-[19px] font-semibold mb-[8px] tracking-tight">AI Analysis</h3>
+              <p className="text-[14px] text-gray-400 leading-[1.4]">
+                Evaluates every task for automation readiness
               </p>
             </div>
 
-            <div className="group bg-white border border-gray-200 rounded-xl p-8 hover:border-purple-300 hover:shadow-lg transition-all">
-              <div className="bg-purple-100 w-12 h-12 rounded-lg flex items-center justify-center mb-6 group-hover:bg-purple-200 transition-colors">
-                <TrendingUp className="h-6 w-6 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">AI-Readiness Scoring</h3>
-              <p className="text-gray-600">
-                Evaluates each task on a 0-100 scale based on current LLM capabilities
-              </p>
-            </div>
-
-            <div className="group bg-white border border-gray-200 rounded-xl p-8 hover:border-green-300 hover:shadow-lg transition-all">
-              <div className="bg-green-100 w-12 h-12 rounded-lg flex items-center justify-center mb-6 group-hover:bg-green-200 transition-colors">
-                <Calculator className="h-6 w-6 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">ROI Calculator</h3>
-              <p className="text-gray-600">
-                Quantifies time saved, cost reduction, and payback period for each automation opportunity
-              </p>
-            </div>
-
-            <div className="group bg-white border border-gray-200 rounded-xl p-8 hover:border-orange-300 hover:shadow-lg transition-all">
-              <div className="bg-orange-100 w-12 h-12 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-200 transition-colors">
-                <MapPin className="h-6 w-6 text-orange-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Implementation Roadmap</h3>
-              <p className="text-gray-600">
-                Prioritized automation strategy from quick wins to long-term transformations
-              </p>
-            </div>
-
-            <div className="group bg-white border border-gray-200 rounded-xl p-8 hover:border-pink-300 hover:shadow-lg transition-all">
-              <div className="bg-pink-100 w-12 h-12 rounded-lg flex items-center justify-center mb-6 group-hover:bg-pink-200 transition-colors">
-                <svg className="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <div className="text-center">
+              <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                <svg className="h-[20px] w-[20px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Visual Dashboard</h3>
-              <p className="text-gray-600">
-                Interactive reports and visualizations perfect for stakeholder presentations
+              <h3 className="text-[19px] font-semibold mb-[8px] tracking-tight">ROI Calculator</h3>
+              <p className="text-[14px] text-gray-400 leading-[1.4]">
+                Calculates time and cost savings instantly
               </p>
             </div>
 
-            <div className="group bg-white border border-gray-200 rounded-xl p-8 hover:border-indigo-300 hover:shadow-lg transition-all">
-              <div className="bg-indigo-100 w-12 h-12 rounded-lg flex items-center justify-center mb-6 group-hover:bg-indigo-200 transition-colors">
-                <Clock className="h-6 w-6 text-indigo-600" />
+            <div className="text-center">
+              <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center">
+                <svg className="h-[20px] w-[20px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Instant Analysis</h3>
-              <p className="text-gray-600">
-                Get comprehensive insights in under 5 minutes instead of spending months evaluating
+              <h3 className="text-[19px] font-semibold mb-[8px] tracking-tight">Action Roadmap</h3>
+              <p className="text-[14px] text-gray-400 leading-[1.4]">
+                Prioritized plan from quick wins to long-term
               </p>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Example Use Case */}
-      <div id="example" className="py-24 bg-gradient-to-br from-blue-50 to-purple-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">See It In Action</h2>
-            <p className="text-xl text-gray-600">Real example: Marketing team workflow analysis</p>
+      {/* Example - Sleek */}
+      <section id="example" className="py-[80px]">
+        <div className="max-w-[980px] mx-auto px-6">
+          <div className="text-center mb-[48px]">
+            <h2 className="text-[40px] leading-[1.1] font-semibold tracking-tight mb-[12px]">
+              From chaos to clarity.
+            </h2>
+            <p className="text-[19px] text-gray-400">
+              Marketing team workflow analyzed in real-time.
+            </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
+          <div className="grid md:grid-cols-2 gap-[24px]">
             {/* Input */}
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <span className="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-3">1</span>
-                Input: Marketing Tasks
-              </h3>
-              <div className="space-y-3 text-gray-700">
-                <div className="flex items-start space-x-3">
-                  <span className="text-blue-600 font-mono">•</span>
-                  <span>Write social media posts (30 min/day)</span>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <span className="text-blue-600 font-mono">•</span>
-                  <span>Schedule posts across platforms (15 min/day)</span>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <span className="text-blue-600 font-mono">•</span>
-                  <span>Respond to comments (45 min/day)</span>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <span className="text-blue-600 font-mono">•</span>
-                  <span>Generate performance reports (2 hours/week)</span>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <span className="text-blue-600 font-mono">•</span>
-                  <span>Research trending topics (1 hour/day)</span>
-                </div>
+            <div className="bg-gray-900/50 backdrop-blur border border-gray-800 rounded-[18px] p-[32px]">
+              <div className="text-[12px] font-semibold text-gray-500 tracking-wide uppercase mb-[20px]">
+                Input
+              </div>
+              <div className="space-y-[12px] text-[14px] leading-[1.5] text-gray-300">
+                <div>• Social posts (30 min/day)</div>
+                <div>• Schedule platforms (15 min/day)</div>
+                <div>• Comment responses (45 min/day)</div>
+                <div>• Weekly reports (2 hrs/week)</div>
+                <div>• Topic research (1 hr/day)</div>
               </div>
             </div>
 
             {/* Output */}
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <span className="bg-green-100 text-green-600 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-3">2</span>
-                Output: Analysis Results
-              </h3>
-              
-              <div className="space-y-6">
-                <div className="border-l-4 border-green-500 pl-4">
-                  <div className="text-sm text-gray-600 mb-1">Automation Score</div>
-                  <div className="text-3xl font-bold text-gray-900">72/100</div>
-                </div>
-
-                <div className="border-l-4 border-blue-500 pl-4">
-                  <div className="text-sm text-gray-600 mb-1">Annual Savings</div>
-                  <div className="text-3xl font-bold text-gray-900">$28,000</div>
-                  <div className="text-sm text-gray-600">436 hours saved per year</div>
-                </div>
-
+            <div className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 backdrop-blur border border-blue-800/50 rounded-[18px] p-[32px]">
+              <div className="text-[12px] font-semibold text-blue-400 tracking-wide uppercase mb-[20px]">
+                Analysis
+              </div>
+              <div className="space-y-[16px]">
                 <div>
-                  <div className="font-semibold text-gray-900 mb-3">Quick Wins:</div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-green-600">✓</span>
-                      <span className="text-gray-700">Scheduling → Zapier/Buffer (90% automated)</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-green-600">✓</span>
-                      <span className="text-gray-700">Reports → Python script (95% automated)</span>
-                    </div>
-                  </div>
+                  <div className="text-[32px] font-semibold tracking-tight">72/100</div>
+                  <div className="text-[12px] text-gray-400">Automation Score</div>
                 </div>
-
                 <div>
-                  <div className="font-semibold text-gray-900 mb-3">Human-in-Loop:</div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-blue-600">→</span>
-                      <span className="text-gray-700">Comment responses (50% time saved)</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-blue-600">→</span>
-                      <span className="text-gray-700">Topic research (40% time saved)</span>
-                    </div>
-                  </div>
+                  <div className="text-[24px] font-semibold tracking-tight">$28,000</div>
+                  <div className="text-[12px] text-gray-400">Annual Savings • 436 hours</div>
+                </div>
+                <div className="pt-[8px] border-t border-gray-700">
+                  <div className="text-[12px] text-green-400 mb-[4px]">✓ Quick Wins</div>
+                  <div className="text-[13px] text-gray-400">Scheduling, Reports (90%+)</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Tech Stack */}
-      <div className="py-16 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8">
-            <p className="text-sm font-medium text-gray-600 mb-4">Powered by cutting-edge technology</p>
-            <div className="flex flex-wrap justify-center items-center gap-6">
-              <div className="px-4 py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-700">
-                Next.js 14
-              </div>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-700">
-                TypeScript
-              </div>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-700">
-                FastAPI
-              </div>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-700">
-                Claude AI
-              </div>
-              <div className="px-4 py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-700">
-                PostgreSQL
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Final CTA */}
-      <div className="py-24 bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
-            Ready to Future-Proof Your Workflow?
+      {/* CTA - Powerful & Simple */}
+      <section className="py-[80px]">
+        <div className="max-w-[700px] mx-auto px-6 text-center">
+          <h2 className="text-[48px] leading-[1.08] font-semibold tracking-tight mb-[16px]">
+            Ready to see what AI can do for you?
           </h2>
-          <p className="text-xl text-blue-100 mb-10">
-            Join companies preparing for the AI revolution. Get your free analysis today.
+          <p className="text-[19px] text-gray-400 mb-[32px]">
+            Free analysis. Instant results.
           </p>
           <Link 
             href="/dashboard/analyze"
-            className="inline-flex items-center space-x-2 bg-white text-blue-600 px-10 py-5 rounded-lg text-lg font-bold hover:bg-gray-100 transition-all shadow-2xl"
+            className="inline-flex items-center gap-[8px] bg-white hover:bg-gray-100 text-black text-[17px] font-semibold px-[28px] py-[14px] rounded-full transition-all"
           >
-            <span>Start Free Analysis</span>
-            <ArrowRight className="h-5 w-5" />
+            <span>Start now</span>
+            <ArrowRight className="h-[16px] w-[16px]" />
           </Link>
-          <p className="mt-6 text-blue-100 text-sm">
-            No credit card required • Results in under 5 minutes
-          </p>
         </div>
-      </div>
+      </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-50 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="flex items-center space-x-2">
-              <Brain className="h-6 w-6 text-blue-600" />
-              <span className="font-semibold text-gray-900">WorkScanAI</span>
-            </div>
-            <div className="text-sm text-gray-600">
-              Built by{' '}
-              <a href="https://ianworks.dev" className="text-blue-600 hover:text-blue-700 font-medium">
+      {/* Footer - Minimal */}
+      <footer className="border-t border-gray-900">
+        <div className="max-w-[980px] mx-auto px-6 py-[32px]">
+          <div className="flex justify-between items-center text-[12px] text-gray-500">
+            <div>© 2026 WorkScanAI</div>
+            <div className="flex gap-[24px]">
+              <a href="https://ianworks.dev" className="hover:text-gray-300 transition-colors">
                 Ian Baumeister
               </a>
-              {' '}• Inspired by the transition to AGI
-            </div>
-            <div className="flex space-x-6">
-              <a href="https://github.com/ibxibx/workscanai" className="text-gray-600 hover:text-gray-900">
+              <a href="https://github.com/ibxibx/workscanai" className="hover:text-gray-300 transition-colors">
                 GitHub
-              </a>
-              <a href="https://linkedin.com/in/yourprofile" className="text-gray-600 hover:text-gray-900">
-                LinkedIn
               </a>
             </div>
           </div>
