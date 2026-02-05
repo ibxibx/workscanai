@@ -8,6 +8,10 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+> 🚧 **Development Status**: Active Development | Backend: ✅ Complete | Frontend: 🔨 In Progress
+
+**Current Milestone**: Phase 1 - Foundation Complete | Phase 2 - Frontend UI Development
+
 ---
 
 ## 🎯 The Problem
