@@ -49,93 +49,106 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-2">{mockResults.workflowName}</h1>
-      <p className="text-gray-500 mb-8">Analysis ID: {params.id}</p>
+    <div className="min-h-screen bg-black text-white pt-[88px] pb-[60px]">
+      <div className="max-w-[980px] mx-auto px-6">
+        {/* Header */}
+        <div className="mb-[48px]">
+          <h1 className="text-[48px] leading-[1.08] font-semibold tracking-tight mb-[8px]">
+            {mockResults.workflowName}
+          </h1>
+          <p className="text-[14px] text-gray-600">Analysis ID: {params.id}</p>
+        </div>
 
-      {/* Summary Cards */}
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-sm text-gray-600 mb-1">Automation Score</div>
-          <div className="text-4xl font-bold text-blue-600 mb-1">
-            {mockResults.automationScore}%
+        {/* Summary Cards */}
+        <div className="grid md:grid-cols-3 gap-[16px] mb-[48px]">
+          <div className="bg-gray-900/50 border border-gray-800 rounded-[18px] p-[32px]">
+            <div className="text-[12px] font-semibold text-gray-600 tracking-wide uppercase mb-[12px]">
+              Automation Score
+            </div>
+            <div className="text-[48px] font-semibold tracking-tight text-blue-400 mb-[4px]">
+              {mockResults.automationScore}%
+            </div>
+            <div className="text-[13px] text-gray-600">
+              {mockResults.automationReady} of {mockResults.totalTasks} tasks ready
+            </div>
           </div>
-          <div className="text-sm text-gray-500">
-            {mockResults.automationReady} of {mockResults.totalTasks} tasks ready
+
+          <div className="bg-gray-900/50 border border-gray-800 rounded-[18px] p-[32px]">
+            <div className="text-[12px] font-semibold text-gray-600 tracking-wide uppercase mb-[12px]">
+              Annual Savings
+            </div>
+            <div className="text-[48px] font-semibold tracking-tight text-green-400 mb-[4px]">
+              €{mockResults.annualSavings.toLocaleString()}
+            </div>
+            <div className="text-[13px] text-gray-600">
+              {mockResults.hoursSaved} hours per year
+            </div>
+          </div>
+
+          <div className="bg-gray-900/50 border border-gray-800 rounded-[18px] p-[32px]">
+            <div className="text-[12px] font-semibold text-gray-600 tracking-wide uppercase mb-[12px]">
+              Quick Wins
+            </div>
+            <div className="text-[48px] font-semibold tracking-tight text-purple-400 mb-[4px]">
+              {mockResults.tasks.filter(t => t.difficulty === 'Easy' || t.difficulty === 'Very Easy').length}
+            </div>
+            <div className="text-[13px] text-gray-600">
+              Tasks you can automate today
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-sm text-gray-600 mb-1">Annual Savings</div>
-          <div className="text-4xl font-bold text-green-600 mb-1">
-            ${mockResults.annualSavings.toLocaleString()}
-          </div>
-          <div className="text-sm text-gray-500">
-            {mockResults.hoursSaved} hours per year
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-sm text-gray-600 mb-1">Quick Wins</div>
-          <div className="text-4xl font-bold text-purple-600 mb-1">
-            {mockResults.tasks.filter(t => t.difficulty === 'Easy' || t.difficulty === 'Very Easy').length}
-          </div>
-          <div className="text-sm text-gray-500">
-            Tasks you can automate today
-          </div>
-        </div>
-      </div>
-
-      {/* Task Breakdown */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Task Breakdown</h2>
-        <div className="space-y-4">
-          {mockResults.tasks.map((task, index) => (
-            <div key={index} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-semibold text-lg">{task.name}</h3>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  task.automationScore >= 80 ? 'bg-green-100 text-green-800' :
-                  task.automationScore >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {task.automationScore}% Ready
-                </span>
-              </div>
-              <div className="grid md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Time Saved: </span>
-                  <span className="font-medium">{task.timeSaved}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Difficulty: </span>
-                  <span className="font-medium">{task.difficulty}</span>
-                </div>
-                <div className="md:col-span-1">
-                  <span className="text-gray-600">Priority: </span>
-                  <span className="font-medium">
-                    {task.automationScore >= 80 && task.difficulty === 'Easy' ? 'High' :
-                     task.automationScore >= 60 ? 'Medium' : 'Low'}
+        {/* Task Breakdown */}
+        <div className="bg-gray-900/50 border border-gray-800 rounded-[18px] p-[40px] mb-[32px]">
+          <h2 className="text-[28px] font-semibold tracking-tight mb-[32px]">Task Breakdown</h2>
+          <div className="space-y-[16px]">
+            {mockResults.tasks.map((task, index) => (
+              <div key={index} className="border border-gray-800 rounded-[12px] p-[24px] bg-black/40">
+                <div className="flex justify-between items-start mb-[16px]">
+                  <h3 className="text-[19px] font-semibold text-gray-200">{task.name}</h3>
+                  <span className={`px-[12px] py-[6px] rounded-full text-[13px] font-semibold ${
+                    task.automationScore >= 80 ? 'bg-green-500/20 text-green-400' :
+                    task.automationScore >= 60 ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-red-500/20 text-red-400'
+                  }`}>
+                    {task.automationScore}% Ready
                   </span>
                 </div>
+                <div className="grid md:grid-cols-3 gap-[16px] text-[14px] mb-[16px]">
+                  <div>
+                    <span className="text-gray-600">Time Saved: </span>
+                    <span className="font-medium text-gray-300">{task.timeSaved}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Difficulty: </span>
+                    <span className="font-medium text-gray-300">{task.difficulty}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Priority: </span>
+                    <span className="font-medium text-gray-300">
+                      {task.automationScore >= 80 && task.difficulty === 'Easy' ? 'High' :
+                       task.automationScore >= 60 ? 'Medium' : 'Low'}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-[16px] bg-blue-500/10 border border-blue-500/20 rounded-[8px]">
+                  <span className="text-[13px] font-semibold text-blue-400">💡 Recommendation: </span>
+                  <span className="text-[13px] text-gray-300">{task.recommendation}</span>
+                </div>
               </div>
-              <div className="mt-3 p-3 bg-blue-50 rounded">
-                <span className="text-sm font-medium text-blue-800">💡 Recommendation: </span>
-                <span className="text-sm text-blue-700">{task.recommendation}</span>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Actions */}
-      <div className="flex gap-4">
-        <button className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-          Download Report
-        </button>
-        <button className="border border-gray-300 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
-          Share Results
-        </button>
+        {/* Actions */}
+        <div className="flex gap-[16px]">
+          <button className="bg-gradient-to-br from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all">
+            Download Report
+          </button>
+          <button className="border border-gray-800 hover:border-gray-700 hover:bg-gray-900/50 px-[28px] py-[14px] rounded-full font-medium text-[17px] text-gray-400 hover:text-white transition-all">
+            Share Results
+          </button>
+        </div>
       </div>
     </div>
   )

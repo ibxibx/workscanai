@@ -24,12 +24,15 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="pt-[88px] pb-[60px]">
         <div className="max-w-[980px] mx-auto px-6 text-center">
-          <h1 className="text-[56px] leading-[1.07] font-semibold tracking-tight mb-[6px] bg-gradient-to-br from-white via-white to-gray-500 bg-clip-text text-transparent">
-            The future of work
-            <br />
-            starts with knowing
-            <br />
-            what to automate.
+          <h1 className="relative text-[56px] leading-[1.07] font-semibold tracking-tight mb-[6px]">
+            <span className="absolute inset-0 blur-[80px] bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-transparent"></span>
+            <span className="relative bg-gradient-to-br from-white via-white to-gray-500 bg-clip-text text-transparent">
+              The future of work
+              <br />
+              starts with knowing
+              <br />
+              what to automate.
+            </span>
           </h1>
           
           <p className="text-[21px] leading-[1.381] font-normal text-gray-400 mb-[30px] max-w-[700px] mx-auto mt-[18px]">
@@ -64,7 +67,7 @@ export default function LandingPage() {
               <div className="text-gray-500">automation score</div>
             </div>
             <div>
-              <div className="text-[32px] font-semibold tracking-tight mb-[4px]">$28K+</div>
+              <div className="text-[32px] font-semibold tracking-tight mb-[4px]">€28K+</div>
               <div className="text-gray-500">avg. savings</div>
             </div>
           </div>
@@ -116,8 +119,9 @@ export default function LandingPage() {
       <section id="example" className="py-[80px]">
         <div className="max-w-[980px] mx-auto px-6">
           <div className="text-center mb-[48px]">
-            <h2 className="text-[40px] leading-[1.1] font-semibold tracking-tight mb-[12px]">
-              From chaos to clarity.
+            <h2 className="relative text-[40px] leading-[1.1] font-semibold tracking-tight mb-[12px]">
+              <span className="absolute inset-0 blur-[60px] bg-gradient-to-r from-blue-500/15 to-purple-500/15"></span>
+              <span className="relative">From chaos to clarity.</span>
             </h2>
             <p className="text-[19px] text-gray-400">
               Marketing team workflow analyzed in real-time.
@@ -150,7 +154,7 @@ export default function LandingPage() {
                   <div className="text-[12px] text-gray-400">Automation Score</div>
                 </div>
                 <div>
-                  <div className="text-[24px] font-semibold tracking-tight">$28,000</div>
+                  <div className="text-[24px] font-semibold tracking-tight">€28,000</div>
                   <div className="text-[12px] text-gray-400">Annual Savings • 436 hours</div>
                 </div>
                 <div className="pt-[8px] border-t border-gray-700">
@@ -166,8 +170,9 @@ export default function LandingPage() {
       {/* CTA - Powerful & Simple */}
       <section className="py-[80px]">
         <div className="max-w-[700px] mx-auto px-6 text-center">
-          <h2 className="text-[48px] leading-[1.08] font-semibold tracking-tight mb-[16px]">
-            Ready to see what AI can do for you?
+          <h2 className="relative text-[48px] leading-[1.08] font-semibold tracking-tight mb-[16px]">
+            <span className="absolute inset-0 blur-[70px] bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20"></span>
+            <span className="relative">Ready to see what AI can do for you?</span>
           </h2>
           <p className="text-[19px] text-gray-400 mb-[32px]">
             Free analysis. Instant results.
