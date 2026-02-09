@@ -44,7 +44,7 @@ export default function LandingPage() {
               
               <div className="flex gap-[16px] justify-center items-center">
                 <Link 
-                  href="/dashboard/analyze"
+                  href="#analyze"
                   className="group inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[17px] leading-[1.17] font-normal px-[22px] py-[12px] rounded-full transition-all"
                 >
                   <span>Analyze now</span>
@@ -179,6 +179,105 @@ export default function LandingPage() {
                   <div className="text-[13px] text-[#6e6e73]">Scheduling, Reports (90%+)</div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Analyze Form Section - Integrated */}
+      <section id="analyze" className="py-[80px] bg-white">
+        <div className="max-w-[980px] mx-auto px-6">
+          <div className="text-center mb-[48px]">
+            <div className="relative inline-block">
+              <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[100px]"></div>
+              <h2 className="relative text-[40px] leading-[1.1] font-semibold tracking-tight mb-[12px] text-[#1d1d1f] px-[32px]">
+                Start your analysis now.
+              </h2>
+            </div>
+            <p className="text-[19px] text-[#6e6e73]">
+              Upload a document or enter your tasks manually.
+            </p>
+          </div>
+
+          {/* Quick Form */}
+          <div className="max-w-[800px] mx-auto">
+            {/* Workflow Name */}
+            <div className="mb-[24px]">
+              <label className="block text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">
+                Workflow Name
+              </label>
+              <input
+                type="text"
+                placeholder="Marketing Team Daily Tasks"
+                className="w-full px-[16px] py-[14px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[12px] text-[17px] placeholder-[#86868b] focus:border-[#0071e3] focus:outline-none focus:ring-1 focus:ring-[#0071e3] transition-all"
+              />
+            </div>
+
+            {/* File Upload */}
+            <div className="mb-[24px] group">
+              <div className="bg-[#f5f5f7] border-2 border-dashed border-[#d2d2d7] rounded-[18px] p-[40px] text-center transition-all hover:border-[#0071e3] hover:bg-blue-50">
+                <div className="inline-flex items-center justify-center w-[56px] h-[56px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-[16px]">
+                  <svg className="h-[24px] w-[24px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <div className="text-[17px] font-medium mb-[8px] text-[#1d1d1f]">
+                  Drop your file here
+                </div>
+                <div className="text-[14px] text-[#6e6e73] mb-[16px]">
+                  JPG, PNG, PDF, DOCX, or TXT • Max 10MB
+                </div>
+                <button className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[14px] px-[20px] py-[10px] rounded-full transition-all">
+                  Browse files
+                </button>
+              </div>
+              <div className="text-[12px] text-[#86868b] mt-[12px] text-center">
+                AI will extract and analyze tasks from your document automatically
+              </div>
+            </div>
+
+            {/* OR Divider */}
+            <div className="flex items-center gap-[16px] my-[32px]">
+              <div className="flex-1 h-[1px] bg-[#d2d2d7]"></div>
+              <div className="text-[12px] text-[#86868b] font-semibold tracking-wide uppercase">
+                Or enter manually
+              </div>
+              <div className="flex-1 h-[1px] bg-[#d2d2d7]"></div>
+            </div>
+
+            {/* Task Inputs */}
+            <div className="space-y-[12px] mb-[32px]">
+              <input
+                type="text"
+                placeholder="Task 1: Write social media posts (30 min/day)"
+                className="w-full px-[16px] py-[14px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[12px] text-[15px] placeholder-[#86868b] focus:border-[#0071e3] focus:outline-none focus:ring-1 focus:ring-[#0071e3] transition-all"
+              />
+              <input
+                type="text"
+                placeholder="Task 2: Schedule posts across platforms (15 min/day)"
+                className="w-full px-[16px] py-[14px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[12px] text-[15px] placeholder-[#86868b] focus:border-[#0071e3] focus:outline-none focus:ring-1 focus:ring-[#0071e3] transition-all"
+              />
+              <input
+                type="text"
+                placeholder="Task 3: Respond to comments (45 min/day)"
+                className="w-full px-[16px] py-[14px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[12px] text-[15px] placeholder-[#86868b] focus:border-[#0071e3] focus:outline-none focus:ring-1 focus:ring-[#0071e3] transition-all"
+              />
+            </div>
+
+            {/* CTA Button */}
+            <div className="text-center">
+              <Link
+                href="/dashboard/analyze"
+                className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[17px] font-semibold px-[32px] py-[16px] rounded-full transition-all shadow-lg hover:shadow-xl"
+              >
+                <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span>Analyze workflow</span>
+              </Link>
+              <p className="mt-[16px] text-[12px] text-[#86868b]">
+                Analysis typically completes in under 5 minutes
+              </p>
             </div>
           </div>
         </div>
