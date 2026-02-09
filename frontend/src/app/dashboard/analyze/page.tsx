@@ -133,19 +133,22 @@ export default function AnalyzePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white pt-[88px] pb-[60px]">
+    <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]">
       {/* Header */}
       <div className="max-w-[980px] mx-auto px-6 mb-[48px]">
         <button
           onClick={() => router.push('/')}
-          className="text-[12px] text-gray-400 hover:text-white mb-[24px] transition-colors"
+          className="text-[12px] text-[#6e6e73] hover:text-[#1d1d1f] mb-[24px] transition-colors"
         >
           ← Back
         </button>
-        <h1 className="text-[48px] leading-[1.08] font-semibold tracking-tight mb-[12px]">
-          Analyze your workflow.
-        </h1>
-        <p className="text-[19px] text-gray-400">
+        <div className="relative inline-block">
+          <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[100px]"></div>
+          <h1 className="relative text-[48px] leading-[1.08] font-semibold tracking-tight mb-[12px] px-[32px]">
+            Analyze your workflow.
+          </h1>
+        </div>
+        <p className="text-[19px] text-[#6e6e73]">
           Upload a document or manually enter your tasks.
         </p>
       </div>
@@ -153,7 +156,7 @@ export default function AnalyzePage() {
       <form onSubmit={handleSubmit} className="max-w-[980px] mx-auto px-6">
         {/* Workflow Name */}
         <div className="mb-[32px]">
-          <label className="block text-[12px] font-semibold text-gray-500 tracking-wide uppercase mb-[12px]">
+          <label className="block text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">
             Workflow Name
           </label>
           <input
@@ -161,14 +164,14 @@ export default function AnalyzePage() {
             value={workflowName}
             onChange={(e) => setWorkflowName(e.target.value)}
             placeholder="Marketing Team Daily Tasks"
-            className="w-full px-[16px] py-[14px] bg-gray-900/50 border border-gray-800 rounded-[12px] text-[17px] placeholder-gray-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+            className="w-full px-[16px] py-[14px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[12px] text-[17px] placeholder-[#86868b] focus:border-[#0071e3] focus:outline-none focus:ring-1 focus:ring-[#0071e3] transition-all"
             required
           />
         </div>
 
         {/* File Upload Area */}
         <div className="mb-[32px]">
-          <label className="block text-[12px] font-semibold text-gray-500 tracking-wide uppercase mb-[12px]">
+          <label className="block text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">
             Upload Document
           </label>
           
@@ -179,19 +182,19 @@ export default function AnalyzePage() {
             onDrop={handleDrop}
             className={`relative border-2 border-dashed rounded-[18px] p-[40px] text-center transition-all ${
               dragActive 
-                ? 'border-blue-500 bg-blue-500/10' 
-                : 'border-gray-800 bg-gray-900/30 hover:border-gray-700'
+                ? 'border-[#0071e3] bg-blue-50' 
+                : 'border-[#d2d2d7] bg-[#f5f5f7] hover:border-[#b8b8bd]'
             }`}
           >
             {uploadedFile ? (
-              <div className="flex items-center justify-between bg-gray-900/80 rounded-[12px] px-[20px] py-[16px]">
+              <div className="flex items-center justify-between bg-white border border-[#d2d2d7] rounded-[12px] px-[20px] py-[16px]">
                 <div className="flex items-center gap-[12px]">
-                  <div className="text-blue-400">
+                  <div className="text-[#0071e3]">
                     {getFileIcon()}
                   </div>
                   <div className="text-left">
-                    <div className="text-[14px] font-medium">{uploadedFile.name}</div>
-                    <div className="text-[12px] text-gray-500">
+                    <div className="text-[14px] font-medium text-[#1d1d1f]">{uploadedFile.name}</div>
+                    <div className="text-[12px] text-[#86868b]">
                       {(uploadedFile.size / 1024).toFixed(1)} KB
                     </div>
                   </div>
@@ -199,7 +202,7 @@ export default function AnalyzePage() {
                 <button
                   type="button"
                   onClick={removeFile}
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-[#86868b] hover:text-[#1d1d1f] transition-colors"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -208,19 +211,19 @@ export default function AnalyzePage() {
               <>
                 <div className="mb-[16px]">
                   <div className="inline-flex items-center justify-center w-[56px] h-[56px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-[16px]">
-                    <Upload className="h-[24px] w-[24px]" />
+                    <Upload className="h-[24px] w-[24px] text-white" />
                   </div>
                 </div>
-                <div className="text-[17px] font-medium mb-[8px]">
+                <div className="text-[17px] font-medium mb-[8px] text-[#1d1d1f]">
                   Drop your file here
                 </div>
-                <div className="text-[14px] text-gray-400 mb-[16px]">
+                <div className="text-[14px] text-[#6e6e73] mb-[16px]">
                   JPG, PNG, PDF, DOCX, or TXT • Max 10MB
                 </div>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-[8px] bg-white/10 hover:bg-white/20 text-white text-[14px] px-[20px] py-[10px] rounded-full transition-all"
+                  className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[14px] px-[20px] py-[10px] rounded-full transition-all"
                 >
                   Browse files
                 </button>
@@ -235,23 +238,23 @@ export default function AnalyzePage() {
             )}
           </div>
           
-          <div className="text-[12px] text-gray-500 mt-[12px]">
+          <div className="text-[12px] text-[#86868b] mt-[12px]">
             AI will extract and analyze tasks from your document automatically
           </div>
         </div>
 
         {/* OR Divider */}
         <div className="flex items-center gap-[16px] my-[40px]">
-          <div className="flex-1 h-[1px] bg-gray-800"></div>
-          <div className="text-[12px] text-gray-500 font-semibold tracking-wide uppercase">
+          <div className="flex-1 h-[1px] bg-[#d2d2d7]"></div>
+          <div className="text-[12px] text-[#86868b] font-semibold tracking-wide uppercase">
             Or enter manually
           </div>
-          <div className="flex-1 h-[1px] bg-gray-800"></div>
+          <div className="flex-1 h-[1px] bg-[#d2d2d7]"></div>
         </div>
 
         {/* Manual Task Entry */}
         <div className="mb-[48px]">
-          <label className="block text-[12px] font-semibold text-gray-500 tracking-wide uppercase mb-[12px]">
+          <label className="block text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">
             Tasks
           </label>
           
@@ -264,14 +267,14 @@ export default function AnalyzePage() {
                     value={task}
                     onChange={(e) => updateTask(index, e.target.value)}
                     placeholder={`Task ${index + 1}: Write social media posts (30 min/day)`}
-                    className="w-full px-[16px] py-[14px] bg-gray-900/50 border border-gray-800 rounded-[12px] text-[15px] placeholder-gray-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full px-[16px] py-[14px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[12px] text-[15px] placeholder-[#86868b] focus:border-[#0071e3] focus:outline-none focus:ring-1 focus:ring-[#0071e3] transition-all"
                   />
                 </div>
                 {tasks.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeTask(index)}
-                    className="w-[44px] h-[44px] flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-[12px] transition-all opacity-0 group-hover:opacity-100"
+                    className="w-[44px] h-[44px] flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 rounded-[12px] transition-all opacity-0 group-hover:opacity-100"
                   >
                     <Minus className="h-[18px] w-[18px]" />
                   </button>
@@ -283,7 +286,7 @@ export default function AnalyzePage() {
           <button
             type="button"
             onClick={addTask}
-            className="mt-[16px] inline-flex items-center gap-[8px] text-blue-400 hover:text-blue-300 text-[14px] font-medium transition-colors"
+            className="mt-[16px] inline-flex items-center gap-[8px] text-[#0071e3] hover:text-[#0077ed] text-[14px] font-medium transition-colors"
           >
             <Plus className="h-[16px] w-[16px]" />
             Add task
@@ -295,7 +298,7 @@ export default function AnalyzePage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="group relative flex-1 overflow-hidden bg-gradient-to-br from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="group relative flex-1 overflow-hidden bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             <span className="relative z-10 flex items-center justify-center gap-[8px]">
               {isLoading ? (
@@ -310,22 +313,19 @@ export default function AnalyzePage() {
                 </>
               )}
             </span>
-            {!isLoading && (
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            )}
           </button>
           
           <button
             type="button"
             onClick={() => router.push('/dashboard')}
-            className="px-[28px] py-[14px] border border-gray-800 hover:border-gray-700 hover:bg-gray-900/50 rounded-full font-medium text-[17px] text-gray-400 hover:text-white transition-all"
+            className="px-[28px] py-[14px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] rounded-full font-medium text-[17px] text-[#1d1d1f] transition-all"
           >
             Cancel
           </button>
         </div>
 
         {/* Info Note */}
-        <div className="mt-[24px] text-[12px] text-gray-500 text-center">
+        <div className="mt-[24px] text-[12px] text-[#86868b] text-center">
           Analysis typically completes in under 5 minutes
         </div>
       </form>

@@ -3,17 +3,17 @@ import { ArrowRight, Sparkles } from 'lucide-react'
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-white text-[#1d1d1f]">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-b border-gray-800">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#d2d2d7]">
         <div className="max-w-[980px] mx-auto px-6">
           <div className="flex justify-between items-center h-[44px]">
-            <Link href="/" className="text-[21px] font-semibold tracking-tight">
+            <Link href="/" className="text-[21px] font-semibold tracking-tight text-[#1d1d1f]">
               WorkScanAI
             </Link>
             <Link 
               href="/dashboard"
-              className="text-[12px] text-gray-300 hover:text-white transition-colors"
+              className="text-[12px] text-[#6e6e73] hover:text-[#1d1d1f] transition-colors"
             >
               Dashboard
             </Link>
@@ -24,92 +24,107 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="pt-[88px] pb-[60px]">
         <div className="max-w-[980px] mx-auto px-6 text-center">
-          <h1 className="relative text-[56px] leading-[1.07] font-semibold tracking-tight mb-[6px]">
-            <span className="absolute inset-0 blur-[80px] bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-transparent"></span>
-            <span className="relative bg-gradient-to-br from-white via-white to-gray-500 bg-clip-text text-transparent">
+          <div className="relative inline-block mb-[40px]">
+            <div className="absolute inset-0 -inset-x-[200px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[120px]"></div>
+            <h1 className="relative text-[56px] leading-[1.07] font-semibold tracking-tight text-[#1d1d1f] px-[40px]">
               The future of work
               <br />
               starts with knowing
               <br />
               what to automate.
-            </span>
-          </h1>
+            </h1>
+          </div>
           
-          <p className="text-[21px] leading-[1.381] font-normal text-gray-400 mb-[30px] max-w-[700px] mx-auto mt-[18px]">
-            AI-powered analysis reveals which tasks are ready for automation — and exactly how much you'll save.
-          </p>
-          
-          <div className="flex gap-[16px] justify-center items-center">
-            <Link 
-              href="/dashboard/analyze"
-              className="group inline-flex items-center gap-[8px] bg-blue-600 hover:bg-blue-500 text-white text-[17px] leading-[1.17] font-normal px-[22px] py-[12px] rounded-full transition-all"
-            >
-              <span>Analyze now</span>
-              <ArrowRight className="h-[16px] w-[16px] group-hover:translate-x-[2px] transition-transform" />
-            </Link>
-            
-            <Link 
-              href="#example"
-              className="text-blue-500 hover:text-blue-400 text-[17px] leading-[1.17] font-normal transition-colors"
-            >
-              See how it works
-            </Link>
+          {/* Value Proposition Block */}
+          <div className="max-w-[800px] mx-auto mt-[40px] mb-[40px] group">
+            <div className="bg-[#fbfbfd] border border-[#e8e8ed] rounded-[18px] p-[32px] transition-all duration-300 hover:border-[#0071e3] hover:shadow-lg">
+              <p className="text-[21px] leading-[1.381] font-normal text-[#6e6e73] mb-[24px]">
+                AI-powered analysis reveals which tasks are ready for automation — and exactly how much you'll save.
+              </p>
+              
+              <div className="flex gap-[16px] justify-center items-center">
+                <Link 
+                  href="/dashboard/analyze"
+                  className="group inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[17px] leading-[1.17] font-normal px-[22px] py-[12px] rounded-full transition-all"
+                >
+                  <span>Analyze now</span>
+                  <ArrowRight className="h-[16px] w-[16px] group-hover:translate-x-[2px] transition-transform" />
+                </Link>
+                
+                <Link 
+                  href="#example"
+                  className="text-[#0071e3] hover:text-[#0077ed] text-[17px] leading-[1.17] font-normal transition-colors"
+                >
+                  See how it works
+                </Link>
+              </div>
+            </div>
           </div>
 
-          {/* Stats - Minimalist */}
-          <div className="flex gap-[40px] justify-center mt-[60px] text-[14px]">
-            <div>
-              <div className="text-[32px] font-semibold tracking-tight mb-[4px]">&lt;5 min</div>
-              <div className="text-gray-500">to analyze</div>
-            </div>
-            <div>
-              <div className="text-[32px] font-semibold tracking-tight mb-[4px]">0–100</div>
-              <div className="text-gray-500">automation score</div>
-            </div>
-            <div>
-              <div className="text-[32px] font-semibold tracking-tight mb-[4px]">€28K+</div>
-              <div className="text-gray-500">avg. savings</div>
+          {/* Stats Block */}
+          <div className="max-w-[700px] mx-auto group">
+            <div className="bg-[#fbfbfd] border border-[#e8e8ed] rounded-[18px] p-[40px] transition-all duration-300 hover:border-[#0071e3] hover:shadow-lg">
+              <div className="flex gap-[40px] justify-center text-[14px]">
+                <div>
+                  <div className="text-[32px] font-semibold tracking-tight text-[#1d1d1f] mb-[4px]">&lt;5 min</div>
+                  <div className="text-[#86868b]">to analyze</div>
+                </div>
+                <div>
+                  <div className="text-[32px] font-semibold tracking-tight text-[#1d1d1f] mb-[4px]">0–100</div>
+                  <div className="text-[#86868b]">automation score</div>
+                </div>
+                <div>
+                  <div className="text-[32px] font-semibold tracking-tight text-[#1d1d1f] mb-[4px]">€28K+</div>
+                  <div className="text-[#86868b]">avg. savings</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features - Ultra Compact */}
-      <section className="py-[60px] border-y border-gray-900">
+      <section className="py-[60px] border-y border-[#d2d2d7] bg-[#f5f5f7]">
         <div className="max-w-[980px] mx-auto px-6">
-          <div className="grid grid-cols-3 gap-[40px]">
-            <div className="text-center">
-              <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <Sparkles className="h-[20px] w-[20px]" />
+          <div className="grid grid-cols-3 gap-[20px]">
+            <div className="group">
+              <div className="text-center bg-white border border-[#e8e8ed] rounded-[18px] p-[32px] h-full transition-all duration-300 hover:border-[#0071e3] hover:shadow-lg">
+                <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <Sparkles className="h-[20px] w-[20px] text-white" />
+                </div>
+                <h3 className="text-[19px] font-semibold mb-[8px] tracking-tight text-[#1d1d1f]">AI Analysis</h3>
+                <p className="text-[14px] text-[#6e6e73] leading-[1.4]">
+                  Evaluates every task for automation readiness
+                </p>
               </div>
-              <h3 className="text-[19px] font-semibold mb-[8px] tracking-tight">AI Analysis</h3>
-              <p className="text-[14px] text-gray-400 leading-[1.4]">
-                Evaluates every task for automation readiness
-              </p>
             </div>
 
-            <div className="text-center">
-              <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                <svg className="h-[20px] w-[20px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+            <div className="group">
+              <div className="text-center bg-white border border-[#e8e8ed] rounded-[18px] p-[32px] h-full transition-all duration-300 hover:border-[#0071e3] hover:shadow-lg">
+                <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                  <svg className="h-[20px] w-[20px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-[19px] font-semibold mb-[8px] tracking-tight text-[#1d1d1f]">ROI Calculator</h3>
+                <p className="text-[14px] text-[#6e6e73] leading-[1.4]">
+                  Calculates time and cost savings instantly
+                </p>
               </div>
-              <h3 className="text-[19px] font-semibold mb-[8px] tracking-tight">ROI Calculator</h3>
-              <p className="text-[14px] text-gray-400 leading-[1.4]">
-                Calculates time and cost savings instantly
-              </p>
             </div>
 
-            <div className="text-center">
-              <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center">
-                <svg className="h-[20px] w-[20px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
+            <div className="group">
+              <div className="text-center bg-white border border-[#e8e8ed] rounded-[18px] p-[32px] h-full transition-all duration-300 hover:border-[#0071e3] hover:shadow-lg">
+                <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center">
+                  <svg className="h-[20px] w-[20px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                </div>
+                <h3 className="text-[19px] font-semibold mb-[8px] tracking-tight text-[#1d1d1f]">Action Roadmap</h3>
+                <p className="text-[14px] text-[#6e6e73] leading-[1.4]">
+                  Prioritized plan from quick wins to long-term
+                </p>
               </div>
-              <h3 className="text-[19px] font-semibold mb-[8px] tracking-tight">Action Roadmap</h3>
-              <p className="text-[14px] text-gray-400 leading-[1.4]">
-                Prioritized plan from quick wins to long-term
-              </p>
             </div>
           </div>
         </div>
@@ -119,22 +134,24 @@ export default function LandingPage() {
       <section id="example" className="py-[80px]">
         <div className="max-w-[980px] mx-auto px-6">
           <div className="text-center mb-[48px]">
-            <h2 className="relative text-[40px] leading-[1.1] font-semibold tracking-tight mb-[12px]">
-              <span className="absolute inset-0 blur-[60px] bg-gradient-to-r from-blue-500/15 to-purple-500/15"></span>
-              <span className="relative">From chaos to clarity.</span>
-            </h2>
-            <p className="text-[19px] text-gray-400">
+            <div className="relative inline-block">
+              <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[100px]"></div>
+              <h2 className="relative text-[40px] leading-[1.1] font-semibold tracking-tight mb-[12px] text-[#1d1d1f] px-[32px]">
+                From chaos to clarity.
+              </h2>
+            </div>
+            <p className="text-[19px] text-[#6e6e73]">
               Marketing team workflow analyzed in real-time.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-[24px]">
             {/* Input */}
-            <div className="bg-gray-900/50 backdrop-blur border border-gray-800 rounded-[18px] p-[32px]">
-              <div className="text-[12px] font-semibold text-gray-500 tracking-wide uppercase mb-[20px]">
+            <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
+              <div className="text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[20px]">
                 Input
               </div>
-              <div className="space-y-[12px] text-[14px] leading-[1.5] text-gray-300">
+              <div className="space-y-[12px] text-[14px] leading-[1.5] text-[#1d1d1f]">
                 <div>• Social posts (30 min/day)</div>
                 <div>• Schedule platforms (15 min/day)</div>
                 <div>• Comment responses (45 min/day)</div>
@@ -144,22 +161,22 @@ export default function LandingPage() {
             </div>
 
             {/* Output */}
-            <div className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 backdrop-blur border border-blue-800/50 rounded-[18px] p-[32px]">
-              <div className="text-[12px] font-semibold text-blue-400 tracking-wide uppercase mb-[20px]">
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-[18px] p-[32px]">
+              <div className="text-[12px] font-semibold text-[#0071e3] tracking-wide uppercase mb-[20px]">
                 Analysis
               </div>
               <div className="space-y-[16px]">
                 <div>
-                  <div className="text-[32px] font-semibold tracking-tight">72/100</div>
-                  <div className="text-[12px] text-gray-400">Automation Score</div>
+                  <div className="text-[32px] font-semibold tracking-tight text-[#1d1d1f]">72/100</div>
+                  <div className="text-[12px] text-[#6e6e73]">Automation Score</div>
                 </div>
                 <div>
-                  <div className="text-[24px] font-semibold tracking-tight">€28,000</div>
-                  <div className="text-[12px] text-gray-400">Annual Savings • 436 hours</div>
+                  <div className="text-[24px] font-semibold tracking-tight text-[#1d1d1f]">€28,000</div>
+                  <div className="text-[12px] text-[#6e6e73]">Annual Savings • 436 hours</div>
                 </div>
-                <div className="pt-[8px] border-t border-gray-700">
-                  <div className="text-[12px] text-green-400 mb-[4px]">✓ Quick Wins</div>
-                  <div className="text-[13px] text-gray-400">Scheduling, Reports (90%+)</div>
+                <div className="pt-[8px] border-t border-[#d2d2d7]">
+                  <div className="text-[12px] text-green-600 mb-[4px]">✓ Quick Wins</div>
+                  <div className="text-[13px] text-[#6e6e73]">Scheduling, Reports (90%+)</div>
                 </div>
               </div>
             </div>
@@ -168,18 +185,20 @@ export default function LandingPage() {
       </section>
 
       {/* CTA - Powerful & Simple */}
-      <section className="py-[80px]">
+      <section className="py-[80px] bg-[#f5f5f7]">
         <div className="max-w-[700px] mx-auto px-6 text-center">
-          <h2 className="relative text-[48px] leading-[1.08] font-semibold tracking-tight mb-[16px]">
-            <span className="absolute inset-0 blur-[70px] bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20"></span>
-            <span className="relative">Ready to see what AI can do for you?</span>
-          </h2>
-          <p className="text-[19px] text-gray-400 mb-[32px]">
+          <div className="relative inline-block">
+            <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[100px]"></div>
+            <h2 className="relative text-[48px] leading-[1.08] font-semibold tracking-tight mb-[16px] text-[#1d1d1f] px-[32px]">
+              Ready to see what AI can do for you?
+            </h2>
+          </div>
+          <p className="text-[19px] text-[#6e6e73] mb-[32px]">
             Free analysis. Instant results.
           </p>
           <Link 
             href="/dashboard/analyze"
-            className="inline-flex items-center gap-[8px] bg-white hover:bg-gray-100 text-black text-[17px] font-semibold px-[28px] py-[14px] rounded-full transition-all"
+            className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[17px] font-semibold px-[28px] py-[14px] rounded-full transition-all"
           >
             <span>Start now</span>
             <ArrowRight className="h-[16px] w-[16px]" />
@@ -188,15 +207,15 @@ export default function LandingPage() {
       </section>
 
       {/* Footer - Minimal */}
-      <footer className="border-t border-gray-900">
+      <footer className="border-t border-[#d2d2d7]">
         <div className="max-w-[980px] mx-auto px-6 py-[32px]">
-          <div className="flex justify-between items-center text-[12px] text-gray-500">
+          <div className="flex justify-between items-center text-[12px] text-[#86868b]">
             <div>© 2026 WorkScanAI</div>
             <div className="flex gap-[24px]">
-              <a href="https://ianworks.dev" className="hover:text-gray-300 transition-colors">
+              <a href="https://ianworks.dev" className="hover:text-[#1d1d1f] transition-colors">
                 Ian Baumeister
               </a>
-              <a href="https://github.com/ibxibx/workscanai" className="hover:text-gray-300 transition-colors">
+              <a href="https://github.com/ibxibx/workscanai" className="hover:text-[#1d1d1f] transition-colors">
                 GitHub
               </a>
             </div>
