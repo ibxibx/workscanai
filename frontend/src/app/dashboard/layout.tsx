@@ -24,7 +24,7 @@ export default function DashboardLayout({
                 Dashboard
               </Link>
               <Link 
-                href="/dashboard/analyze" 
+                href="/#analyze" 
                 className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors"
               >
                 New Analysis

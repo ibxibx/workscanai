@@ -1,7 +1,164 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Sparkles } from 'lucide-react'
+import { ArrowRight, Sparkles, Mic, MicOff } from 'lucide-react'
 
 export default function LandingPage() {
+  const recognitionRef = useRef<any>(null)
+  
+  const [workflowName, setWorkflowName] = useState('')
+  const [tasks, setTasks] = useState(['', '', ''])
+  
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false)
+  const [transcript, setTranscript] = useState('')
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [recordingCount, setRecordingCount] = useState(0)
+  const [lastRecordingTime, setLastRecordingTime] = useState(0)
+  const [speechSupported, setSpeechSupported] = useState(true)
+
+  useEffect(() => {
+    // Check if browser supports Web Speech API
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      if (!SpeechRecognition) {
+        setSpeechSupported(false)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    // Recording timer
+    let interval: NodeJS.Timeout
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordingTime(prev => {
+          if (prev >= 120) { // 2 minute max
+            stopRecording()
+            return 0
+          }
+          return prev + 1
+        })
+      }, 1000)
+    } else {
+      setRecordingTime(0)
+    }
+    return () => clearInterval(interval)
+  }, [isRecording])
+
+  const startRecording = () => {
+    // Rate limiting: max 5 recordings per 10 minutes
+    const now = Date.now()
+    if (recordingCount >= 5 && (now - lastRecordingTime) < 600000) {
+      alert('Rate limit reached. Please wait before recording again.')
+      return
+    }
+
+    // Cooldown: 5 seconds between recordings
+    if ((now - lastRecordingTime) < 5000 && lastRecordingTime !== 0) {
+      alert('Please wait 5 seconds between recordings.')
+      return
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.')
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+
+    let silenceTimer: NodeJS.Timeout
+    let fullTranscript = ''
+
+    recognition.onstart = () => {
+      setIsRecording(true)
+      setTranscript('')
+    }
+
+    recognition.onresult = (event: any) => {
+      clearTimeout(silenceTimer)
+      
+      let interimTranscript = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript
+        if (event.results[i].isFinal) {
+          fullTranscript += transcript + ' '
+        } else {
+          interimTranscript += transcript
+        }
+      }
+
+      const currentTranscript = fullTranscript + interimTranscript
+      
+      // Character limit: 2000 characters
+      if (currentTranscript.length > 2000) {
+        stopRecording()
+        setTranscript(currentTranscript.substring(0, 2000))
+        return
+      }
+
+      setTranscript(currentTranscript)
+
+      // Auto-stop after 30 seconds of silence
+      silenceTimer = setTimeout(() => {
+        stopRecording()
+      }, 30000)
+    }
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error)
+      stopRecording()
+    }
+
+    recognition.onend = () => {
+      setIsRecording(false)
+    }
+
+    recognitionRef.current = recognition
+    recognition.start()
+    
+    setRecordingCount(prev => prev + 1)
+    setLastRecordingTime(now)
+  }
+
+  const stopRecording = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+      recognitionRef.current = null
+    }
+    setIsRecording(false)
+  }
+
+  const applyTranscriptToTasks = () => {
+    if (!transcript.trim()) return
+
+    // Split transcript into tasks (by periods or line breaks in speech)
+    const detectedTasks = transcript
+      .split(/[.!?]+/)
+      .map(t => t.trim())
+      .filter(t => t.length > 10) // Minimum task length
+      .slice(0, 10) // Max 10 tasks
+
+    if (detectedTasks.length > 0) {
+      setTasks(detectedTasks)
+      setTranscript('')
+    } else {
+      // If no clear task separation, use full transcript as one task
+      setTasks([transcript.trim(), '', ''])
+      setTranscript('')
+    }
+  }
+
+  const updateTask = (index: number, value: string) => {
+    const newTasks = [...tasks]
+    newTasks[index] = value
+    setTasks(newTasks)
+  }
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
       {/* Navigation */}
@@ -215,6 +372,9 @@ export default function LandingPage() {
 
             {/* File Upload */}
             <div className="mb-[24px] group">
+              <label className="block text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">
+                Upload Document
+              </label>
               <div className="bg-[#f5f5f7] border-2 border-dashed border-[#d2d2d7] rounded-[18px] p-[40px] text-center transition-all hover:border-[#0071e3] hover:bg-blue-50">
                 <div className="inline-flex items-center justify-center w-[56px] h-[56px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-[16px]">
                   <svg className="h-[24px] w-[24px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -236,6 +396,91 @@ export default function LandingPage() {
               </div>
             </div>
 
+            {/* Voice Input Section */}
+            {speechSupported && (
+              <div className="mb-[24px]">
+                <label className="block text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">
+                  Or Use Voice Input
+                </label>
+                
+                <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
+                  <div className="flex flex-col items-center gap-[16px]">
+                    {/* Microphone Button */}
+                    <button
+                      type="button"
+                      onClick={isRecording ? stopRecording : startRecording}
+                      className={`relative group transition-all ${
+                        isRecording 
+                          ? 'bg-red-500 hover:bg-red-600' 
+                          : 'bg-gradient-to-br from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
+                      } w-[80px] h-[80px] rounded-full flex items-center justify-center shadow-lg`}
+                    >
+                      {isRecording ? (
+                        <>
+                          <MicOff className="h-[36px] w-[36px] text-white" />
+                          <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75"></span>
+                        </>
+                      ) : (
+                        <Mic className="h-[36px] w-[36px] text-white" />
+                      )}
+                    </button>
+
+                    {/* Status Text */}
+                    <div className="text-center">
+                      {isRecording ? (
+                        <>
+                          <div className="text-[17px] font-semibold text-red-600 mb-[4px]">
+                            Recording... {Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, '0')}
+                          </div>
+                          <div className="text-[13px] text-[#6e6e73]">
+                            {120 - recordingTime} seconds remaining • Click to stop
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-[17px] font-medium text-[#1d1d1f] mb-[4px]">
+                            Click to start voice input
+                          </div>
+                          <div className="text-[13px] text-[#6e6e73]">
+                            Describe your workflow and tasks verbally
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Live Transcript */}
+                    {(isRecording || transcript) && (
+                      <div className="w-full bg-white border border-[#d2d2d7] rounded-[12px] p-[16px] min-h-[100px] max-h-[200px] overflow-y-auto">
+                        <div className="text-[14px] text-[#1d1d1f] leading-relaxed">
+                          {transcript || <span className="text-[#86868b] italic">Listening...</span>}
+                        </div>
+                        <div className="text-[11px] text-[#86868b] mt-[8px]">
+                          {transcript.length}/2000 characters
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Apply Button */}
+                    {transcript && !isRecording && (
+                      <button
+                        type="button"
+                        onClick={applyTranscriptToTasks}
+                        className="inline-flex items-center gap-[8px] bg-green-600 hover:bg-green-700 text-white text-[14px] font-semibold px-[20px] py-[10px] rounded-full transition-all"
+                      >
+                        <Sparkles className="h-[16px] w-[16px]" />
+                        Apply to tasks
+                      </button>
+                    )}
+
+                    {/* Limits Info */}
+                    <div className="text-[11px] text-[#86868b] text-center">
+                      Limits: 2 min max • 30s auto-stop on silence • 2000 chars max
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* OR Divider */}
             <div className="flex items-center gap-[16px] my-[32px]">
               <div className="flex-1 h-[1px] bg-[#d2d2d7]"></div>
@@ -247,21 +492,20 @@ export default function LandingPage() {
 
             {/* Task Inputs */}
             <div className="space-y-[12px] mb-[32px]">
-              <input
-                type="text"
-                placeholder="Task 1: Write social media posts (30 min/day)"
-                className="w-full px-[16px] py-[14px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[12px] text-[15px] placeholder-[#86868b] focus:border-[#0071e3] focus:outline-none focus:ring-1 focus:ring-[#0071e3] transition-all"
-              />
-              <input
-                type="text"
-                placeholder="Task 2: Schedule posts across platforms (15 min/day)"
-                className="w-full px-[16px] py-[14px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[12px] text-[15px] placeholder-[#86868b] focus:border-[#0071e3] focus:outline-none focus:ring-1 focus:ring-[#0071e3] transition-all"
-              />
-              <input
-                type="text"
-                placeholder="Task 3: Respond to comments (45 min/day)"
-                className="w-full px-[16px] py-[14px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[12px] text-[15px] placeholder-[#86868b] focus:border-[#0071e3] focus:outline-none focus:ring-1 focus:ring-[#0071e3] transition-all"
-              />
+              {tasks.map((task, index) => (
+                <input
+                  key={index}
+                  type="text"
+                  value={task}
+                  onChange={(e) => updateTask(index, e.target.value)}
+                  placeholder={`Task ${index + 1}: ${
+                    index === 0 ? 'Write social media posts (30 min/day)' :
+                    index === 1 ? 'Schedule posts across platforms (15 min/day)' :
+                    'Respond to comments (45 min/day)'
+                  }`}
+                  className="w-full px-[16px] py-[14px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[12px] text-[15px] placeholder-[#86868b] focus:border-[#0071e3] focus:outline-none focus:ring-1 focus:ring-[#0071e3] transition-all"
+                />
+              ))}
             </div>
 
             {/* CTA Button */}
@@ -280,28 +524,6 @@ export default function LandingPage() {
               </p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* CTA - Powerful & Simple */}
-      <section className="py-[80px] bg-[#f5f5f7]">
-        <div className="max-w-[700px] mx-auto px-6 text-center">
-          <div className="relative inline-block">
-            <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[100px]"></div>
-            <h2 className="relative text-[48px] leading-[1.08] font-semibold tracking-tight mb-[16px] text-[#1d1d1f] px-[32px]">
-              Ready to see what AI can do for you?
-            </h2>
-          </div>
-          <p className="text-[19px] text-[#6e6e73] mb-[32px]">
-            Free analysis. Instant results.
-          </p>
-          <Link 
-            href="/dashboard/analyze"
-            className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[17px] font-semibold px-[28px] py-[14px] rounded-full transition-all"
-          >
-            <span>Start now</span>
-            <ArrowRight className="h-[16px] w-[16px]" />
-          </Link>
         </div>
       </section>
 

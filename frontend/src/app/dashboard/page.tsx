@@ -20,7 +20,7 @@ export default function DashboardPage() {
 
         {/* Quick Action - New Analysis */}
         <Link 
-          href="/dashboard/analyze"
+          href="/#analyze"
           className="block group mb-[32px]"
         >
           <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-[18px] p-[40px] hover:border-blue-300 transition-all">
@@ -104,7 +104,7 @@ export default function DashboardPage() {
               Create your first workflow analysis to unlock automation insights and ROI calculations
             </p>
             <Link
-              href="/dashboard/analyze"
+              href="/#analyze"
               className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[24px] py-[12px] rounded-full text-[15px] font-medium transition-all"
             >
               <Plus className="h-[16px] w-[16px]" />
