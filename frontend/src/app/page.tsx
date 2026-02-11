@@ -14,8 +14,6 @@ export default function LandingPage() {
   const [isRecording, setIsRecording] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [recordingTime, setRecordingTime] = useState(0)
-  const [recordingCount, setRecordingCount] = useState(0)
-  const [lastRecordingTime, setLastRecordingTime] = useState(0)
   const [speechSupported, setSpeechSupported] = useState(true)
 
   useEffect(() => {
@@ -35,7 +33,10 @@ export default function LandingPage() {
       interval = setInterval(() => {
         setRecordingTime(prev => {
           if (prev >= 120) { // 2 minute max
-            stopRecording()
+            if (recognitionRef.current) {
+              recognitionRef.current.stop()
+              recognitionRef.current = null
+            }
             return 0
           }
           return prev + 1
@@ -48,19 +49,6 @@ export default function LandingPage() {
   }, [isRecording])
 
   const startRecording = () => {
-    // Rate limiting: max 5 recordings per 10 minutes
-    const now = Date.now()
-    if (recordingCount >= 5 && (now - lastRecordingTime) < 600000) {
-      alert('Rate limit reached. Please wait before recording again.')
-      return
-    }
-
-    // Cooldown: 5 seconds between recordings
-    if ((now - lastRecordingTime) < 5000 && lastRecordingTime !== 0) {
-      alert('Please wait 5 seconds between recordings.')
-      return
-    }
-
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
       alert('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.')
@@ -77,7 +65,7 @@ export default function LandingPage() {
 
     recognition.onstart = () => {
       setIsRecording(true)
-      setTranscript('')
+      // Don't clear transcript - keep previous recordings!
     }
 
     recognition.onresult = (event: any) => {
@@ -95,35 +83,44 @@ export default function LandingPage() {
 
       const currentTranscript = fullTranscript + interimTranscript
       
+      // Add to existing transcript instead of replacing
+      const combinedTranscript = transcript + currentTranscript
+      
       // Character limit: 2000 characters
-      if (currentTranscript.length > 2000) {
-        stopRecording()
-        setTranscript(currentTranscript.substring(0, 2000))
+      if (combinedTranscript.length > 2000) {
+        recognition.stop()
+        setTranscript(combinedTranscript.substring(0, 2000))
         return
       }
 
-      setTranscript(currentTranscript)
+      setTranscript(transcript + currentTranscript)
 
       // Auto-stop after 30 seconds of silence
       silenceTimer = setTimeout(() => {
-        stopRecording()
+        recognition.stop()
       }, 30000)
     }
 
     recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error)
-      stopRecording()
+      // Don't stop on no-speech error - just continue
+      if (event.error !== 'no-speech') {
+        recognition.stop()
+      }
     }
 
     recognition.onend = () => {
       setIsRecording(false)
+      recognitionRef.current = null
+      
+      // Add space separator between recordings if there's existing text
+      if (transcript.trim()) {
+        setTranscript(prev => prev + ' ')
+      }
     }
 
     recognitionRef.current = recognition
     recognition.start()
-    
-    setRecordingCount(prev => prev + 1)
-    setLastRecordingTime(now)
   }
 
   const stopRecording = () => {
@@ -137,19 +134,53 @@ export default function LandingPage() {
   const applyTranscriptToTasks = () => {
     if (!transcript.trim()) return
 
-    // Split transcript into tasks (by periods or line breaks in speech)
-    const detectedTasks = transcript
-      .split(/[.!?]+/)
-      .map(t => t.trim())
-      .filter(t => t.length > 10) // Minimum task length
-      .slice(0, 10) // Max 10 tasks
+    // Clean up the transcript
+    const cleanedTranscript = transcript
+      .replace(/\b(um|uh|hmm|like|you know)\b/gi, '') // Remove filler words
+      .replace(/\s+/g, ' ') // Normalize spaces
+      .trim()
 
+    // Split by common task separators
+    const taskSeparators = /(?:first(?:ly)?|second(?:ly)?|third(?:ly)?|fourth(?:ly)?|also|additionally|next|then|and also|another(?:\s+task)?|task\s+\d+)/gi
+    
+    let detectedTasks = cleanedTranscript
+      .split(taskSeparators)
+      .map(t => t.trim())
+      .filter(t => t.length > 0)
+      .map(t => {
+        // Remove leading "is" or "task" or "I need to"
+        t = t.replace(/^(?:is|task|I need to|to|I have to)\s+/i, '')
+        // Capitalize first letter
+        return t.charAt(0).toUpperCase() + t.slice(1)
+      })
+      .filter(t => t.length > 5) // Minimum meaningful task length
+
+    // If we got good tasks, ADD them to existing tasks (not replace)
     if (detectedTasks.length > 0) {
-      setTasks(detectedTasks)
+      // Get current non-empty tasks
+      const currentTasks = tasks.filter(t => t.trim() !== '')
+      
+      // Add new tasks to existing ones
+      const allTasks = [...currentTasks, ...detectedTasks].slice(0, 20) // Max 20 tasks
+      
+      // Ensure at least 3 fields
+      while (allTasks.length < 3) {
+        allTasks.push('')
+      }
+      
+      setTasks(allTasks)
       setTranscript('')
     } else {
-      // If no clear task separation, use full transcript as one task
-      setTasks([transcript.trim(), '', ''])
+      // Fallback: add full transcript as single task to existing tasks
+      const currentTasks = tasks.filter(t => t.trim() !== '')
+      const allTasks = [...currentTasks, cleanedTranscript]
+      
+      // Ensure at least 3 fields
+      while (allTasks.length < 3) {
+        allTasks.push('')
+      }
+      
+      setTasks(allTasks)
       setTranscript('')
     }
   }
@@ -158,6 +189,26 @@ export default function LandingPage() {
     const newTasks = [...tasks]
     newTasks[index] = value
     setTasks(newTasks)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const validTasks = tasks.filter(t => t.trim() !== '')
+    
+    if (validTasks.length === 0 && !workflowName.trim()) {
+      alert('Please enter a workflow name and at least one task')
+      return
+    }
+    
+    if (validTasks.length === 0) {
+      alert('Please enter at least one task')
+      return
+    }
+
+    // For now, redirect to demo results page
+    // TODO: Send to backend API and get real analysis
+    window.location.href = '/dashboard/results/demo-123'
   }
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
@@ -357,7 +408,7 @@ export default function LandingPage() {
           </div>
 
           {/* Quick Form */}
-          <div className="max-w-[800px] mx-auto">
+          <form onSubmit={handleSubmit} className="max-w-[800px] mx-auto">
             {/* Workflow Name */}
             <div className="mb-[24px]">
               <label className="block text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">
@@ -365,6 +416,8 @@ export default function LandingPage() {
               </label>
               <input
                 type="text"
+                value={workflowName}
+                onChange={(e) => setWorkflowName(e.target.value)}
                 placeholder="Marketing Team Daily Tasks"
                 className="w-full px-[16px] py-[14px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[12px] text-[17px] placeholder-[#86868b] focus:border-[#0071e3] focus:outline-none focus:ring-1 focus:ring-[#0071e3] transition-all"
               />
@@ -436,6 +489,15 @@ export default function LandingPage() {
                             {120 - recordingTime} seconds remaining • Click to stop
                           </div>
                         </>
+                      ) : transcript ? (
+                        <>
+                          <div className="text-[17px] font-medium text-green-600 mb-[4px]">
+                            Recording saved! Click to add more
+                          </div>
+                          <div className="text-[13px] text-[#6e6e73]">
+                            Or click "Apply to tasks" when done
+                          </div>
+                        </>
                       ) : (
                         <>
                           <div className="text-[17px] font-medium text-[#1d1d1f] mb-[4px]">
@@ -473,8 +535,8 @@ export default function LandingPage() {
                     )}
 
                     {/* Limits Info */}
-                    <div className="text-[11px] text-[#86868b] text-center">
-                      Limits: 2 min max • 30s auto-stop on silence • 2000 chars max
+                    <div className="text-[11px] text-[#86868b] text-center max-w-[400px]">
+                      Record multiple times - text accumulates • Click "Apply" when done to populate tasks
                     </div>
                   </div>
                 </div>
@@ -510,20 +572,20 @@ export default function LandingPage() {
 
             {/* CTA Button */}
             <div className="text-center">
-              <Link
-                href="/dashboard/analyze"
+              <button
+                type="submit"
                 className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[17px] font-semibold px-[32px] py-[16px] rounded-full transition-all shadow-lg hover:shadow-xl"
               >
                 <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 <span>Analyze workflow</span>
-              </Link>
+              </button>
               <p className="mt-[16px] text-[12px] text-[#86868b]">
                 Analysis typically completes in under 5 minutes
               </p>
             </div>
-          </div>
+          </form>
         </div>
       </section>
 
