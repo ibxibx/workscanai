@@ -18,26 +18,50 @@ class AIAnalyzer:
         Analyze a single task for automation potential
         Returns: AI readiness score and recommendation
         """
-        prompt = f"""Analyze this work task for AI automation potential:
+        prompt = f"""You are an expert automation consultant analyzing work tasks for AI automation potential.
 
-Task: {task['name']}
-Description: {task.get('description', 'Not provided')}
-Frequency: {task.get('frequency', 'Unknown')}
-Time per task: {task.get('time_per_task', 'Unknown')} minutes
-Category: {task.get('category', 'Unknown')}
-Complexity: {task.get('complexity', 'Unknown')}
+TASK TO ANALYZE:
+{task['name']}
 
-Provide:
-1. AI Readiness Score (0-100): How easily can this be automated?
-2. Time Saved Percentage (0-100): How much time could be saved?
-3. Difficulty (easy/medium/hard): Implementation difficulty
-4. Recommendation: One sentence on how to automate this
+Additional Context:
+- Description: {task.get('description', 'Same as task name')}
+- Frequency: {task.get('frequency', 'Unknown')} 
+- Time per occurrence: {task.get('time_per_task', 'Unknown')} minutes
+- Category: {task.get('category', 'Unknown')}
+- Complexity: {task.get('complexity', 'Unknown')}
 
-Respond in this exact format:
-SCORE: [number]
-TIME_SAVED: [number]
+IMPORTANT INSTRUCTIONS:
+1. Analyze THIS SPECIFIC TASK, not a generic example
+2. Consider the ACTUAL task name and description provided
+3. Don't assume this is a marketing task unless it clearly is
+4. Provide concrete, specific recommendations based on what this task actually involves
+
+PROVIDE YOUR ANALYSIS:
+
+1. AI Readiness Score (0-100): 
+   - How easily can THIS specific task be automated with current AI/tools?
+   - Consider: Is it repetitive? Rule-based? Data-heavy? Requires creativity/judgment?
+   
+2. Time Saved Percentage (0-100):
+   - Realistically, how much time could be saved by automating THIS task?
+   - Consider partial automation vs full automation
+   
+3. Implementation Difficulty (easy/medium/hard):
+   - easy: No-code tools, simple setup (Zapier, templates, etc.)
+   - medium: Requires some technical setup (Python scripts, API integration)
+   - hard: Complex custom development needed
+   
+4. Specific Recommendation:
+   - Provide a CONCRETE recommendation for THIS specific task
+   - Mention specific tools, approaches, or services that would work
+   - Be specific to what this task actually involves
+   - One clear sentence
+
+Respond in this EXACT format (no extra text):
+SCORE: [number 0-100]
+TIME_SAVED: [number 0-100]
 DIFFICULTY: [easy/medium/hard]
-RECOMMENDATION: [one sentence]"""
+RECOMMENDATION: [one specific sentence about how to automate THIS task]"""
 
         try:
             message = self.client.messages.create(

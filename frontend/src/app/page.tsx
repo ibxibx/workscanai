@@ -191,7 +191,7 @@ export default function LandingPage() {
     setTasks(newTasks)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     const validTasks = tasks.filter(t => t.trim() !== '')
@@ -206,9 +206,85 @@ export default function LandingPage() {
       return
     }
 
-    // For now, redirect to demo results page
-    // TODO: Send to backend API and get real analysis
-    window.location.href = '/dashboard/results/demo-123'
+    // Show loading state
+    const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement
+    if (submitButton) {
+      submitButton.disabled = true
+      submitButton.textContent = 'Analyzing...'
+    }
+
+    try {
+      // Create workflow with tasks
+      const workflowData = {
+        name: workflowName.trim() || 'My Workflow',
+        description: 'Workflow created via voice/text input',
+        tasks: validTasks.map(task => ({
+          name: task,
+          description: task,
+          frequency: 'weekly', // default
+          time_per_task: 30, // default 30 minutes
+          category: 'general',
+          complexity: 'medium'
+        }))
+      }
+
+      console.log('Sending workflow data:', workflowData)
+
+      // Send to backend
+      const response = await fetch('http://localhost:8000/api/workflows', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(workflowData)
+      })
+
+      console.log('Workflow response status:', response.status)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Workflow error:', errorText)
+        throw new Error(`Failed to create workflow: ${response.status}`)
+      }
+
+      const workflow = await response.json()
+      console.log('Created workflow:', workflow)
+
+      // Trigger analysis
+      const analysisResponse = await fetch('http://localhost:8000/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workflow_id: workflow.id,
+          hourly_rate: 50 // default €50/hour
+        })
+      })
+
+      console.log('Analysis response status:', analysisResponse.status)
+
+      if (!analysisResponse.ok) {
+        const errorText = await analysisResponse.text()
+        console.error('Analysis error:', errorText)
+        throw new Error(`Failed to analyze workflow: ${analysisResponse.status}`)
+      }
+
+      const analysis = await analysisResponse.json()
+      console.log('Analysis complete:', analysis)
+
+      // Redirect to real results page with actual workflow ID
+      window.location.href = `/dashboard/results/${workflow.id}`
+      
+    } catch (error) {
+      console.error('Full error:', error)
+      alert(`Error: ${error.message || 'Failed to analyze workflow. Make sure the backend is running.'}`)
+      
+      if (submitButton) {
+        submitButton.disabled = false
+        submitButton.textContent = 'Analyze Workflow'
+      }
+    }
   }
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">

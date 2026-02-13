@@ -20,6 +20,9 @@ router = APIRouter()
 def create_workflow(workflow_data: WorkflowCreate, db: Session = Depends(get_db)):
     """Create a new workflow with tasks"""
     
+    print(f"Received workflow data: {workflow_data}")
+    print(f"Tasks count: {len(workflow_data.tasks)}")
+    
     # Create workflow
     workflow = Workflow(
         name=workflow_data.name,
@@ -30,6 +33,7 @@ def create_workflow(workflow_data: WorkflowCreate, db: Session = Depends(get_db)
     
     # Create tasks
     for task_data in workflow_data.tasks:
+        print(f"Creating task: {task_data}")
         task = Task(
             workflow_id=workflow.id,
             name=task_data.name,

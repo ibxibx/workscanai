@@ -1,72 +1,90 @@
 'use client'
 
-import { use } from 'react'
+import { use, useEffect, useState } from 'react'
 import { Download, Share2 } from 'lucide-react'
 
+interface TaskResult {
+  task: {
+    name: string
+    description: string
+  }
+  ai_readiness_score: number
+  time_saved_percentage: number
+  recommendation: string
+  difficulty: string
+  estimated_hours_saved: number
+}
+
+interface AnalysisData {
+  workflow: {
+    name: string
+    description: string
+  }
+  automation_score: number
+  hours_saved: number
+  annual_savings: number
+  results: TaskResult[]
+}
+
 export default function ResultsPage({ params }: { params: Promise<{ id: string }> }) {
-  // Unwrap the async params
   const { id } = use(params)
-  
-  // TODO: Fetch actual results from API using id
-  
-  // Mock data for now
-  const mockResults = {
-    workflowName: 'Marketing Team Daily Tasks',
-    automationScore: 72,
-    totalTasks: 5,
-    automationReady: 3,
-    annualSavings: 28000,
-    hoursSaved: 436,
-    tasks: [
-      {
-        name: 'Write social media posts',
-        automationScore: 85,
-        timeSaved: '40%',
-        recommendation: 'Use ChatGPT/Claude with brand guidelines',
-        difficulty: 'Easy'
-      },
-      {
-        name: 'Schedule posts across platforms',
-        automationScore: 95,
-        timeSaved: '90%',
-        recommendation: 'Use Zapier or Buffer',
-        difficulty: 'Very Easy'
-      },
-      {
-        name: 'Respond to comments',
-        automationScore: 50,
-        timeSaved: '30%',
-        recommendation: 'AI draft responses + human review',
-        difficulty: 'Medium'
-      },
-      {
-        name: 'Generate performance reports',
-        automationScore: 90,
-        timeSaved: '95%',
-        recommendation: 'Python script with data visualization',
-        difficulty: 'Medium'
-      },
-      {
-        name: 'Research trending topics',
-        automationScore: 60,
-        timeSaved: '40%',
-        recommendation: 'AI topic suggestions + human curation',
-        difficulty: 'Medium'
-      },
-    ]
+  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchAnalysis = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/results/${id}`)
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch analysis results')
+        }
+
+        const data = await response.json()
+        setAnalysisData(data)
+      } catch (err) {
+        console.error('Error fetching analysis:', err)
+        setError('Failed to load analysis results. Make sure the backend is running.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAnalysis()
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]">
+        <div className="max-w-[980px] mx-auto px-6 text-center">
+          <div className="text-[24px] text-[#86868b]">Loading analysis...</div>
+        </div>
+      </div>
+    )
   }
 
+  if (error || !analysisData) {
+    return (
+      <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]">
+        <div className="max-w-[980px] mx-auto px-6 text-center">
+          <div className="text-[24px] text-red-600 mb-4">{error || 'No analysis data found'}</div>
+          <a href="/" className="text-[#0071e3] hover:underline">Go back to home</a>
+        </div>
+      </div>
+    )
+  }
+
+  const totalTasks = analysisData.results.length
+  const automationReady = analysisData.results.filter(r => r.ai_readiness_score >= 70).length
+
   const downloadAsDocx = () => {
-    // Create DOCX content
     const content = generateReportContent()
-    
-    // For now, create a simple text file with .docx extension
-    // TODO: Use proper DOCX library (docx.js or similar)
     const blob = new Blob([content], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `WorkScanAI-Analysis-${mockResults.workflowName.replace(/\s+/g, '-')}.docx`
+    a.download = `WorkScanAI-Analysis-${analysisData.workflow.name.replace(/\s+/g, '-')}.docx`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -74,7 +92,6 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
   }
 
   const downloadAsPdf = () => {
-    // For PDF, we'll open print dialog which allows saving as PDF
     window.print()
   }
 
@@ -83,36 +100,37 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
 WORKSCANAI AUTOMATION ANALYSIS REPORT
 =====================================
 
-Workflow: ${mockResults.workflowName}
+Workflow: ${analysisData.workflow.name}
 Analysis Date: ${new Date().toLocaleDateString()}
 Analysis ID: ${id}
 
 EXECUTIVE SUMMARY
 -----------------
-Automation Score: ${mockResults.automationScore}/100
-Total Tasks Analyzed: ${mockResults.totalTasks}
-Tasks Ready for Automation: ${mockResults.automationReady}
-Annual Savings Potential: €${mockResults.annualSavings.toLocaleString()}
-Time Saved Per Year: ${mockResults.hoursSaved} hours
+Automation Score: ${Math.round(analysisData.automation_score)}/100
+Total Tasks Analyzed: ${totalTasks}
+Tasks Ready for Automation: ${automationReady}
+Annual Savings Potential: €${Math.round(analysisData.annual_savings).toLocaleString()}
+Time Saved Per Year: ${Math.round(analysisData.hours_saved)} hours
 
 DETAILED TASK ANALYSIS
 ----------------------
 
-${mockResults.tasks.map((task, index) => `
-${index + 1}. ${task.name}
-   Automation Readiness: ${task.automationScore}%
-   Time Savings Potential: ${task.timeSaved}
-   Implementation Difficulty: ${task.difficulty}
-   Recommendation: ${task.recommendation}
+${analysisData.results.map((result, index) => `
+${index + 1}. ${result.task.name}
+   Automation Readiness: ${Math.round(result.ai_readiness_score)}%
+   Time Savings Potential: ${Math.round(result.time_saved_percentage)}%
+   Implementation Difficulty: ${result.difficulty}
+   Recommendation: ${result.recommendation}
+   Estimated Hours Saved: ${Math.round(result.estimated_hours_saved)} hours/year
 `).join('\n')}
 
 RECOMMENDATIONS
 ---------------
 Quick Wins (Implement First):
-${mockResults.tasks.filter(t => t.difficulty === 'Easy' || t.difficulty === 'Very Easy').map(t => `• ${t.name}`).join('\n')}
+${analysisData.results.filter(r => r.difficulty === 'easy').map(r => `• ${r.task.name}`).join('\n')}
 
 Medium-Term Goals:
-${mockResults.tasks.filter(t => t.difficulty === 'Medium').map(t => `• ${t.name}`).join('\n')}
+${analysisData.results.filter(r => r.difficulty === 'medium').map(r => `• ${r.task.name}`).join('\n')}
 
 NEXT STEPS
 ----------
@@ -135,10 +153,10 @@ Visit: https://workscanai.com
           <div className="relative inline-block">
             <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[100px]"></div>
             <h1 className="relative text-[48px] leading-[1.08] font-semibold tracking-tight mb-[8px] px-[32px]">
-              {mockResults.workflowName}
+              {analysisData.workflow.name}
             </h1>
           </div>
-          <p className="text-[14px] text-[#86868b]">Analysis ID: {params.id}</p>
+          <p className="text-[14px] text-[#86868b]">Analysis ID: {id}</p>
         </div>
 
         {/* Summary Cards */}
@@ -148,10 +166,10 @@ Visit: https://workscanai.com
               Automation Score
             </div>
             <div className="text-[48px] font-semibold tracking-tight text-[#0071e3] mb-[4px]">
-              {mockResults.automationScore}%
+              {Math.round(analysisData.automation_score)}%
             </div>
             <div className="text-[13px] text-[#86868b]">
-              {mockResults.automationReady} of {mockResults.totalTasks} tasks ready
+              {automationReady} of {totalTasks} tasks ready
             </div>
           </div>
 
@@ -160,10 +178,10 @@ Visit: https://workscanai.com
               Annual Savings
             </div>
             <div className="text-[48px] font-semibold tracking-tight text-green-600 mb-[4px]">
-              €{mockResults.annualSavings.toLocaleString()}
+              €{Math.round(analysisData.annual_savings).toLocaleString()}
             </div>
             <div className="text-[13px] text-[#86868b]">
-              {mockResults.hoursSaved} hours per year
+              {Math.round(analysisData.hours_saved)} hours per year
             </div>
           </div>
 
@@ -172,7 +190,7 @@ Visit: https://workscanai.com
               Quick Wins
             </div>
             <div className="text-[48px] font-semibold tracking-tight text-purple-600 mb-[4px]">
-              {mockResults.tasks.filter(t => t.difficulty === 'Easy' || t.difficulty === 'Very Easy').length}
+              {analysisData.results.filter(r => r.difficulty === 'easy').length}
             </div>
             <div className="text-[13px] text-[#86868b]">
               Tasks you can automate today
@@ -184,38 +202,35 @@ Visit: https://workscanai.com
         <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px] mb-[32px]">
           <h2 className="text-[28px] font-semibold tracking-tight mb-[32px]">Task Breakdown</h2>
           <div className="space-y-[16px]">
-            {mockResults.tasks.map((task, index) => (
+            {analysisData.results.map((result, index) => (
               <div key={index} className="border border-[#d2d2d7] rounded-[12px] p-[24px] bg-white">
                 <div className="flex justify-between items-start mb-[16px]">
-                  <h3 className="text-[19px] font-semibold text-[#1d1d1f]">{task.name}</h3>
+                  <h3 className="text-[19px] font-semibold text-[#1d1d1f]">{result.task.name}</h3>
                   <span className={`px-[12px] py-[6px] rounded-full text-[13px] font-semibold ${
-                    task.automationScore >= 80 ? 'bg-green-100 text-green-700' :
-                    task.automationScore >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                    result.ai_readiness_score >= 80 ? 'bg-green-100 text-green-700' :
+                    result.ai_readiness_score >= 60 ? 'bg-yellow-100 text-yellow-700' :
                     'bg-red-100 text-red-700'
                   }`}>
-                    {task.automationScore}% Ready
+                    {Math.round(result.ai_readiness_score)}% Ready
                   </span>
                 </div>
                 <div className="grid md:grid-cols-3 gap-[16px] text-[14px] mb-[16px]">
                   <div>
                     <span className="text-[#86868b]">Time Saved: </span>
-                    <span className="font-medium text-[#1d1d1f]">{task.timeSaved}</span>
+                    <span className="font-medium text-[#1d1d1f]">{Math.round(result.time_saved_percentage)}%</span>
                   </div>
                   <div>
                     <span className="text-[#86868b]">Difficulty: </span>
-                    <span className="font-medium text-[#1d1d1f]">{task.difficulty}</span>
+                    <span className="font-medium text-[#1d1d1f] capitalize">{result.difficulty}</span>
                   </div>
                   <div>
-                    <span className="text-[#86868b]">Priority: </span>
-                    <span className="font-medium text-[#1d1d1f]">
-                      {task.automationScore >= 80 && task.difficulty === 'Easy' ? 'High' :
-                       task.automationScore >= 60 ? 'Medium' : 'Low'}
-                    </span>
+                    <span className="text-[#86868b]">Hours/Year: </span>
+                    <span className="font-medium text-[#1d1d1f]">{Math.round(result.estimated_hours_saved)}</span>
                   </div>
                 </div>
                 <div className="p-[16px] bg-blue-50 border border-blue-200 rounded-[8px]">
                   <span className="text-[13px] font-semibold text-[#0071e3]">💡 Recommendation: </span>
-                  <span className="text-[13px] text-[#1d1d1f]">{task.recommendation}</span>
+                  <span className="text-[13px] text-[#1d1d1f]">{result.recommendation}</span>
                 </div>
               </div>
             ))}
