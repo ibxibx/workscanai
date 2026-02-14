@@ -58,6 +58,7 @@ class AnalysisResultResponse(BaseModel):
 class AnalysisResponse(BaseModel):
     id: int
     workflow_id: int
+    workflow: WorkflowResponse  # Add workflow details
     automation_score: float
     annual_savings: Optional[float]
     hours_saved: Optional[float]

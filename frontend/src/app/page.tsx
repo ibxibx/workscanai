@@ -6,9 +6,11 @@ import { ArrowRight, Sparkles, Mic, MicOff } from 'lucide-react'
 
 export default function LandingPage() {
   const recognitionRef = useRef<any>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [workflowName, setWorkflowName] = useState('')
   const [tasks, setTasks] = useState(['', '', ''])
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false)
@@ -191,18 +193,32 @@ export default function LandingPage() {
     setTasks(newTasks)
   }
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setUploadedFile(file)
+      // TODO: In future, extract text from file and populate tasks
+      alert(`File "${file.name}" uploaded! File processing will be implemented in Phase 2.`)
+    }
+  }
+
+  const handleBrowseClick = () => {
+    fileInputRef.current?.click()
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     const validTasks = tasks.filter(t => t.trim() !== '')
     
-    if (validTasks.length === 0 && !workflowName.trim()) {
-      alert('Please enter a workflow name and at least one task')
+    // Allow submission if either tasks are provided OR a file is uploaded
+    if (validTasks.length === 0 && !uploadedFile && !workflowName.trim()) {
+      alert('Please enter a workflow name and at least one task, or upload a document')
       return
     }
     
-    if (validTasks.length === 0) {
-      alert('Please enter at least one task')
+    if (validTasks.length === 0 && !uploadedFile) {
+      alert('Please enter at least one task or upload a document')
       return
     }
 
@@ -504,24 +520,51 @@ export default function LandingPage() {
               <label className="block text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">
                 Upload Document
               </label>
-              <div className="bg-[#f5f5f7] border-2 border-dashed border-[#d2d2d7] rounded-[18px] p-[40px] text-center transition-all hover:border-[#0071e3] hover:bg-blue-50">
+              <input 
+                ref={fileInputRef}
+                type="file" 
+                accept=".pdf,.docx,.txt,.jpg,.jpeg,.png"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <div 
+                onClick={handleBrowseClick}
+                className="bg-[#f5f5f7] border-2 border-dashed border-[#d2d2d7] rounded-[18px] p-[40px] text-center transition-all hover:border-[#0071e3] hover:bg-blue-50 cursor-pointer"
+              >
                 <div className="inline-flex items-center justify-center w-[56px] h-[56px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-[16px]">
                   <svg className="h-[24px] w-[24px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                 </div>
-                <div className="text-[17px] font-medium mb-[8px] text-[#1d1d1f]">
-                  Drop your file here
-                </div>
-                <div className="text-[14px] text-[#6e6e73] mb-[16px]">
-                  JPG, PNG, PDF, DOCX, or TXT • Max 10MB
-                </div>
-                <button className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[14px] px-[20px] py-[10px] rounded-full transition-all">
+                {uploadedFile ? (
+                  <>
+                    <div className="text-[17px] font-medium mb-[8px] text-green-600">
+                      ✓ {uploadedFile.name}
+                    </div>
+                    <div className="text-[14px] text-[#6e6e73] mb-[16px]">
+                      Click to change file
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-[17px] font-medium mb-[8px] text-[#1d1d1f]">
+                      Drop your file here
+                    </div>
+                    <div className="text-[14px] text-[#6e6e73] mb-[16px]">
+                      JPG, PNG, PDF, DOCX, or TXT • Max 10MB
+                    </div>
+                  </>
+                )}
+                <button 
+                  type="button"
+                  onClick={handleBrowseClick}
+                  className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[14px] px-[20px] py-[10px] rounded-full transition-all"
+                >
                   Browse files
                 </button>
               </div>
               <div className="text-[12px] text-[#86868b] mt-[12px] text-center">
-                AI will extract and analyze tasks from your document automatically
+                AI will extract and analyze tasks from your document automatically (Coming in Phase 2)
               </div>
             </div>
 

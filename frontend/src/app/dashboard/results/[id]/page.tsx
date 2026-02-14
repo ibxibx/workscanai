@@ -42,6 +42,17 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
         }
 
         const data = await response.json()
+        
+        // Fetch workflow details separately
+        const workflowResponse = await fetch(`http://localhost:8000/api/workflows/${data.workflow_id}`)
+        if (workflowResponse.ok) {
+          const workflowData = await workflowResponse.json()
+          data.workflow = workflowData
+        } else {
+          // Fallback if workflow fetch fails
+          data.workflow = { name: 'Workflow Analysis', description: '' }
+        }
+        
         setAnalysisData(data)
       } catch (err) {
         console.error('Error fetching analysis:', err)
@@ -78,21 +89,44 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
   const totalTasks = analysisData.results.length
   const automationReady = analysisData.results.filter(r => r.ai_readiness_score >= 70).length
 
-  const downloadAsDocx = () => {
-    const content = generateReportContent()
-    const blob = new Blob([content], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `WorkScanAI-Analysis-${analysisData.workflow.name.replace(/\s+/g, '-')}.docx`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+  const downloadAsDocx = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/${id}/docx`)
+      if (!response.ok) throw new Error('Failed to generate report')
+      
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `WorkScanAI-Analysis-${analysisData.workflow.name.replace(/\s+/g, '-')}.docx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error downloading DOCX:', error)
+      alert('Failed to generate DOCX report. Please try again.')
+    }
   }
 
-  const downloadAsPdf = () => {
-    window.print()
+  const downloadAsPdf = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/${id}/pdf`)
+      if (!response.ok) throw new Error('Failed to generate report')
+      
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `WorkScanAI-Analysis-${analysisData.workflow.name.replace(/\s+/g, '-')}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error downloading PDF:', error)
+      alert('Failed to generate PDF report. Please try again.')
+    }
   }
 
   const generateReportContent = () => {
