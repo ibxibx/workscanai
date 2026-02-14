@@ -61,7 +61,7 @@ def extract_text_from_file(file_path: str, filename: str) -> str:
         raise HTTPException(status_code=400, detail=f"Failed to extract text: {str(e)}")
 
 
-@router.post("/api/transcribe")
+@router.post("/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...)):
     """Transcribe audio to text using Claude (placeholder - would use Whisper API in production)"""
     # For now, return placeholder
@@ -71,7 +71,7 @@ async def transcribe_audio(audio: UploadFile = File(...)):
     }
 
 
-@router.post("/api/extract-tasks")
+@router.post("/extract-tasks")
 async def extract_tasks_from_document(file: UploadFile = File(...)):
     """Extract tasks from uploaded document"""
     
@@ -92,7 +92,7 @@ async def extract_tasks_from_document(file: UploadFile = File(...)):
             os.remove(tmp_path)
 
 
-@router.post("/api/parse-tasks", response_model=ParsedTasksResponse)
+@router.post("/parse-tasks", response_model=ParsedTasksResponse)
 async def parse_tasks_from_text(request: ParseTasksRequest):
     """Use AI to parse tasks from free-form text"""
     

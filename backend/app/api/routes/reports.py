@@ -14,7 +14,7 @@ from app.services.report_generator import ReportGenerator
 router = APIRouter()
 
 
-@router.get("/api/reports/{workflow_id}/docx")
+@router.get("/reports/{workflow_id}/docx")
 def generate_docx_report(workflow_id: int, db: Session = Depends(get_db)):
     """Generate and download DOCX report for a workflow analysis"""
     
@@ -70,7 +70,7 @@ def generate_docx_report(workflow_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/api/reports/{workflow_id}/pdf")
+@router.get("/reports/{workflow_id}/pdf")
 def generate_pdf_report(workflow_id: int, db: Session = Depends(get_db)):
     """Generate and download PDF report for a workflow analysis"""
     
