@@ -11,6 +11,7 @@ export default function LandingPage() {
   const [workflowName, setWorkflowName] = useState('')
   const [tasks, setTasks] = useState(['', '', ''])
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [isProcessingDocument, setIsProcessingDocument] = useState(false)
   
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false)
@@ -193,17 +194,105 @@ export default function LandingPage() {
     setTasks(newTasks)
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setUploadedFile(file)
-      // TODO: In future, extract text from file and populate tasks
-      alert(`File "${file.name}" uploaded! File processing will be implemented in Phase 2.`)
+    if (!file) return
+    
+    // Check file size (20MB limit)
+    const maxSize = 20 * 1024 * 1024 // 20MB in bytes
+    if (file.size > maxSize) {
+      alert('File size exceeds 20MB limit. Please choose a smaller file.')
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
+    }
+    
+    // Check file type
+    const allowedExtensions = ['pdf', 'docx', 'doc', 'txt', 'jpg', 'jpeg', 'png']
+    const fileExt = file.name.split('.').pop()?.toLowerCase()
+    if (!fileExt || !allowedExtensions.includes(fileExt)) {
+      alert('Please upload a valid file: PDF, DOCX, TXT, JPG, or PNG')
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
+    }
+    
+    console.log('📁 File selected:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)} MB)`)
+    setUploadedFile(file)
+    setIsProcessingDocument(true)
+    
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      console.log('⬆️ Uploading to extract-tasks...')
+      const extractResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/extract-tasks`, {
+        method: 'POST',
+        body: formData,
+      })
+      
+      console.log('📥 Extract response:', extractResponse.status)
+      
+      if (extractResponse.ok) {
+        const extractData = await extractResponse.json()
+        console.log('📄 Extracted text length:', extractData.text?.length)
+        
+        console.log('🤖 Parsing tasks with AI...')
+        const parseResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/parse-tasks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: extractData.text }),
+        })
+        
+        console.log('📥 Parse response:', parseResponse.status)
+        
+        if (parseResponse.ok) {
+          const parseData = await parseResponse.json()
+          console.log('✅ Parsed data:', parseData)
+          
+          if (parseData.workflow_name) {
+            console.log('📝 Setting workflow name:', parseData.workflow_name)
+            setWorkflowName(parseData.workflow_name)
+          }
+          
+          if (parseData.tasks && parseData.tasks.length > 0) {
+            const taskNames = parseData.tasks.map((t: any) => t.name)
+            console.log('📋 Setting tasks:', taskNames)
+            setTasks(taskNames)
+            alert(`✅ Successfully extracted ${taskNames.length} tasks from ${file.name}!`)
+          } else {
+            console.warn('⚠️ No tasks found in parsed data')
+            alert('No tasks could be extracted from the document. Please check the file content.')
+          }
+        } else {
+          const errorText = await parseResponse.text()
+          console.error('❌ Parse error:', errorText)
+          throw new Error('Failed to parse tasks')
+        }
+      } else {
+        const errorText = await extractResponse.text()
+        console.error('❌ Extract error:', errorText)
+        throw new Error('Failed to extract text from document')
+      }
+    } catch (error) {
+      console.error('❌ Error processing document:', error)
+      alert('Failed to process document. Please try again or check the console for details.')
+    } finally {
+      setIsProcessingDocument(false)
+      console.log('✨ Processing complete')
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
   const handleBrowseClick = () => {
-    fileInputRef.current?.click()
+    if (!isProcessingDocument) {
+      fileInputRef.current?.click()
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -211,97 +300,61 @@ export default function LandingPage() {
     
     const validTasks = tasks.filter(t => t.trim() !== '')
     
-    // Allow submission if either tasks are provided OR a file is uploaded
-    if (validTasks.length === 0 && !uploadedFile && !workflowName.trim()) {
-      alert('Please enter a workflow name and at least one task, or upload a document')
+    // Validation
+    if (!workflowName.trim()) {
+      alert('Please enter a workflow name')
       return
     }
     
-    if (validTasks.length === 0 && !uploadedFile) {
-      alert('Please enter at least one task or upload a document')
+    if (validTasks.length === 0) {
+      alert('Please enter at least one task or upload a document first')
       return
     }
-
-    // Show loading state
-    const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement
-    if (submitButton) {
-      submitButton.disabled = true
-      submitButton.textContent = 'Analyzing...'
-    }
-
+    
     try {
-      // Create workflow with tasks
-      const workflowData = {
-        name: workflowName.trim() || 'My Workflow',
-        description: 'Workflow created via voice/text input',
-        tasks: validTasks.map(task => ({
-          name: task,
-          description: task,
-          frequency: 'weekly', // default
-          time_per_task: 30, // default 30 minutes
-          category: 'general',
-          complexity: 'medium'
-        }))
-      }
-
-      console.log('Sending workflow data:', workflowData)
-
-      // Send to backend
-      const response = await fetch('http://localhost:8000/api/workflows', {
+      // Create workflow
+      const workflowResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflows`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(workflowData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: workflowName,
+          description: '',
+          tasks: validTasks.map(name => ({
+            name,
+            description: name,
+            frequency: 'daily',
+            time_per_task: 30,
+            category: 'general',
+            complexity: 'medium'
+          }))
+        }),
       })
-
-      console.log('Workflow response status:', response.status)
       
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Workflow error:', errorText)
-        throw new Error(`Failed to create workflow: ${response.status}`)
-      }
-
-      const workflow = await response.json()
-      console.log('Created workflow:', workflow)
-
-      // Trigger analysis
-      const analysisResponse = await fetch('http://localhost:8000/api/analyze', {
+      if (!workflowResponse.ok) throw new Error('Failed to create workflow')
+      
+      const workflow = await workflowResponse.json()
+      
+      // Analyze workflow
+      const analysisResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analyze`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workflow_id: workflow.id,
-          hourly_rate: 50 // default €50/hour
-        })
+          hourly_rate: 50
+        }),
       })
-
-      console.log('Analysis response status:', analysisResponse.status)
-
-      if (!analysisResponse.ok) {
-        const errorText = await analysisResponse.text()
-        console.error('Analysis error:', errorText)
-        throw new Error(`Failed to analyze workflow: ${analysisResponse.status}`)
-      }
-
-      const analysis = await analysisResponse.json()
-      console.log('Analysis complete:', analysis)
-
-      // Redirect to real results page with actual workflow ID
+      
+      if (!analysisResponse.ok) throw new Error('Failed to analyze workflow')
+      
+      // Redirect to results
       window.location.href = `/dashboard/results/${workflow.id}`
       
     } catch (error) {
-      console.error('Full error:', error)
-      alert(`Error: ${error.message || 'Failed to analyze workflow. Make sure the backend is running.'}`)
-      
-      if (submitButton) {
-        submitButton.disabled = false
-        submitButton.textContent = 'Analyze Workflow'
-      }
+      console.error('Error:', error)
+      alert('Failed to analyze workflow. Make sure the backend is running.')
     }
   }
+  
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
       {/* Navigation */}
@@ -501,6 +554,23 @@ export default function LandingPage() {
 
           {/* Quick Form */}
           <form onSubmit={handleSubmit} className="max-w-[800px] mx-auto">
+            
+            {/* Processing Status Banner */}
+            {isProcessingDocument && (
+              <div className="mb-[24px] bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-[18px] p-[20px] shadow-lg animate-pulse">
+                <div className="flex items-center justify-center gap-[16px]">
+                  <svg className="h-[24px] w-[24px] animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <div>
+                    <div className="text-[17px] font-semibold">Processing Document...</div>
+                    <div className="text-[14px] opacity-90">Extracting tasks and populating fields</div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Workflow Name */}
             <div className="mb-[24px]">
               <label className="block text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">
@@ -525,43 +595,71 @@ export default function LandingPage() {
                 type="file" 
                 accept=".pdf,.docx,.txt,.jpg,.jpeg,.png"
                 onChange={handleFileUpload}
+                disabled={isProcessingDocument}
                 className="hidden"
               />
               <div 
-                onClick={handleBrowseClick}
-                className="bg-[#f5f5f7] border-2 border-dashed border-[#d2d2d7] rounded-[18px] p-[40px] text-center transition-all hover:border-[#0071e3] hover:bg-blue-50 cursor-pointer"
+                onClick={!isProcessingDocument ? handleBrowseClick : undefined}
+                className={`bg-[#f5f5f7] border-2 border-dashed border-[#d2d2d7] rounded-[18px] p-[40px] text-center transition-all ${
+                  isProcessingDocument 
+                    ? 'cursor-wait border-[#0071e3] bg-blue-50' 
+                    : 'hover:border-[#0071e3] hover:bg-blue-50 cursor-pointer'
+                }`}
               >
-                <div className="inline-flex items-center justify-center w-[56px] h-[56px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-[16px]">
-                  <svg className="h-[24px] w-[24px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                </div>
-                {uploadedFile ? (
+                {isProcessingDocument ? (
                   <>
-                    <div className="text-[17px] font-medium mb-[8px] text-green-600">
-                      ✓ {uploadedFile.name}
+                    <div className="inline-flex items-center justify-center w-[56px] h-[56px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-[16px]">
+                      <svg className="h-[24px] w-[24px] text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
                     </div>
-                    <div className="text-[14px] text-[#6e6e73] mb-[16px]">
-                      Click to change file
+                    <div className="text-[17px] font-medium mb-[8px] text-[#0071e3]">
+                      Processing document...
+                    </div>
+                    <div className="text-[14px] text-[#6e6e73]">
+                      Extracting and populating fields
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="text-[17px] font-medium mb-[8px] text-[#1d1d1f]">
-                      Drop your file here
+                    <div className="inline-flex items-center justify-center w-[56px] h-[56px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-[16px]">
+                      <svg className="h-[24px] w-[24px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
                     </div>
-                    <div className="text-[14px] text-[#6e6e73] mb-[16px]">
-                      JPG, PNG, PDF, DOCX, or TXT • Max 10MB
-                    </div>
+                    {uploadedFile ? (
+                      <>
+                        <div className="text-[17px] font-medium mb-[8px] text-green-600">
+                          ✓ {uploadedFile.name}
+                        </div>
+                        <div className="text-[14px] text-[#6e6e73] mb-[16px]">
+                          Click to change file
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-[17px] font-medium mb-[8px] text-[#1d1d1f]">
+                          Drop your file here
+                        </div>
+                        <div className="text-[14px] text-[#6e6e73] mb-[16px]">
+                          JPG, PNG, PDF, DOCX, or TXT • Max 20MB
+                        </div>
+                      </>
+                    )}
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleBrowseClick()
+                      }}
+                      disabled={isProcessingDocument}
+                      className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[14px] px-[20px] py-[10px] rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Browse files
+                    </button>
                   </>
                 )}
-                <button 
-                  type="button"
-                  onClick={handleBrowseClick}
-                  className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[14px] px-[20px] py-[10px] rounded-full transition-all"
-                >
-                  Browse files
-                </button>
               </div>
               <div className="text-[12px] text-[#86868b] mt-[12px] text-center">
                 AI will extract and analyze tasks from your document automatically (Coming in Phase 2)

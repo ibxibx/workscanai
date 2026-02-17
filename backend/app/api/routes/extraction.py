@@ -9,6 +9,7 @@ from anthropic import Anthropic
 import pypdf
 import docx
 import tempfile
+import base64
 
 router = APIRouter()
 
@@ -33,7 +34,7 @@ class ParsedTasksResponse(BaseModel):
 
 
 def extract_text_from_file(file_path: str, filename: str) -> str:
-    """Extract text from various document formats"""
+    """Extract text from various document formats including images using Claude Vision"""
     ext = filename.lower().split('.')[-1]
     
     try:
@@ -53,6 +54,52 @@ def extract_text_from_file(file_path: str, filename: str) -> str:
             doc = docx.Document(file_path)
             text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
             return text
+        
+        elif ext in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
+            # Use Claude Vision to extract text from image
+            api_key = os.getenv("ANTHROPIC_API_KEY")
+            if not api_key:
+                raise ValueError("ANTHROPIC_API_KEY not configured for image OCR")
+            
+            # Read image and convert to base64
+            with open(file_path, 'rb') as f:
+                image_data = base64.b64encode(f.read()).decode('utf-8')
+            
+            # Determine media type
+            media_types = {
+                'png': 'image/png',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'gif': 'image/gif',
+                'webp': 'image/webp'
+            }
+            media_type = media_types.get(ext, 'image/png')
+            
+            # Use Claude Vision to extract text
+            client = Anthropic(api_key=api_key)
+            message = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=2000,
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": image_data
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": "Please extract all text from this image. Return ONLY the extracted text, nothing else. If this appears to be a workflow, task list, or process description, preserve the structure and formatting."
+                        }
+                    ]
+                }]
+            )
+            
+            return message.content[0].text
         
         else:
             raise ValueError(f"Unsupported file type: {ext}")
