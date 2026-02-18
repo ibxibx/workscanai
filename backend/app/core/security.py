@@ -1,18 +1,18 @@
 """
-In-memory rate limiter + reCAPTCHA v3 verification middleware.
-Limits each IP to MAX_ANALYSES_PER_HOUR analyze calls.
+In-memory rate limiter + reCAPTCHA v3 verification.
+Limits each IP to MAX_ANALYSES_PER_HOUR analyze calls per rolling hour.
 """
 import time
-import os
 from collections import defaultdict
 from fastapi import Request, HTTPException
 import httpx
+from app.core.config import settings
 
-# ── Rate limit config ─────────────────────────────────────────────────────────
-MAX_ANALYSES_PER_HOUR = int(os.getenv("MAX_ANALYSES_PER_HOUR", "5"))
+# ── Rate limit config (read from Settings / .env) ─────────────────────────────
+MAX_ANALYSES_PER_HOUR = settings.MAX_ANALYSES_PER_HOUR
 WINDOW_SECONDS = 3600  # 1 hour rolling window
 
-# ip -> list of timestamps of recent /api/analyze calls
+# ip -> list of UNIX timestamps of recent /api/analyze calls
 _analyze_log: dict[str, list[float]] = defaultdict(list)
 
 
@@ -53,8 +53,8 @@ def check_rate_limit(request: Request) -> None:
 
 
 # ── reCAPTCHA v3 verification ─────────────────────────────────────────────────
-RECAPTCHA_SECRET = os.getenv("RECAPTCHA_SECRET_KEY", "")
-RECAPTCHA_MIN_SCORE = float(os.getenv("RECAPTCHA_MIN_SCORE", "0.5"))
+RECAPTCHA_SECRET = settings.RECAPTCHA_SECRET_KEY
+RECAPTCHA_MIN_SCORE = settings.RECAPTCHA_MIN_SCORE
 RECAPTCHA_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify"
 
 

@@ -28,7 +28,12 @@ class Settings(BaseSettings):
     
     # Environment
     ENVIRONMENT: str = "development"
-    
+
+    # Bot protection
+    MAX_ANALYSES_PER_HOUR: int = 5
+    RECAPTCHA_SECRET_KEY: str = ""
+    RECAPTCHA_MIN_SCORE: float = 0.5
+
     class Config:
         env_file = ".env"
         case_sensitive = True
