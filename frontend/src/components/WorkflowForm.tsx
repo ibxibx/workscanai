@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Mic, Upload, FileText, Plus, Trash2, Loader2 } from 'lucide-react'
+import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown } from 'lucide-react'
 
 interface Task {
   name: string
@@ -33,26 +33,20 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [isUploading, setIsUploading] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [hourlyRate, setHourlyRate] = useState(50)
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
 
   const addTask = () => {
     setTasks([...tasks, {
-      name: '',
-      description: '',
-      frequency: 'weekly',
-      time_per_task: 30,
-      category: 'general',
-      complexity: 'medium'
+      name: '', description: '', frequency: 'weekly',
+      time_per_task: 30, category: 'general', complexity: 'medium'
     }])
   }
 
   const removeTask = (index: number) => {
-    if (tasks.length > 1) {
-      setTasks(tasks.filter((_, i) => i !== index))
-    }
+    if (tasks.length > 1) setTasks(tasks.filter((_, i) => i !== index))
   }
 
   const updateTask = (index: number, field: keyof Task, value: string | number) => {
@@ -67,21 +61,15 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       const mediaRecorder = new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data)
-      }
-
+      mediaRecorder.ondataavailable = (e) => audioChunksRef.current.push(e.data)
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
         await processVoiceInput(audioBlob)
-        stream.getTracks().forEach(track => track.stop())
+        stream.getTracks().forEach(t => t.stop())
       }
-
       mediaRecorder.start()
       setIsRecording(true)
-    } catch (error) {
-      console.error('Error starting recording:', error)
+    } catch {
       onError('Failed to start voice recording. Please check microphone permissions.')
     }
   }
@@ -98,20 +86,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     try {
       const formData = new FormData()
       formData.append('audio', audioBlob, 'recording.webm')
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/transcribe`, {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to transcribe audio')
-      }
-
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/transcribe`, { method: 'POST', body: formData })
+      if (!response.ok) throw new Error()
       const data = await response.json()
       await extractTasksFromText(data.transcription)
-    } catch (error) {
-      console.error('Error processing voice input:', error)
+    } catch {
       onError('Failed to process voice recording. Please try again or use manual input.')
     } finally {
       setIsUploading(false)
@@ -121,31 +100,19 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-
     setIsUploading(true)
     try {
       const formData = new FormData()
       formData.append('file', file)
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/extract-tasks`, {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to extract tasks from document')
-      }
-
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/extract-tasks`, { method: 'POST', body: formData })
+      if (!response.ok) throw new Error()
       const data = await response.json()
       await extractTasksFromText(data.text)
-    } catch (error) {
-      console.error('Error uploading document:', error)
+    } catch {
       onError('Failed to process document. Please try again or use manual input.')
     } finally {
       setIsUploading(false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -156,41 +123,25 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to parse tasks')
-      }
-
+      if (!response.ok) throw new Error()
       const data = await response.json()
-      if (data.tasks && data.tasks.length > 0) {
+      if (data.tasks?.length > 0) {
         setTasks(data.tasks)
         if (data.workflow_name) setWorkflowName(data.workflow_name)
         if (data.workflow_description) setWorkflowDescription(data.workflow_description)
       }
-    } catch (error) {
-      console.error('Error extracting tasks:', error)
+    } catch {
       onError('Failed to extract tasks. Please try manual input.')
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!workflowName.trim()) {
-      onError('Please provide a workflow name')
-      return
-    }
-
-    if (tasks.length === 0 || !tasks.some(t => t.name.trim())) {
-      onError('Please add at least one task')
-      return
-    }
-
+    if (!workflowName.trim()) { onError('Please provide a workflow name'); return }
+    if (!tasks.some(t => t.name.trim())) { onError('Please add at least one task'); return }
     setIsAnalyzing(true)
     onError('')
-
     try {
-      // Step 1: Create workflow
       const workflowResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflows`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -207,313 +158,305 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           }))
         }),
       })
-
       if (!workflowResponse.ok) {
-        const errorData = await workflowResponse.json()
-        throw new Error(errorData.detail || 'Failed to create workflow')
+        const err = await workflowResponse.json()
+        throw new Error(err.detail || 'Failed to create workflow')
       }
-
       const workflow = await workflowResponse.json()
 
-      // Step 2: Trigger analysis
       const analysisResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workflow_id: workflow.id,
-          hourly_rate: hourlyRate
-        }),
+        body: JSON.stringify({ workflow_id: workflow.id, hourly_rate: hourlyRate }),
       })
-
       if (!analysisResponse.ok) {
-        const errorData = await analysisResponse.json()
-        throw new Error(errorData.detail || 'Failed to analyze workflow')
+        const err = await analysisResponse.json()
+        throw new Error(err.detail || 'Failed to analyze workflow')
       }
-
-      const analysis = await analysisResponse.json()
       onAnalysisComplete(workflow.id)
     } catch (error: any) {
-      console.error('Error submitting workflow:', error)
       onError(error.message || 'Failed to analyze workflow. Please try again.')
     } finally {
       setIsAnalyzing(false)
     }
   }
 
+  // ── Shared input styles ────────────────────────────────────────────────────
+  const inputClass = "w-full px-[14px] py-[10px] bg-white border border-[#d2d2d7] rounded-[10px] text-[15px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] transition-all"
+  const selectClass = `${inputClass} appearance-none cursor-pointer`
+  const labelClass = "block text-[13px] font-medium text-[#6e6e73] mb-[6px] uppercase tracking-wide"
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Input Mode Selection */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <h2 className="text-xl font-semibold mb-4">Input Method</h2>
-        <div className="flex gap-4">
+    <form onSubmit={handleSubmit} className="space-y-[24px]">
+
+      {/* ── Input Mode Tabs ────────────────────────────────────────────────── */}
+      <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[6px] flex gap-[4px]">
+        {([
+          { mode: 'manual', icon: FileText, label: 'Manual Entry' },
+          { mode: 'voice',  icon: Mic,      label: 'Voice Input' },
+          { mode: 'document', icon: Upload,  label: 'Upload Document' },
+        ] as const).map(({ mode, icon: Icon, label }) => (
           <button
+            key={mode}
             type="button"
-            onClick={() => setInputMode('manual')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-colors ${
-              inputMode === 'manual'
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-200 hover:border-gray-300'
+            onClick={() => setInputMode(mode)}
+            className={`flex-1 flex items-center justify-center gap-[8px] px-[16px] py-[12px] rounded-[12px] text-[15px] font-medium transition-all ${
+              inputMode === mode
+                ? 'bg-white text-[#1d1d1f] shadow-sm border border-[#d2d2d7]'
+                : 'text-[#6e6e73] hover:text-[#1d1d1f]'
             }`}
           >
-            <FileText size={20} />
-            Manual Entry
+            <Icon className="h-[16px] w-[16px]" />
+            {label}
           </button>
-          <button
-            type="button"
-            onClick={() => setInputMode('voice')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-colors ${
-              inputMode === 'voice'
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <Mic size={20} />
-            Voice Input
-          </button>
-          <button
-            type="button"
-            onClick={() => setInputMode('document')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-colors ${
-              inputMode === 'document'
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <Upload size={20} />
-            Upload Document
-          </button>
-        </div>
+        ))}
       </div>
 
-      {/* Voice Recording Interface */}
+      {/* ── Voice Recording ────────────────────────────────────────────────── */}
       {inputMode === 'voice' && (
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h3 className="text-lg font-semibold mb-4">Voice Recording</h3>
-          <div className="text-center py-8">
-            {!isRecording && !isUploading && (
+        <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px] text-center">
+          <div className="mb-[20px]">
+            <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border border-[#d2d2d7] mb-[16px]">
+              <Mic className={`h-[28px] w-[28px] ${isRecording ? 'text-red-500' : 'text-[#6e6e73]'}`} />
+            </div>
+            <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Voice Recording</h3>
+            <p className="text-[15px] text-[#6e6e73] max-w-[420px] mx-auto">
+              Describe your workflow and tasks verbally. AI will extract and organize them for analysis.
+            </p>
+          </div>
+
+          {!isRecording && !isUploading && (
+            <button
+              type="button"
+              onClick={startVoiceRecording}
+              className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all"
+            >
+              <Mic className="h-[18px] w-[18px]" />
+              Start Recording
+            </button>
+          )}
+          {isRecording && (
+            <div className="space-y-[16px]">
+              <div className="flex items-center justify-center gap-[10px]">
+                <div className="w-[10px] h-[10px] bg-red-500 rounded-full animate-pulse" />
+                <span className="text-[17px] font-medium text-[#1d1d1f]">Recording…</span>
+              </div>
               <button
                 type="button"
-                onClick={startVoiceRecording}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+                onClick={stopVoiceRecording}
+                className="inline-flex items-center gap-[8px] bg-red-500 hover:bg-red-600 text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all"
               >
-                <Mic size={20} />
-                Start Recording
+                Stop Recording
               </button>
-            )}
-            {isRecording && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                  <p className="text-lg font-medium">Recording...</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={stopVoiceRecording}
-                  className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  Stop Recording
-                </button>
-              </div>
-            )}
-            {isUploading && (
-              <div className="flex items-center justify-center gap-3">
-                <Loader2 className="animate-spin" size={20} />
-                <p>Processing audio...</p>
-              </div>
-            )}
-          </div>
-          <p className="text-sm text-gray-500 mt-4">
-            Describe your workflow and tasks verbally. Our AI will extract and organize them for analysis.
-          </p>
+            </div>
+          )}
+          {isUploading && (
+            <div className="flex items-center justify-center gap-[10px] text-[#6e6e73]">
+              <Loader2 className="animate-spin h-[20px] w-[20px]" />
+              <span className="text-[15px]">Processing audio…</span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Document Upload Interface */}
+      {/* ── Document Upload ────────────────────────────────────────────────── */}
       {inputMode === 'document' && (
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h3 className="text-lg font-semibold mb-4">Upload Document</h3>
-          <div className="text-center py-8">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleDocumentUpload}
-              accept=".txt,.doc,.docx,.pdf"
-              className="hidden"
-            />
-            {!isUploading && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
-              >
-                <Upload size={20} />
-                Choose File
-              </button>
-            )}
-            {isUploading && (
-              <div className="flex items-center justify-center gap-3">
-                <Loader2 className="animate-spin" size={20} />
-                <p>Processing document...</p>
-              </div>
-            )}
+        <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px] text-center">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleDocumentUpload}
+            accept=".txt,.doc,.docx,.pdf,.png,.jpg,.jpeg"
+            className="hidden"
+          />
+          <div className="mb-[20px]">
+            <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border border-[#d2d2d7] mb-[16px]">
+              <Upload className="h-[28px] w-[28px] text-[#6e6e73]" />
+            </div>
+            <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Upload Document</h3>
+            <p className="text-[15px] text-[#6e6e73] max-w-[420px] mx-auto">
+              Upload a file containing your workflow description. Supports PDF, Word, text, and images.
+            </p>
           </div>
-          <p className="text-sm text-gray-500 mt-4">
-            Upload a document containing your workflow description and task list (.txt, .doc, .docx, .pdf)
-          </p>
+
+          {!isUploading ? (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all"
+            >
+              <Upload className="h-[18px] w-[18px]" />
+              Choose File
+            </button>
+          ) : (
+            <div className="flex items-center justify-center gap-[10px] text-[#6e6e73]">
+              <Loader2 className="animate-spin h-[20px] w-[20px]" />
+              <span className="text-[15px]">Processing document…</span>
+            </div>
+          )}
+          <p className="text-[13px] text-[#86868b] mt-[16px]">.txt · .doc · .docx · .pdf · .png · .jpg</p>
         </div>
       )}
 
-      {/* Workflow Details */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <h2 className="text-xl font-semibold mb-4">Workflow Details</h2>
-        <div className="space-y-4">
+      {/* ── Workflow Details ───────────────────────────────────────────────── */}
+      <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
+        <h2 className="text-[21px] font-semibold text-[#1d1d1f] mb-[28px]">Workflow Details</h2>
+        <div className="space-y-[20px]">
           <div>
-            <label className="block text-sm font-medium mb-2">
-              Workflow Name *
-            </label>
+            <label className={labelClass}>Workflow Name <span className="text-red-500">*</span></label>
             <input
               type="text"
               value={workflowName}
               onChange={(e) => setWorkflowName(e.target.value)}
               placeholder="e.g., Marketing Team Workflow"
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={inputClass}
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">
-              Description (Optional)
-            </label>
+            <label className={labelClass}>Description <span className="text-[#86868b] normal-case font-normal">(optional)</span></label>
             <textarea
               value={workflowDescription}
               onChange={(e) => setWorkflowDescription(e.target.value)}
-              placeholder="Describe your workflow..."
+              placeholder="Describe your workflow or team…"
               rows={3}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`${inputClass} resize-none`}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">
-              Hourly Rate ($) - for ROI calculation
-            </label>
-            <input
-              type="number"
-              value={hourlyRate}
-              onChange={(e) => setHourlyRate(Number(e.target.value))}
-              min="1"
-              step="1"
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <label className={labelClass}>Hourly Rate (€) — for ROI calculation</label>
+            <div className="relative">
+              <span className="absolute left-[14px] top-1/2 -translate-y-1/2 text-[15px] text-[#86868b]">€</span>
+              <input
+                type="number"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(Number(e.target.value))}
+                min="1"
+                className={`${inputClass} pl-[28px]`}
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Tasks */}
+      {/* ── Task List (Manual mode) ────────────────────────────────────────── */}
       {inputMode === 'manual' && (
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Tasks</h2>
+        <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
+          <div className="flex items-center justify-between mb-[28px]">
+            <h2 className="text-[21px] font-semibold text-[#1d1d1f]">Tasks</h2>
             <button
               type="button"
               onClick={addTask}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-[6px] border border-[#d2d2d7] bg-white hover:bg-[#f5f5f7] px-[16px] py-[8px] rounded-full text-[14px] font-medium text-[#1d1d1f] transition-all"
             >
-              <Plus size={20} />
+              <Plus className="h-[14px] w-[14px]" />
               Add Task
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-[20px]">
             {tasks.map((task, index) => (
-              <div key={index} className="p-4 border rounded-lg space-y-3">
-                <div className="flex items-start justify-between">
-                  <h3 className="font-medium">Task {index + 1}</h3>
+              <div key={index} className="bg-white border border-[#d2d2d7] rounded-[14px] p-[28px]">
+                <div className="flex items-center justify-between mb-[20px]">
+                  <span className="text-[13px] font-semibold text-[#86868b] uppercase tracking-wide">
+                    Task {index + 1}
+                  </span>
                   {tasks.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeTask(index)}
-                      className="text-red-600 hover:text-red-700"
+                      className="flex items-center gap-[4px] text-[13px] text-[#86868b] hover:text-red-500 transition-colors"
                     >
-                      <Trash2 size={20} />
+                      <Trash2 className="h-[14px] w-[14px]" />
+                      Remove
                     </button>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-1">Task Name *</label>
+                    <label className={labelClass}>Task Name <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       value={task.name}
                       onChange={(e) => updateTask(index, 'name', e.target.value)}
                       placeholder="e.g., Write social media posts"
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={inputClass}
                       required
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-1">Description</label>
+                    <label className={labelClass}>Description <span className="text-[#86868b] normal-case font-normal">(optional)</span></label>
                     <input
                       type="text"
                       value={task.description}
                       onChange={(e) => updateTask(index, 'description', e.target.value)}
-                      placeholder="Additional details..."
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Additional context or details…"
+                      className={inputClass}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Frequency</label>
-                    <select
-                      value={task.frequency}
-                      onChange={(e) => updateTask(index, 'frequency', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                    </select>
+                    <label className={labelClass}>Frequency</label>
+                    <div className="relative">
+                      <select
+                        value={task.frequency}
+                        onChange={(e) => updateTask(index, 'frequency', e.target.value)}
+                        className={selectClass}
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                      <ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none" />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Time per Task (minutes)</label>
+                    <label className={labelClass}>Time per Task (minutes)</label>
                     <input
                       type="number"
                       value={task.time_per_task}
                       onChange={(e) => updateTask(index, 'time_per_task', Number(e.target.value))}
                       min="1"
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={inputClass}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Category</label>
-                    <select
-                      value={task.category}
-                      onChange={(e) => updateTask(index, 'category', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="general">General</option>
-                      <option value="data_entry">Data Entry</option>
-                      <option value="communication">Communication</option>
-                      <option value="analysis">Analysis</option>
-                      <option value="creative">Creative</option>
-                      <option value="administrative">Administrative</option>
-                    </select>
+                    <label className={labelClass}>Category</label>
+                    <div className="relative">
+                      <select
+                        value={task.category}
+                        onChange={(e) => updateTask(index, 'category', e.target.value)}
+                        className={selectClass}
+                      >
+                        <option value="general">General</option>
+                        <option value="data_entry">Data Entry</option>
+                        <option value="communication">Communication</option>
+                        <option value="analysis">Analysis</option>
+                        <option value="creative">Creative</option>
+                        <option value="administrative">Administrative</option>
+                      </select>
+                      <ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none" />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Complexity</label>
-                    <select
-                      value={task.complexity}
-                      onChange={(e) => updateTask(index, 'complexity', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
+                    <label className={labelClass}>Complexity</label>
+                    <div className="relative">
+                      <select
+                        value={task.complexity}
+                        onChange={(e) => updateTask(index, 'complexity', e.target.value)}
+                        className={selectClass}
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                      <ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -522,17 +465,17 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         </div>
       )}
 
-      {/* Submit Button */}
-      <div className="flex justify-end">
+      {/* ── Submit ─────────────────────────────────────────────────────────── */}
+      <div className="flex justify-end pt-[8px]">
         <button
           type="submit"
           disabled={isAnalyzing || isUploading}
-          className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 text-lg font-medium"
+          className="inline-flex items-center gap-[10px] bg-[#0071e3] hover:bg-[#0077ed] disabled:bg-[#86868b] disabled:cursor-not-allowed text-white px-[36px] py-[16px] rounded-full font-semibold text-[17px] transition-all"
         >
           {isAnalyzing ? (
             <>
-              <Loader2 className="animate-spin" size={20} />
-              Analyzing...
+              <Loader2 className="animate-spin h-[18px] w-[18px]" />
+              Analyzing with AI…
             </>
           ) : (
             'Analyze Workflow'

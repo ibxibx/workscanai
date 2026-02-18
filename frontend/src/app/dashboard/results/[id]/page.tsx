@@ -1,7 +1,8 @@
 'use client'
 
 import { use, useEffect, useState } from 'react'
-import { Download, Share2 } from 'lucide-react'
+import { Download, Share2, Map } from 'lucide-react'
+import Link from 'next/link'
 
 interface TaskResult {
   task: {
@@ -296,6 +297,13 @@ Visit: https://workscanai.com
             <Share2 className="h-[18px] w-[18px]" />
             Share Results
           </button>
+          <Link
+            href={`/dashboard/results/${id}/roadmap`}
+            className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[28px] py-[14px] rounded-full font-medium text-[17px] text-[#1d1d1f] transition-all"
+          >
+            <Map className="h-[18px] w-[18px]" />
+            View Roadmap
+          </Link>
         </div>
       </div>
     </div>
