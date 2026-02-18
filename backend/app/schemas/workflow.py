@@ -72,3 +72,4 @@ class AnalysisResponse(BaseModel):
 class AnalyzeRequest(BaseModel):
     workflow_id: int
     hourly_rate: Optional[float] = 50.0  # Default $50/hour
+    recaptcha_token: Optional[str] = None  # reCAPTCHA v3 token from frontend

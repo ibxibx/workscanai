@@ -1,11 +1,12 @@
 """
 API routes for workflow management and analysis
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
+from app.core.security import check_rate_limit, verify_recaptcha
 from app.models.workflow import Workflow, Task, Analysis, AnalysisResult
 from app.schemas.workflow import (
     WorkflowCreate, WorkflowResponse,
@@ -70,8 +71,15 @@ def list_workflows(db: Session = Depends(get_db)):
 
 
 @router.post("/analyze", response_model=AnalysisResponse)
-def analyze_workflow(request: AnalyzeRequest, db: Session = Depends(get_db)):
-    """Analyze a workflow using AI"""
+async def analyze_workflow(request: AnalyzeRequest, http_request: Request, db: Session = Depends(get_db)):
+    """Analyze a workflow using AI (rate-limited + CAPTCHA-protected)"""
+
+    # 1. Rate limiting — max N analyses per IP per hour
+    check_rate_limit(http_request)
+
+    # 2. reCAPTCHA v3 — skip silently if token absent in dev mode
+    if request.recaptcha_token:
+        await verify_recaptcha(request.recaptcha_token)
     
     # Get workflow with tasks
     workflow = db.query(Workflow).filter(Workflow.id == request.workflow_id).first()
