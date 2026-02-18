@@ -69,6 +69,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [activeStep, setActiveStep] = useState<number>(-1)   // -1 = not started
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
   const [stepError, setStepError] = useState<string | null>(null)
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null)
   const isAnalyzing = activeStep >= 0 && activeStep < STEPS.length - 1
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -92,6 +93,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     setActiveStep(-1)
     setCompletedSteps(new Set())
     setStepError(null)
+    setRateLimitMessage(null)
   }
 
   // ── Task helpers ──────────────────────────────────────────────────────────
@@ -228,9 +230,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       })
       if (!analysisRes.ok) {
         const err = await analysisRes.json()
-        // Surface rate-limit errors nicely
         if (analysisRes.status === 429) {
-          throw new Error(err.detail?.message || 'Rate limit reached. Please try again later.')
+          // Show the friendly rate-limit card inside the overlay — don't dismiss it
+          const msg = err.detail?.message || 'You have reached the daily analysis limit.'
+          setRateLimitMessage(msg)
+          return  // keep overlay open showing the rate-limit card
         }
         if (analysisRes.status === 403) {
           throw new Error(err.detail?.message || 'Security check failed. Please refresh and try again.')
@@ -261,7 +265,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
   // ── Progress overlay ──────────────────────────────────────────────────────
   const taskCount = tasks.filter(t => t.name.trim()).length
-  const showProgress = activeStep >= 0
+  const showProgress = activeStep >= 0 || rateLimitMessage !== null
 
   return (
     <>
@@ -269,91 +273,115 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       {showProgress && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-md">
           <div className="bg-white border border-[#d2d2d7] rounded-[24px] shadow-2xl p-[48px] w-full max-w-[480px] mx-4">
-            <div className="text-center mb-[40px]">
-              <div className="text-[24px] font-semibold text-[#1d1d1f] mb-[6px]">
-                {activeStep < STEPS.length - 1 ? 'Analyzing your workflow…' : 'All done!'}
+
+            {/* ── Rate limit card ──────────────────────────────────────────── */}
+            {rateLimitMessage ? (
+              <div className="text-center">
+                {/* Icon */}
+                <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-amber-50 border border-amber-200 mb-[24px]">
+                  <span className="text-[32px]">☕</span>
+                </div>
+
+                <h2 className="text-[22px] font-semibold text-[#1d1d1f] mb-[16px]">
+                  Daily limit reached
+                </h2>
+
+                {/* Multi-line message — backend sends \n\n paragraphs */}
+                <div className="text-left bg-[#f5f5f7] border border-[#d2d2d7] rounded-[14px] px-[24px] py-[20px] mb-[28px] space-y-[12px]">
+                  {rateLimitMessage.split('\n\n').map((para, i) => (
+                    <p key={i} className={`text-[15px] leading-relaxed ${i === 0 ? 'font-medium text-[#1d1d1f]' : 'text-[#6e6e73]'}`}>
+                      {para}
+                    </p>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={resetProgress}
+                  className="inline-flex items-center gap-[8px] bg-[#1d1d1f] hover:bg-[#3d3d3f] text-white px-[28px] py-[14px] rounded-full font-semibold text-[15px] transition-all"
+                >
+                  Got it, close
+                </button>
               </div>
-              {activeStep === 2 && taskCount > 1 && (
-                <p className="text-[14px] text-[#6e6e73]">
-                  Running AI analysis on {taskCount} tasks — this takes {taskCount * 3}–{taskCount * 6}s
-                </p>
-              )}
-            </div>
-
-            {/* Step list */}
-            <div className="space-y-[20px]">
-              {STEPS.map((step, i) => {
-                const isDone = completedSteps.has(i)
-                const isActive = activeStep === i
-                const isPending = i > activeStep
-
-                return (
-                  <div key={step.id} className="flex items-center gap-[16px]">
-                    {/* Icon */}
-                    <div className="shrink-0 w-[36px] h-[36px] flex items-center justify-center">
-                      {isDone ? (
-                        <CheckCircle2 className="h-[28px] w-[28px] text-green-500" />
-                      ) : isActive ? (
-                        <div className="relative">
-                          <Loader2 className="h-[28px] w-[28px] text-[#0071e3] animate-spin" />
-                        </div>
-                      ) : (
-                        <Circle className="h-[28px] w-[28px] text-[#d2d2d7]" />
-                      )}
-                    </div>
-
-                    {/* Text */}
-                    <div className="flex-1">
-                      <div className={`text-[15px] font-semibold transition-colors ${
-                        isDone ? 'text-green-600' :
-                        isActive ? 'text-[#1d1d1f]' :
-                        'text-[#86868b]'
-                      }`}>
-                        {step.label}
-                      </div>
-                      {isActive && (
-                        <div className="text-[13px] text-[#6e6e73] mt-[2px]">{step.detail}</div>
-                      )}
-                    </div>
-
-                    {/* Right badge */}
-                    {isDone && (
-                      <span className="text-[12px] font-medium text-green-600 bg-green-50 border border-green-200 px-[10px] py-[3px] rounded-full">
-                        Done
-                      </span>
-                    )}
-                    {isActive && activeStep < STEPS.length - 1 && (
-                      <span className="text-[12px] font-medium text-[#0071e3] bg-blue-50 border border-blue-200 px-[10px] py-[3px] rounded-full">
-                        Running
-                      </span>
-                    )}
+            ) : (
+              /* ── Normal progress stepper ─────────────────────────────────── */
+              <>
+                <div className="text-center mb-[40px]">
+                  <div className="text-[24px] font-semibold text-[#1d1d1f] mb-[6px]">
+                    {activeStep < STEPS.length - 1 ? 'Analyzing your workflow…' : 'All done!'}
                   </div>
-                )
-              })}
-            </div>
+                  {activeStep === 2 && taskCount > 1 && (
+                    <p className="text-[14px] text-[#6e6e73]">
+                      Running AI analysis on {taskCount} tasks — this takes {taskCount * 3}–{taskCount * 6}s
+                    </p>
+                  )}
+                </div>
 
-            {/* Progress bar */}
-            <div className="mt-[36px]">
-              <div className="flex justify-between text-[12px] text-[#86868b] mb-[8px]">
-                <span>Progress</span>
-                <span>{Math.round(((completedSteps.size) / STEPS.length) * 100)}%</span>
-              </div>
-              <div className="w-full h-[4px] bg-[#e8e8ed] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#0071e3] rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${(completedSteps.size / STEPS.length) * 100}%` }}
-                />
-              </div>
-            </div>
+                {/* Step list */}
+                <div className="space-y-[20px]">
+                  {STEPS.map((step, i) => {
+                    const isDone = completedSteps.has(i)
+                    const isActive = activeStep === i
 
-            {/* reCAPTCHA badge note */}
-            {SITE_KEY && (
-              <p className="text-[11px] text-[#86868b] text-center mt-[20px]">
-                Protected by reCAPTCHA ·{' '}
-                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" className="underline">Privacy</a>
-                {' · '}
-                <a href="https://policies.google.com/terms" target="_blank" rel="noopener" className="underline">Terms</a>
-              </p>
+                    return (
+                      <div key={step.id} className="flex items-center gap-[16px]">
+                        <div className="shrink-0 w-[36px] h-[36px] flex items-center justify-center">
+                          {isDone ? (
+                            <CheckCircle2 className="h-[28px] w-[28px] text-green-500" />
+                          ) : isActive ? (
+                            <Loader2 className="h-[28px] w-[28px] text-[#0071e3] animate-spin" />
+                          ) : (
+                            <Circle className="h-[28px] w-[28px] text-[#d2d2d7]" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className={`text-[15px] font-semibold transition-colors ${
+                            isDone ? 'text-green-600' : isActive ? 'text-[#1d1d1f]' : 'text-[#86868b]'
+                          }`}>
+                            {step.label}
+                          </div>
+                          {isActive && (
+                            <div className="text-[13px] text-[#6e6e73] mt-[2px]">{step.detail}</div>
+                          )}
+                        </div>
+                        {isDone && (
+                          <span className="text-[12px] font-medium text-green-600 bg-green-50 border border-green-200 px-[10px] py-[3px] rounded-full">
+                            Done
+                          </span>
+                        )}
+                        {isActive && activeStep < STEPS.length - 1 && (
+                          <span className="text-[12px] font-medium text-[#0071e3] bg-blue-50 border border-blue-200 px-[10px] py-[3px] rounded-full">
+                            Running
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Progress bar */}
+                <div className="mt-[36px]">
+                  <div className="flex justify-between text-[12px] text-[#86868b] mb-[8px]">
+                    <span>Progress</span>
+                    <span>{Math.round((completedSteps.size / STEPS.length) * 100)}%</span>
+                  </div>
+                  <div className="w-full h-[4px] bg-[#e8e8ed] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#0071e3] rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${(completedSteps.size / STEPS.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {SITE_KEY && (
+                  <p className="text-[11px] text-[#86868b] text-center mt-[20px]">
+                    Protected by reCAPTCHA ·{' '}
+                    <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" className="underline">Privacy</a>
+                    {' · '}
+                    <a href="https://policies.google.com/terms" target="_blank" rel="noopener" className="underline">Terms</a>
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>

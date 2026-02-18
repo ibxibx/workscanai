@@ -10,7 +10,7 @@ from app.core.config import settings
 
 # ── Rate limit config (read from Settings / .env) ─────────────────────────────
 MAX_ANALYSES_PER_HOUR = settings.MAX_ANALYSES_PER_HOUR
-WINDOW_SECONDS = 3600  # 1 hour rolling window
+WINDOW_SECONDS = 86400  # 24-hour rolling window
 
 # ip -> list of UNIX timestamps of recent /api/analyze calls
 _analyze_log: dict[str, list[float]] = defaultdict(list)
@@ -38,14 +38,21 @@ def check_rate_limit(request: Request) -> None:
 
     if len(_analyze_log[ip]) >= MAX_ANALYSES_PER_HOUR:
         oldest = _analyze_log[ip][0]
-        retry_in = int(WINDOW_SECONDS - (now - oldest))
+        retry_in_seconds = int(WINDOW_SECONDS - (now - oldest))
+        retry_in_hours = max(1, round(retry_in_seconds / 3600))
         raise HTTPException(
             status_code=429,
             detail={
                 "error": "rate_limit",
-                "message": f"You have used all {MAX_ANALYSES_PER_HOUR} free analyses this hour. "
-                           f"Please try again in {retry_in // 60} min.",
-                "retry_after_seconds": retry_in,
+                "message": (
+                    f"Thank you for exploring WorkScanAI! 🎉\n\n"
+                    f"You've used all {MAX_ANALYSES_PER_HOUR} free workflow scans included in this demo. "
+                    f"The limit resets on a rolling 24-hour basis — your next slot opens in approximately "
+                    f"{retry_in_hours} hour{'s' if retry_in_hours != 1 else ''}.\n\n"
+                    f"We hope the analysis gave you a clear picture of your automation opportunities. "
+                    f"Feel free to come back tomorrow and scan another workflow!"
+                ),
+                "retry_after_seconds": retry_in_seconds,
             },
         )
 
