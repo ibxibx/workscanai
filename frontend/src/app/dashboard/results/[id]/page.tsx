@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { Download, Share2, Map } from 'lucide-react'
 import Link from 'next/link'
@@ -34,8 +34,11 @@ export default function ResultsPage() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
+    if (fetchedRef.current) return
+    fetchedRef.current = true
     const fetchAnalysis = async () => {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/results/${id}`)

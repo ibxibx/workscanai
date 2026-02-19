@@ -139,6 +139,13 @@ async def analyze_workflow(request: AnalyzeRequest, http_request: Request, db: S
     db.commit()
     db.refresh(analysis)
     
+    # Eagerly load relationships so Pydantic can serialize them
+    db.refresh(analysis)
+    _ = analysis.workflow
+    _ = analysis.results
+    for r in analysis.results:
+        _ = r.task
+    
     return analysis
 
 
@@ -150,5 +157,11 @@ def get_analysis_results(workflow_id: int, db: Session = Depends(get_db)):
     
     if not analysis:
         raise HTTPException(status_code=404, detail="No analysis found for this workflow")
+    
+    # Eagerly load relationships
+    _ = analysis.workflow
+    _ = analysis.results
+    for r in analysis.results:
+        _ = r.task
     
     return analysis

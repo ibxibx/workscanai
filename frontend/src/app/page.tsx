@@ -1,17 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowRight, Sparkles } from 'lucide-react'
 import WorkflowForm from '@/components/WorkflowForm'
 
 export default function LandingPage() {
-  const router = useRouter()
   const [formError, setFormError] = useState<string | null>(null)
 
   const handleAnalysisComplete = (workflowId: number) => {
-    router.push(`/dashboard/results/${workflowId}`)
+    // Use hard navigation so the overlay stays visible during the transition
+    window.location.href = `/dashboard/results/${workflowId}`
   }
 
   return (

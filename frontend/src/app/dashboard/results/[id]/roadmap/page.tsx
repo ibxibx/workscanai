@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -91,8 +91,11 @@ export default function RoadmapPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [checked, setChecked] = useState<Record<string, boolean>>({})
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
+    if (fetchedRef.current) return
+    fetchedRef.current = true
     const load = async () => {
       try {
         const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/results/${id}`)
