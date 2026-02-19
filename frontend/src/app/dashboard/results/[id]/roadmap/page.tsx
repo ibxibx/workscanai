@@ -1,6 +1,7 @@
 'use client'
 
-import { use, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Zap, Clock, TrendingUp, Wrench,
@@ -83,8 +84,9 @@ function ToolTag({ name }: { name: string }) {
   )
 }
 
-export default function RoadmapPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function RoadmapPage() {
+  const params = useParams()
+  const id = params.id as string
   const [data, setData] = useState<AnalysisData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
