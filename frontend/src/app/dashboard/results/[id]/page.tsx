@@ -36,7 +36,7 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/results/${id}`)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/results/${id}`)
         
         if (!response.ok) {
           throw new Error('Failed to fetch analysis results')
@@ -45,7 +45,7 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
         const data = await response.json()
         
         // Fetch workflow details separately
-        const workflowResponse = await fetch(`http://localhost:8000/api/workflows/${data.workflow_id}`)
+        const workflowResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflows/${data.workflow_id}`)
         if (workflowResponse.ok) {
           const workflowData = await workflowResponse.json()
           data.workflow = workflowData
