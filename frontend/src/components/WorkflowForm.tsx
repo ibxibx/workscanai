@@ -64,6 +64,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [isRecording, setIsRecording] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [hourlyRate, setHourlyRate] = useState(50)
+  const [transcript, setTranscript] = useState('')
 
   // Progress state
   const [activeStep, setActiveStep] = useState<number>(-1)   // -1 = not started
@@ -73,8 +74,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const isAnalyzing = activeStep >= 0 && activeStep < STEPS.length - 1
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])
+  const recognitionRef = useRef<any>(null)
 
   // Preload reCAPTCHA script on mount
   useEffect(() => { loadRecaptchaScript() }, [])
@@ -111,43 +111,44 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   }
 
   // ── Voice / document ───────────────────────────────────────────────────────
-  const startVoiceRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
-      mediaRecorderRef.current = mediaRecorder
-      audioChunksRef.current = []
-      mediaRecorder.ondataavailable = e => audioChunksRef.current.push(e.data)
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        await processVoiceInput(blob)
-        stream.getTracks().forEach(t => t.stop())
-      }
-      mediaRecorder.start()
-      setIsRecording(true)
-    } catch {
-      onError('Failed to start voice recording. Please check microphone permissions.')
+  const startVoiceRecording = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      onError('Speech recognition is not supported in your browser. Please use Chrome or Edge.')
+      return
     }
+    const recognition = new SpeechRecognition()
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+    let finalTranscript = ''
+    recognition.onstart = () => setIsRecording(true)
+    recognition.onresult = (event: any) => {
+      let interim = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + ' '
+        else interim += event.results[i][0].transcript
+      }
+      setTranscript(finalTranscript + interim)
+    }
+    recognition.onerror = (event: any) => {
+      if (event.error !== 'no-speech') recognition.stop()
+    }
+    recognition.onend = () => {
+      setIsRecording(false)
+      recognitionRef.current = null
+      if (finalTranscript.trim()) extractTasksFromText(finalTranscript.trim())
+    }
+    recognitionRef.current = recognition
+    recognition.start()
   }
 
   const stopVoiceRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
-      setIsRecording(false)
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+      recognitionRef.current = null
     }
-  }
-
-  const processVoiceInput = async (audioBlob: Blob) => {
-    setIsUploading(true)
-    try {
-      const fd = new FormData()
-      fd.append('audio', audioBlob, 'recording.webm')
-      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/transcribe`, { method: 'POST', body: fd })
-      if (!r.ok) throw new Error()
-      const d = await r.json()
-      await extractTasksFromText(d.transcription)
-    } catch { onError('Failed to process voice recording. Please try again.') }
-    finally { setIsUploading(false) }
+    setIsRecording(false)
   }
 
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -417,15 +418,15 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         {inputMode === 'voice' && (
           <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px] text-center">
             <div className="mb-[20px]">
-              <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border border-[#d2d2d7] mb-[16px]">
+              <div className={`inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border mb-[16px] ${isRecording ? 'border-red-300' : 'border-[#d2d2d7]'}`}>
                 <Mic className={`h-[28px] w-[28px] ${isRecording ? 'text-red-500' : 'text-[#6e6e73]'}`} />
               </div>
               <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Voice Recording</h3>
               <p className="text-[15px] text-[#6e6e73] max-w-[420px] mx-auto">
-                Describe your workflow and tasks verbally. AI will extract and organize them.
+                Describe your workflow and tasks verbally. Tasks will populate automatically when you stop.
               </p>
             </div>
-            {!isRecording && !isUploading && (
+            {!isRecording && (
               <button type="button" onClick={startVoiceRecording}
                 className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all">
                 <Mic className="h-[18px] w-[18px]" /> Start Recording
@@ -435,18 +436,23 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
               <div className="space-y-[16px]">
                 <div className="flex items-center justify-center gap-[10px]">
                   <div className="w-[10px] h-[10px] bg-red-500 rounded-full animate-pulse" />
-                  <span className="text-[17px] font-medium">Recording…</span>
+                  <span className="text-[17px] font-medium text-red-600">Recording… speak now</span>
                 </div>
+                {transcript && (
+                  <div className="bg-white border border-[#d2d2d7] rounded-[12px] p-[16px] text-left text-[14px] text-[#1d1d1f] max-h-[120px] overflow-y-auto">
+                    {transcript}
+                  </div>
+                )}
                 <button type="button" onClick={stopVoiceRecording}
                   className="inline-flex items-center gap-[8px] bg-red-500 hover:bg-red-600 text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all">
-                  Stop Recording
+                  Stop &amp; Extract Tasks
                 </button>
               </div>
             )}
             {isUploading && (
-              <div className="flex items-center justify-center gap-[10px] text-[#6e6e73]">
+              <div className="flex items-center justify-center gap-[10px] text-[#6e6e73] mt-[16px]">
                 <Loader2 className="animate-spin h-[20px] w-[20px]" />
-                <span className="text-[15px]">Processing audio…</span>
+                <span className="text-[15px]">Extracting tasks…</span>
               </div>
             )}
           </div>
@@ -506,8 +512,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           </div>
         </div>
 
-        {/* Tasks — manual mode */}
-        {inputMode === 'manual' && (
+        {/* Tasks — manual mode and after voice populates */}
+        {(inputMode === 'manual' || inputMode === 'voice') && (
           <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
             <div className="flex items-center justify-between mb-[28px]">
               <h2 className="text-[21px] font-semibold text-[#1d1d1f]">Tasks</h2>
