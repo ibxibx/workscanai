@@ -5,11 +5,15 @@ import { useParams } from 'next/navigation'
 import { Download, Share2, Map } from 'lucide-react'
 import Link from 'next/link'
 
+interface WorkflowTask {
+  id: number
+  name: string
+  description: string
+}
+
 interface TaskResult {
-  task: {
-    name: string
-    description: string
-  }
+  task_id: number
+  task?: WorkflowTask
   ai_readiness_score: number
   time_saved_percentage: number
   recommendation: string
@@ -18,9 +22,13 @@ interface TaskResult {
 }
 
 interface AnalysisData {
+  id: number
+  workflow_id: number
   workflow: {
+    id: number
     name: string
     description: string
+    tasks: WorkflowTask[]
   }
   automation_score: number
   hours_saved: number
@@ -48,17 +56,21 @@ export default function ResultsPage() {
         }
 
         const data = await response.json()
-        
-        // Fetch workflow details separately
-        const workflowResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflows/${data.workflow_id}`)
-        if (workflowResponse.ok) {
-          const workflowData = await workflowResponse.json()
-          data.workflow = workflowData
-        } else {
-          // Fallback if workflow fetch fails
-          data.workflow = { name: 'Workflow Analysis', description: '' }
+
+        // Build a task lookup map from the embedded workflow tasks
+        const taskMap: Record<number, WorkflowTask> = {}
+        if (data.workflow?.tasks) {
+          for (const t of data.workflow.tasks) {
+            taskMap[t.id] = t
+          }
         }
-        
+
+        // Enrich each result with its task object
+        data.results = (data.results || []).map((r: TaskResult) => ({
+          ...r,
+          task: taskMap[r.task_id] || { id: r.task_id, name: `Task ${r.task_id}`, description: '' }
+        }))
+
         setAnalysisData(data)
       } catch (err) {
         console.error('Error fetching analysis:', err)
@@ -156,7 +168,7 @@ DETAILED TASK ANALYSIS
 ----------------------
 
 ${analysisData.results.map((result, index) => `
-${index + 1}. ${result.task.name}
+${index + 1}. ${result.task?.name || `Task ${result.task_id}`}
    Automation Readiness: ${Math.round(result.ai_readiness_score)}%
    Time Savings Potential: ${Math.round(result.time_saved_percentage)}%
    Implementation Difficulty: ${result.difficulty}
@@ -167,10 +179,10 @@ ${index + 1}. ${result.task.name}
 RECOMMENDATIONS
 ---------------
 Quick Wins (Implement First):
-${analysisData.results.filter(r => r.difficulty === 'easy').map(r => `• ${r.task.name}`).join('\n')}
+${analysisData.results.filter(r => r.difficulty === 'easy').map(r => `• ${r.task?.name || `Task ${r.task_id}`}`).join('\n')}
 
 Medium-Term Goals:
-${analysisData.results.filter(r => r.difficulty === 'medium').map(r => `• ${r.task.name}`).join('\n')}
+${analysisData.results.filter(r => r.difficulty === 'medium').map(r => `• ${r.task?.name || `Task ${r.task_id}`}`).join('\n')}
 
 NEXT STEPS
 ----------
