@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Download, Share2, Map } from 'lucide-react'
 import Link from 'next/link'
@@ -42,18 +42,18 @@ export default function ResultsPage() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const fetchedRef = useRef(false)
 
   useEffect(() => {
-    if (fetchedRef.current) return
-    fetchedRef.current = true
+    const controller = new AbortController()
+
     const fetchAnalysis = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/results/${id}`)
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch analysis results')
-        }
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/results/${id}`,
+          { signal: controller.signal }
+        )
+
+        if (!response.ok) throw new Error('Failed to fetch analysis results')
 
         const data = await response.json()
 
@@ -72,7 +72,8 @@ export default function ResultsPage() {
         }))
 
         setAnalysisData(data)
-      } catch (err) {
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'AbortError') return
         console.error('Error fetching analysis:', err)
         setError('Failed to load analysis results. Make sure the backend is running.')
       } finally {
@@ -81,6 +82,7 @@ export default function ResultsPage() {
     }
 
     fetchAnalysis()
+    return () => controller.abort()
   }, [id])
 
   if (loading) {

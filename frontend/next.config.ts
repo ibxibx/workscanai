@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  reactStrictMode: false,
+  logging: {
+    fetches: {
+      fullUrl: false,
+    },
+  },
+  devIndicators: false,
 };
 
 export default nextConfig;
