@@ -22,12 +22,20 @@ export default function LandingPage() {
             <Link href="/" className="text-[21px] font-semibold tracking-tight text-[#1d1d1f]">
               WorkScanAI
             </Link>
-            <Link
-              href="/dashboard"
-              className="text-[12px] text-[#6e6e73] hover:text-[#1d1d1f] transition-colors"
-            >
-              Dashboard
-            </Link>
+            <div className="flex gap-[32px] text-[12px]">
+              <Link
+                href="/dashboard"
+                className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors"
+              >
+                Past Analyses
+              </Link>
+              <a
+                href="#analyze"
+                className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors"
+              >
+                New Analysis
+              </a>
+            </div>
           </div>
         </div>
       </nav>
