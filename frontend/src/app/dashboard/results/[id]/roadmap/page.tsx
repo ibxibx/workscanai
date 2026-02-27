@@ -101,8 +101,27 @@ export default function RoadmapPage() {
         const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/results/${id}`)
         if (!r.ok) throw new Error()
         const d = await r.json()
-        const wr = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflows/${d.workflow_id}`)
-        d.workflow = wr.ok ? await wr.json() : { name: 'Workflow', description: '' }
+
+        // Build task lookup from the embedded workflow (same pattern as results page)
+        const taskMap: Record<number, TaskResult['task']> = {}
+        if (d.workflow?.tasks) {
+          for (const t of d.workflow.tasks) {
+            taskMap[t.id] = t
+          }
+        }
+
+        // Enrich each result with its task object
+        d.results = (d.results || []).map((r: any) => ({
+          ...r,
+          task: taskMap[r.task_id] ?? {
+            name: `Task ${r.task_id}`,
+            description: '',
+            frequency: '',
+            time_per_task: 0,
+            category: '',
+          },
+        }))
+
         setData(d)
       } catch {
         setError('Failed to load roadmap. Make sure the backend is running.')
