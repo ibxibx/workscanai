@@ -34,6 +34,12 @@ export default function DashboardPage() {
               const aRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/results/${wf.id}`)
               if (aRes.ok) {
                 const aData = await aRes.json()
+                // Prefer task count from the analysis response (more reliable),
+                // fall back to the workflow list's tasks array
+                const taskCount =
+                  aData.workflow?.tasks?.length ??
+                  wf.tasks?.length ??
+                  0
                 return {
                   id: wf.id,
                   name: wf.name,
@@ -42,7 +48,7 @@ export default function DashboardPage() {
                   automation_score: aData.automation_score,
                   hours_saved: aData.hours_saved,
                   annual_savings: aData.annual_savings,
-                  task_count: wf.tasks?.length ?? 0,
+                  task_count: taskCount,
                 }
               }
             } catch {}

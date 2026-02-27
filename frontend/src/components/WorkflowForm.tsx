@@ -65,6 +65,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [isUploading, setIsUploading] = useState(false)
   const [hourlyRate, setHourlyRate] = useState(50)
   const [transcript, setTranscript] = useState('')
+  const [isExtractingTasks, setIsExtractingTasks] = useState(false)
+  const [extractStatus, setExtractStatus] = useState<'idle' | 'extracting' | 'done'>('idle')
 
   // Progress state
   const [activeStep, setActiveStep] = useState<number>(-1)   // -1 = not started
@@ -170,6 +172,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   }
 
   const extractTasksFromText = async (text: string) => {
+    setIsExtractingTasks(true)
+    setExtractStatus('extracting')
     try {
       const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/parse-tasks`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -181,8 +185,21 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         setTasks(d.tasks)
         if (d.workflow_name) setWorkflowName(d.workflow_name)
         if (d.workflow_description) setWorkflowDescription(d.workflow_description)
+        setExtractStatus('done')
+        // Show "done" briefly then reset
+        setTimeout(() => {
+          setIsExtractingTasks(false)
+          setExtractStatus('idle')
+        }, 2000)
+      } else {
+        setIsExtractingTasks(false)
+        setExtractStatus('idle')
       }
-    } catch { onError('Failed to extract tasks. Please try manual input.') }
+    } catch {
+      setIsExtractingTasks(false)
+      setExtractStatus('idle')
+      onError('Failed to extract tasks. Please try manual input.')
+    }
   }
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -449,10 +466,18 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                 </button>
               </div>
             )}
-            {isUploading && (
-              <div className="flex items-center justify-center gap-[10px] text-[#6e6e73] mt-[16px]">
-                <Loader2 className="animate-spin h-[20px] w-[20px]" />
-                <span className="text-[15px]">Extracting tasks…</span>
+            {/* Extracting / done status — shown after recording stops */}
+            {!isRecording && isExtractingTasks && (
+              <div className={`mt-[20px] inline-flex items-center gap-[10px] px-[20px] py-[12px] rounded-full text-[15px] font-medium transition-all ${
+                extractStatus === 'done'
+                  ? 'bg-green-50 border border-green-200 text-green-700'
+                  : 'bg-blue-50 border border-blue-200 text-[#0071e3]'
+              }`}>
+                {extractStatus === 'done' ? (
+                  <><CheckCircle2 className="h-[18px] w-[18px]" /> Tasks populated — scroll down to review</>
+                ) : (
+                  <><Loader2 className="animate-spin h-[18px] w-[18px]" /> Extracting and populating tasks…</>
+                )}
               </div>
             )}
           </div>
@@ -602,11 +627,13 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           )}
           <button
             type="submit"
-            disabled={isAnalyzing || isUploading}
+            disabled={isAnalyzing || isUploading || isExtractingTasks}
             className="inline-flex items-center gap-[10px] bg-[#0071e3] hover:bg-[#0077ed] disabled:bg-[#86868b] disabled:cursor-not-allowed text-white px-[36px] py-[16px] rounded-full font-semibold text-[17px] transition-all"
           >
             {isAnalyzing ? (
               <><Loader2 className="animate-spin h-[18px] w-[18px]" /> Running Analysis…</>
+            ) : isExtractingTasks ? (
+              <><Loader2 className="animate-spin h-[18px] w-[18px]" /> Extracting tasks…</>
             ) : (
               'Analyze Workflow'
             )}
