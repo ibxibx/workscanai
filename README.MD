@@ -16,7 +16,7 @@
 
 ## 🎯 The Problem
 
-We're in the middle of a transformative transition to AGI. Within the coming years, AI will automate most white-collar work—essentially anything involving "bits manipulation" such as typing, clicking, and data entry.
+We're in the middle of a transformative transition to AGI. Within the coming years, AI will automate most white-collar work - essentially anything involving "bits manipulation" such as typing, clicking, and data entry.
 
 **Companies face a critical question:** *Which of our tasks can be automated today, and what's the ROI?*
 
