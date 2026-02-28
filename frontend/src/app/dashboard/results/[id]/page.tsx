@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, notFound } from 'next/navigation'
 import { Download, Share2, Map, Check } from 'lucide-react'
 import Link from 'next/link'
 
@@ -73,6 +73,7 @@ export default function ResultsPage() {
           { signal: controller.signal }
         )
 
+        if (response.status === 404) notFound()
         if (!response.ok) throw new Error('Failed to fetch analysis results')
 
         const data = await response.json()
