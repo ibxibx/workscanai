@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="pics/WorkScanAILogo.png" alt="WorkScanAI Logo" width="180" />
+<img src="pics/WorkScanAILogo.png" alt="WorkScanAI Logo" width="270" />
 
 # WorkScanAI
 
@@ -71,6 +71,16 @@ Receive a scored automation assessment, a concrete ROI projection, and a phased 
 | **Database** | SQLite (dev) → PostgreSQL (prod) | Workflow and results persistence |
 | **Deployment** | Docker, Docker Compose | Containerised multi-service deployment |
 | **CI/CD** | GitHub Actions | Automated build, test, deploy pipeline |
+
+### Why Next.js?
+
+This project uses **Next.js 14** with the **App Router** to build real experience with:
+- ⚡ **Server-Side Rendering (SSR)** — SEO-friendly pages that load fast
+- 🔄 **Server Actions** — form submissions without separate API routes
+- 🎨 **App Router** — file-based routing with layouts and route groups
+- 📱 **Route Handlers** — backend proxy and data fetching in Next.js
+- 🚀 **Server Components** — render on the server, ship less JS to the browser
+- 🎯 **TypeScript** — first-class type safety throughout
 
 ---
 
@@ -191,7 +201,7 @@ Three containers spin up — Next.js frontend, FastAPI backend, PostgreSQL — n
 
 ## Example Output
 
-**Input:** Marketing team (social posts, scheduling, engagement, reports, research)
+**Input:** Marketing team — social posts, scheduling, engagement, reports, research
 
 | Task | AI Score | Time Saved | Difficulty |
 |---|---|---|---|
@@ -200,6 +210,9 @@ Three containers spin up — Next.js frontend, FastAPI backend, PostgreSQL — n
 | Write posts | 72% | 60% | Medium |
 | Research topics | 65% | 50% | Medium |
 | Respond to comments | 55% | 40% | Medium |
+
+**Quick wins:** Schedule posts → Zapier/Buffer (90% automated) · Reports → Python script (95% automated)  
+**Human-in-loop:** Comment responses → AI draft + human review (50% time saved) · Research → AI suggestions + human curation (40% saved)
 
 **Result → Automation score 74/100 · €28,000/yr saved · 436 hours reclaimed**
 
@@ -249,11 +262,47 @@ workscanai/
 
 ---
 
+## What You Learn Building This
+
+| Skill | Where it appears in this project |
+|---|---|
+| **Next.js 14 App Router** | File-based routing, layouts, dynamic `[id]` routes, `not-found.tsx` |
+| **Server vs Client Components** | Dashboard (server fetch) vs WorkflowForm (client state + voice API) |
+| **Server Actions** | Form submissions and mutations without separate API routes |
+| **Route Handlers** | `/api/workflows/route.ts` proxying requests to FastAPI |
+| **Loading & Error States** | `loading.tsx` skeleton screens, `error.tsx` boundaries |
+| **TypeScript** | Interfaces, generics, strict typing across the full stack |
+| **FastAPI + SQLAlchemy** | REST API design, ORM models, relationship loading |
+| **Claude API / LLM integration** | Prompt engineering, structured JSON responses, multi-step analysis |
+| **Docker + Compose** | Multi-service containerisation, networking, environment vars, volumes |
+| **GitHub Actions CI/CD** | Automated lint, test, build and deploy on every push |
+| **PostgreSQL** | Production relational DB, Alembic migrations |
+| **LangChain** | Agentic chains, document loaders, vector search (Phase 4) |
+
+### Next.js Learning Resources
+
+- **Official Docs:** https://nextjs.org/docs
+- **App Router Tutorial:** https://nextjs.org/learn
+- **Server Actions Guide:** https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations
+- **Deployment:** https://nextjs.org/docs/app/building-your-application/deploying
+
+---
+
 ## Contributing
 
 Contributions welcome — open an issue first to discuss.
 
-**Ideas:** Recharts visualisations · User authentication · Industry benchmark data · LangChain chains · Playwright E2E tests
+**Enhancement ideas:**
+- Recharts visualisations — donut score chart, effort/impact priority matrix
+- User authentication — accounts so analyses persist per user
+- Industry benchmark data — compare workflows against sector averages
+- LangChain multi-step chains replacing single-prompt analysis
+- Integration with Jira / Asana — import tasks directly from project management tools
+- Real-time collaboration via WebSockets — teams analyse workflows together
+- React Native mobile app — share components with the web version
+- Chrome extension — capture repetitive tasks directly from any web app
+- Industry-specific workflow templates — pre-filled starting points
+- Playwright E2E tests — automated coverage of critical user journeys
 
 ---
 
