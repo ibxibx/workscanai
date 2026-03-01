@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Sparkles } from 'lucide-react'
+import { ArrowRight, Brain, Sparkles } from 'lucide-react'
 import WorkflowForm from '@/components/WorkflowForm'
 
 export default function LandingPage() {
@@ -19,7 +19,8 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#d2d2d7]">
         <div className="max-w-[980px] mx-auto px-6">
           <div className="flex justify-between items-center h-[44px]">
-            <Link href="/" className="text-[21px] font-semibold tracking-tight text-[#1d1d1f]">
+            <Link href="/" className="flex items-center gap-[8px] text-[21px] font-semibold tracking-tight text-[#1d1d1f]">
+              <Brain className="h-[20px] w-[20px]" />
               WorkScanAI
             </Link>
             <div className="flex gap-[32px] text-[12px]">
