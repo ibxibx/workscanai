@@ -1,0 +1,88 @@
+# ── docker-compose.yml ───────────────────────────────────────────────────────
+# Orchestrates three containers:
+#   backend   — FastAPI on port 8000
+#   frontend  — Next.js on port 3000
+#   db        — PostgreSQL on port 5432 (internal only)
+#
+# Usage:
+#   docker compose up --build       # first run (builds images)
+#   docker compose up               # subsequent runs (uses cached images)
+#   docker compose down             # stop and remove containers
+#   docker compose down -v          # also wipe the database volume
+
+version: '3.8'
+
+services:
+
+  # ── PostgreSQL database ────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: workscanai-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: workscan
+      POSTGRES_USER: workscan_user
+      POSTGRES_PASSWORD: workscan_pass
+    volumes:
+      # Named volume — data persists when containers stop/restart
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Expose to host so you can connect with a DB GUI (e.g. TablePlus)
+      # Remove this in production
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workscan_user -d workscan"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI backend ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: workscanai-backend
+    restart: unless-stopped
+    environment:
+      # Switch from SQLite to PostgreSQL inside Docker
+      DATABASE_URL: postgresql://workscan_user:workscan_pass@db:5432/workscan
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ENVIRONMENT: production
+      DEBUG: "false"
+      CORS_ORIGINS: http://localhost:3000,http://frontend:3000
+      MAX_ANALYSES_PER_HOUR: ${MAX_ANALYSES_PER_HOUR:-5}
+      RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY:-}
+      RECAPTCHA_MIN_SCORE: ${RECAPTCHA_MIN_SCORE:-0.5}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Mount backend code for live reloading during development
+      # Remove in production for a static image
+      - ./backend:/app
+      - /app/venv  # Exclude the venv — use the container's installed packages
+
+  # ── Next.js frontend ───────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # The browser talks to backend via localhost:8000 (host port)
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    container_name: workscanai-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+# ── Named volumes ──────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    # Docker manages this volume — survives container restarts
+    # Location on Windows: \\wsl$\docker-desktop-data\...
