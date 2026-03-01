@@ -8,7 +8,7 @@
 # not the full node_modules used to BUILD it. Result: ~3x smaller image.
 
 # ── Stage 1: Install dependencies ───────────────────────────────────────────
-FROM node:18-alpine AS deps
+FROM node:20-alpine AS deps
 WORKDIR /app
 
 # Copy package files and install
@@ -16,7 +16,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # ── Stage 2: Build ──────────────────────────────────────────────────────────
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy node_modules from deps stage
@@ -35,7 +35,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 # ── Stage 3: Production runner ───────────────────────────────────────────────
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
