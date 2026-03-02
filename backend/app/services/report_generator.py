@@ -141,14 +141,16 @@ class ReportGenerator:
         story.append(Spacer(1, 14*mm))
 
         hero = Table([[
-            Paragraph(f'<font size="48"><b>{score:.0f}</b></font><font size="18" color="#6e6e73">/100</font>',
-                       style('hs',fontName='Helvetica-Bold',alignment=TA_CENTER)),
+            Paragraph(f'<font size="48"><b>{score:.0f}</b></font><br/><font size="14" color="#6e6e73">/100</font>',
+                       style('hs',fontName='Helvetica-Bold',alignment=TA_CENTER,leading=54)),
             Table([[Paragraph('<b>Annual Savings</b>',ST['label']),''],
                    [Paragraph(f'EUR {savings:,.0f}',style('sv',fontSize=22,fontName='Helvetica-Bold',textColor=GRAY_900)),''],
+                   [Paragraph(' ',style('sp1',fontSize=6,fontName='Helvetica')),''],
                    [Paragraph(f'{hours:.0f} hours reclaimed',style('hr',fontSize=10,textColor=GRAY_600,fontName='Helvetica')),'']],
                   colWidths=[W*0.35,W*0.05]),
             Table([[Paragraph('<b>Tasks Analyzed</b>',ST['label']),''],
                    [Paragraph(str(len(results)),style('tc',fontSize=22,fontName='Helvetica-Bold',textColor=GRAY_900)),''],
+                   [Paragraph(' ',style('sp2',fontSize=6,fontName='Helvetica')),''],
                    [Paragraph('workflow tasks',style('tl',fontSize=10,textColor=GRAY_600,fontName='Helvetica')),'']],
                   colWidths=[W*0.25,W*0.05]),
         ]],colWidths=[W*0.28,W*0.42,W*0.30],
@@ -182,7 +184,7 @@ class ReportGenerator:
             block = []
 
             header_row = Table([[
-                Paragraph(f'<font color="#0071e3"><b>{idx:02d}</b></font>',
+                Paragraph(f'<font color="#0071e3"><b>{idx}</b></font>',
                            style(f'tn{idx}',fontSize=22,fontName='Helvetica-Bold',textColor=BLUE,alignment=TA_CENTER)),
                 Paragraph(f'<b>{task["name"]}</b>',
                            style(f'th{idx}',fontSize=13,fontName='Helvetica-Bold',textColor=GRAY_900,leading=17)),
