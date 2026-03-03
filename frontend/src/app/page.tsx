@@ -1,12 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Brain, Sparkles } from 'lucide-react'
 import WorkflowForm from '@/components/WorkflowForm'
 
 export default function LandingPage() {
   const [formError, setFormError] = useState<string | null>(null)
+  const [spotlightPos, setSpotlightPos] = useState({ x: 50, y: 50 })
+  const [spotlightVisible, setSpotlightVisible] = useState(false)
+  const analyzeRef = useRef<HTMLElement>(null)
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    setSpotlightPos({ x, y })
+  }, [])
 
   const handleAnalysisComplete = (workflowId: number) => {
     // Use hard navigation so the overlay stays visible during the transition
@@ -41,37 +51,48 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-[88px] pb-[60px]">
-        <div className="max-w-[980px] mx-auto px-6 text-center">
-          <div className="relative inline-block mb-[40px]">
-            <div className="absolute inset-0 -inset-x-[200px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[120px]"></div>
-            <h1 className="relative text-[56px] leading-[1.07] font-semibold tracking-tight text-[#1d1d1f] px-[40px]">
-              The future of work
-              <br />
-              starts with knowing
-              <br />
-              what to automate.
-            </h1>
-          </div>
+      {/* Hero Section — real img so the overlay is structurally confined to the image */}
+      <section className="relative mt-[44px]">
+        {/* The image sets the natural height of the section */}
+        <img
+          src="/Banner1.jpg"
+          alt=""
+          aria-hidden="true"
+          className="block w-full h-auto"
+        />
+        {/* Overlay sits on top of the image only — can never escape the section */}
+        <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+
+        {/* Content is centred over the image */}
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full max-w-[980px] mx-auto px-6 py-[90px] text-center">
+
+          {/* Headline */}
+          <h1 className="text-[56px] leading-[1.07] font-semibold tracking-tight text-white mb-[16px] drop-shadow-lg">
+            The future of work
+            <br />
+            starts with knowing
+            <br />
+            what to automate.
+          </h1>
 
           {/* Value Proposition Block */}
-          <div className="max-w-[800px] mx-auto mt-[40px] mb-[40px]">
-            <div className="bg-[#fbfbfd] border border-[#e8e8ed] rounded-[18px] p-[32px] transition-all duration-300 hover:border-[#0071e3] hover:shadow-lg">
-              <p className="text-[21px] leading-[1.381] font-normal text-[#6e6e73] mb-[24px]">
+          <div className="max-w-[680px] mx-auto mt-[40px]">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[18px] p-[32px]">
+              <p className="text-[21px] leading-[1.381] font-normal text-white/90 mb-[28px]">
                 AI-powered analysis reveals which tasks are ready for automation — and exactly how much you'll save.
               </p>
-              <div className="flex gap-[16px] justify-center items-center">
+              <div className="flex gap-[16px] justify-center items-center flex-wrap">
                 <a
                   href="#analyze"
-                  className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[17px] leading-[1.17] font-normal px-[22px] py-[12px] rounded-full transition-all group"
+                  className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[17px] leading-[1.17] font-normal px-[22px] py-[12px] rounded-full transition-all group shadow-lg"
                 >
                   <span>Analyze now</span>
                   <ArrowRight className="h-[16px] w-[16px] group-hover:translate-x-[2px] transition-transform" />
                 </a>
                 <a
                   href="#example"
-                  className="text-[#0071e3] hover:text-[#0077ed] text-[17px] leading-[1.17] font-normal transition-colors"
+                  className="text-white/80 hover:text-white text-[17px] leading-[1.17] font-normal transition-colors underline underline-offset-4 decoration-white/40"
                 >
                   See how it works
                 </a>
@@ -79,26 +100,26 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Stats Block */}
-          <div className="max-w-[700px] mx-auto">
-            <div className="bg-[#fbfbfd] border border-[#e8e8ed] rounded-[18px] p-[40px] transition-all duration-300 hover:border-[#0071e3] hover:shadow-lg">
-              <div className="flex gap-[40px] justify-center text-[14px]">
-                <div>
-                  <div className="text-[32px] font-semibold tracking-tight text-[#1d1d1f] mb-[4px]">&lt;5 min</div>
-                  <div className="text-[#86868b]">to analyze</div>
-                </div>
-                <div>
-                  <div className="text-[32px] font-semibold tracking-tight text-[#1d1d1f] mb-[4px]">0–100</div>
-                  <div className="text-[#86868b]">automation score</div>
-                </div>
-                <div>
-                  <div className="text-[32px] font-semibold tracking-tight text-[#1d1d1f] mb-[4px]">€28K+</div>
-                  <div className="text-[#86868b]">avg. savings</div>
-                </div>
-              </div>
+          {/* Stats strip */}
+          <div className="flex gap-[48px] justify-center mt-[48px] flex-wrap">
+            <div className="text-center">
+              <div className="text-[36px] font-semibold tracking-tight text-white drop-shadow">&lt;5 min</div>
+              <div className="text-[13px] text-white/60 mt-[4px]">to analyze</div>
+            </div>
+            <div className="w-px bg-white/20 self-stretch hidden sm:block" />
+            <div className="text-center">
+              <div className="text-[36px] font-semibold tracking-tight text-white drop-shadow">0–100</div>
+              <div className="text-[13px] text-white/60 mt-[4px]">automation score</div>
+            </div>
+            <div className="w-px bg-white/20 self-stretch hidden sm:block" />
+            <div className="text-center">
+              <div className="text-[36px] font-semibold tracking-tight text-white drop-shadow">€28K+</div>
+              <div className="text-[13px] text-white/60 mt-[4px]">avg. savings</div>
             </div>
           </div>
-        </div>
+
+          </div>{/* end inner max-w div */}
+        </div>{/* end absolute inset-0 flex div */}
       </section>
 
       {/* Features */}
@@ -191,11 +212,28 @@ export default function LandingPage() {
       </section>
 
       {/* ── Analyze Form Section ── */}
-      <section id="analyze" className="py-[80px] bg-[#f5f5f7] border-t border-[#d2d2d7]">
-        <div className="max-w-[980px] mx-auto px-6">
+      <section
+        id="analyze"
+        ref={analyzeRef}
+        className="relative py-[80px] border-t border-[#d2d2d7] overflow-hidden"
+        style={{ background: 'linear-gradient(to bottom, #e8e8ea 0%, #d8d8da 100%)' }}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setSpotlightVisible(true)}
+        onMouseLeave={() => setSpotlightVisible(false)}
+      >
+        {/* Faded light-blue mouse spotlight */}
+        <div
+          className="pointer-events-none absolute inset-0 transition-opacity duration-500"
+          style={{
+            opacity: spotlightVisible ? 1 : 0,
+            background: `radial-gradient(500px circle at ${spotlightPos.x}% ${spotlightPos.y}%, rgba(220,235,255,0.45) 0%, transparent 70%)`,
+          }}
+        />
+
+        <div className="relative z-10 max-w-[980px] mx-auto px-6">
           <div className="text-center mb-[48px]">
             <div className="relative inline-block">
-              <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[100px]"></div>
+              <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/15 to-transparent blur-[100px]"></div>
               <h2 className="relative text-[40px] leading-[1.1] font-semibold tracking-tight mb-[12px] text-[#1d1d1f] px-[32px]">
                 Start your analysis now.
               </h2>
