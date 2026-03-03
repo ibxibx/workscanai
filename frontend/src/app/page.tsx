@@ -263,10 +263,10 @@ export default function LandingPage() {
           <div className="flex justify-between items-center text-[12px] text-[#86868b]">
             <div>© 2026 WorkScanAI</div>
             <div className="flex gap-[24px]">
-              <a href="https://ianworks.dev" className="hover:text-[#1d1d1f] transition-colors">
+              <a href="https://ianworks.dev" target="_blank" rel="noopener noreferrer" className="hover:text-[#1d1d1f] transition-colors">
                 Ian Baumeister
               </a>
-              <a href="https://github.com/ibxibx/workscanai" className="hover:text-[#1d1d1f] transition-colors">
+              <a href="https://github.com/ibxibx/workscanai" target="_blank" rel="noopener noreferrer" className="hover:text-[#1d1d1f] transition-colors">
                 GitHub
               </a>
             </div>
