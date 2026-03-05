@@ -53,22 +53,22 @@ export default function LandingPage() {
 
       {/* Hero Section — real img so the overlay is structurally confined to the image */}
       <section className="relative mt-[44px]">
-        {/* The image sets the natural height of the section */}
+        {/* The image sets the natural height of the section; min-height ensures enough room on mobile */}
         <img
           src="/Banner1.jpg"
           alt=""
           aria-hidden="true"
-          className="block w-full h-auto"
+          className="block w-full h-auto min-h-[520px] object-cover"
         />
         {/* Overlay sits on top of the image only — can never escape the section */}
         <div className="absolute inset-0 bg-black/30 pointer-events-none" />
 
         {/* Content is centred over the image */}
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full max-w-[980px] mx-auto px-6 py-[90px] text-center">
+          <div className="w-full max-w-[980px] mx-auto px-4 sm:px-6 py-[48px] sm:py-[90px] text-center">
 
           {/* Headline */}
-          <h1 className="text-[56px] leading-[1.07] font-semibold tracking-tight text-white mb-[16px] drop-shadow-lg">
+          <h1 className="text-[32px] sm:text-[44px] md:text-[56px] leading-[1.07] font-semibold tracking-tight text-white mb-[16px] drop-shadow-lg">
             The future of work
             <br />
             starts with knowing
@@ -77,9 +77,9 @@ export default function LandingPage() {
           </h1>
 
           {/* Value Proposition Block */}
-          <div className="max-w-[680px] mx-auto mt-[40px]">
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[18px] p-[32px]">
-              <p className="text-[21px] leading-[1.381] font-normal text-white/90 mb-[28px]">
+          <div className="max-w-[680px] mx-auto mt-[24px] sm:mt-[40px]">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[18px] p-[20px] sm:p-[32px]">
+              <p className="text-[16px] sm:text-[21px] leading-[1.381] font-normal text-white/90 mb-[20px] sm:mb-[28px]">
                 AI-powered analysis reveals which tasks are ready for automation — and exactly how much you'll save.
               </p>
               <div className="flex gap-[16px] justify-center items-center flex-wrap">
@@ -101,20 +101,18 @@ export default function LandingPage() {
           </div>
 
           {/* Stats strip */}
-          <div className="flex gap-[48px] justify-center mt-[48px] flex-wrap">
+          <div className="grid grid-cols-3 gap-[12px] sm:gap-[48px] justify-center mt-[32px] sm:mt-[48px] max-w-[600px] mx-auto">
             <div className="text-center">
-              <div className="text-[36px] font-semibold tracking-tight text-white drop-shadow">&lt;5 min</div>
-              <div className="text-[13px] text-white/60 mt-[4px]">to analyze</div>
+              <div className="text-[24px] sm:text-[36px] font-semibold tracking-tight text-white drop-shadow">&lt;5 min</div>
+              <div className="text-[11px] sm:text-[13px] text-white/60 mt-[4px]">to analyze</div>
             </div>
-            <div className="w-px bg-white/20 self-stretch hidden sm:block" />
-            <div className="text-center">
-              <div className="text-[36px] font-semibold tracking-tight text-white drop-shadow">0–100</div>
-              <div className="text-[13px] text-white/60 mt-[4px]">automation score</div>
+            <div className="text-center border-x border-white/20 px-[12px] sm:px-0">
+              <div className="text-[24px] sm:text-[36px] font-semibold tracking-tight text-white drop-shadow">0–100</div>
+              <div className="text-[11px] sm:text-[13px] text-white/60 mt-[4px]">automation score</div>
             </div>
-            <div className="w-px bg-white/20 self-stretch hidden sm:block" />
             <div className="text-center">
-              <div className="text-[36px] font-semibold tracking-tight text-white drop-shadow">€28K+</div>
-              <div className="text-[13px] text-white/60 mt-[4px]">avg. savings</div>
+              <div className="text-[24px] sm:text-[36px] font-semibold tracking-tight text-white drop-shadow">€28K+</div>
+              <div className="text-[11px] sm:text-[13px] text-white/60 mt-[4px]">avg. savings</div>
             </div>
           </div>
 
@@ -125,7 +123,7 @@ export default function LandingPage() {
       {/* Features */}
       <section className="py-[60px] border-y border-[#d2d2d7] bg-[#f5f5f7]">
         <div className="max-w-[980px] mx-auto px-6">
-          <div className="grid grid-cols-3 gap-[20px]">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-[20px]">
             <div className="text-center bg-white border border-[#e8e8ed] rounded-[18px] p-[32px] h-full transition-all duration-300 hover:border-[#0071e3] hover:shadow-lg">
               <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 <Sparkles className="h-[20px] w-[20px] text-white" />
