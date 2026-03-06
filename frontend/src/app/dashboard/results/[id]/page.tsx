@@ -181,7 +181,7 @@ Analysis ID: ${id}
 
 EXECUTIVE SUMMARY
 -----------------
-Automation Score: ${Math.round(analysisData.automation_score)}/100
+Automation Score: ${Math.round(analysisData.automation_score)}%
 Total Tasks Analyzed: ${totalTasks}
 Tasks Ready for Automation: ${automationReady}
 Annual Savings Potential: €${Math.round(analysisData.annual_savings).toLocaleString()}
@@ -303,13 +303,40 @@ Visit: https://workscanai.com
                     <span className="font-medium text-[#1d1d1f] capitalize">{result.difficulty}</span>
                   </div>
                   <div>
-                    <span className="text-[#86868b]">Hours/Year: </span>
-                    <span className="font-medium text-[#1d1d1f]">{Math.round(result.estimated_hours_saved)}</span>
+                    <span className="text-[#86868b]">Hours saved per year: </span>
+                    <span className="font-medium text-[#1d1d1f]">{Math.round(result.estimated_hours_saved)} hrs</span>
                   </div>
                 </div>
                 <div className="p-[16px] bg-blue-50 border border-blue-200 rounded-[8px]">
-                  <span className="text-[13px] font-semibold text-[#0071e3]">💡 Recommendation: </span>
-                  <span className="text-[13px] text-[#1d1d1f]">{result.recommendation}</span>
+                  <div className="text-[16px] font-bold text-[#0071e3] mb-[12px]">💡 Recommendation</div>
+                  {result.recommendation && (() => {
+                    const text = result.recommendation;
+                    const opt1Match = text.match(/(Option\s+1\s*[—–-])/);
+                    const opt2Match = text.match(/(Option\s+2\s*[—–-])/);
+                    if (opt1Match && opt2Match && opt2Match.index) {
+                      const beforeOpt1 = opt1Match.index ? text.slice(0, opt1Match.index).trim() : '';
+                      const part1 = text.slice(opt1Match.index!, opt2Match.index).trim();
+                      const part2 = text.slice(opt2Match.index).trim();
+                      return (
+                        <div className="flex flex-col gap-[8px]">
+                          {beforeOpt1 && <div className="text-[13px] text-[#1d1d1f]">{beforeOpt1}</div>}
+                          <div className="text-[14px] text-[#1d1d1f]">{part1}</div>
+                          <div className="text-[14px] text-[#1d1d1f]">{part2}</div>
+                        </div>
+                      );
+                    }
+                    if (opt2Match && opt2Match.index) {
+                      const part1 = text.slice(0, opt2Match.index).trim();
+                      const part2 = text.slice(opt2Match.index).trim();
+                      return (
+                        <div className="flex flex-col gap-[8px]">
+                          <div className="text-[14px] text-[#1d1d1f]">{part1}</div>
+                          <div className="text-[14px] text-[#1d1d1f]">{part2}</div>
+                        </div>
+                      );
+                    }
+                    return <div className="text-[14px] text-[#1d1d1f]">{text}</div>;
+                  })()}
                 </div>
               </div>
            )

@@ -90,26 +90,26 @@ RESPOND IN THIS EXACT FORMAT (no extra text, no markdown):
 SCORE: [number 0-100]
 TIME_SAVED: [number 0-100]
 DIFFICULTY: [easy/medium/hard]
-RECOMMENDATION: Use [specific tool name(s)] to automate [specific action]. [One sentence about implementation or benefit].
+RECOMMENDATION: Option 1 — [Tool/Platform name]: [One sentence on how it automates this task and key benefit]. Option 2 — [Alternative tool or manual approach]: [One sentence on how this second approach works and when to prefer it].
 
 EXAMPLE OUTPUTS:
 For "Schedule social media posts":
 SCORE: 95
 TIME_SAVED: 90
 DIFFICULTY: easy
-RECOMMENDATION: Use Buffer or Hootsuite to batch-schedule posts across platforms in 15 minutes once per week instead of daily posting.
+RECOMMENDATION: Option 1 — Buffer or Hootsuite: Connect all social accounts and batch-schedule a full week of posts in one 15-minute session, eliminating daily manual posting. Option 2 — Zapier + Google Sheets: Build a no-code workflow that reads from a shared content calendar and auto-publishes at set times, ideal for teams already using Sheets.
 
 For "Respond to customer support emails":
 SCORE: 65
 TIME_SAVED: 50
 DIFFICULTY: medium
-RECOMMENDATION: Use Zendesk AI or Intercom to generate draft responses based on common questions, then have staff review before sending.
+RECOMMENDATION: Option 1 — Zendesk AI or Intercom: Auto-generate draft replies based on ticket content and knowledge base articles, letting staff review and send in one click. Option 2 — Gmail + ChatGPT API via Make.com: Trigger a Make.com scenario that calls GPT-4 for each new email and inserts a draft reply, keeping your existing inbox without a helpdesk subscription.
 
 For "Create quarterly financial forecasts":
 SCORE: 40
 TIME_SAVED: 30
 DIFFICULTY: hard
-RECOMMENDATION: Use Python with pandas and Prophet library to generate baseline forecasts from historical data, then have analysts review and adjust based on market conditions.
+RECOMMENDATION: Option 1 — Python with pandas and Prophet: Script pulls historical data from your ERP or spreadsheets, runs time-series forecasting, and outputs a formatted report — analysts then review and adjust. Option 2 — Microsoft Power BI with built-in forecasting: Non-coders can enable one-click trend forecasting on existing dashboards, with human analysts adding market context in a final review step.
 
 Now analyze the task above:"""
 
