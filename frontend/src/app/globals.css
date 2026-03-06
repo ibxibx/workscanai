@@ -14,6 +14,7 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 body {
@@ -21,6 +22,7 @@ body {
   color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
   letter-spacing: -0.003em;
+  overflow-x: hidden;
 }
 
 /* Apple-style smooth transitions */
