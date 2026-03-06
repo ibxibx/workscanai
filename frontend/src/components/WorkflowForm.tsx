@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown, CheckCircle2, Circle } from 'lucide-react'
+import { saveMyWorkflowId } from '@/app/dashboard/page'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Task {
@@ -65,6 +66,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [isUploading, setIsUploading] = useState(false)
   const [hourlyRate, setHourlyRate] = useState(50)
   const [transcript, setTranscript] = useState('')
+  const [sourceText, setSourceText] = useState('')  // persists raw text across all modes
   const [isExtractingTasks, setIsExtractingTasks] = useState(false)
   const [extractStatus, setExtractStatus] = useState<'idle' | 'extracting' | 'done'>('idle')
 
@@ -139,7 +141,10 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     recognition.onend = () => {
       setIsRecording(false)
       recognitionRef.current = null
-      if (finalTranscript.trim()) extractTasksFromText(finalTranscript.trim())
+      if (finalTranscript.trim()) {
+        setSourceText(finalTranscript.trim())
+        extractTasksFromText(finalTranscript.trim())
+      }
     }
     recognitionRef.current = recognition
     recognition.start()
@@ -163,6 +168,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/extract-tasks`, { method: 'POST', body: fd })
       if (!r.ok) throw new Error()
       const d = await r.json()
+      setSourceText(d.text || '')
       await extractTasksFromText(d.text)
     } catch { onError('Failed to process document. Please try again.') }
     finally {
@@ -210,6 +216,10 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     onError('')
     setStepError(null)
 
+    // For manual mode, use the workflow description as the source text
+    const effectiveSourceText = sourceText.trim() ||
+      (inputMode === 'manual' && workflowDescription.trim() ? workflowDescription.trim() : '')
+
     try {
       // Step 0 — save workflow
       advanceTo(0)
@@ -218,6 +228,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: workflowName, description: workflowDescription,
+          source_text: effectiveSourceText || undefined,
+          input_mode: inputMode,
           tasks: tasks.filter(t => t.name.trim()).map(t => ({
             name: t.name, description: t.description || t.name,
             frequency: t.frequency, time_per_task: t.time_per_task,
@@ -230,6 +242,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         throw new Error(err.detail || 'Failed to create workflow')
       }
       const workflow = await wfRes.json()
+      saveMyWorkflowId(workflow.id)
 
       // Step 1 — reCAPTCHA
       advanceTo(1)
@@ -435,9 +448,13 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         {inputMode === 'voice' && (
           <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px] text-center">
             <div className="mb-[20px]">
-              <div className={`inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border mb-[16px] ${isRecording ? 'border-red-300' : 'border-[#d2d2d7]'}`}>
-                <Mic className={`h-[28px] w-[28px] ${isRecording ? 'text-red-500' : 'text-[#6e6e73]'}`} />
-              </div>
+              <button
+                type="button"
+                onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                className={`inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border mb-[16px] transition-all hover:scale-105 active:scale-95 ${isRecording ? 'border-red-300 hover:border-red-400' : 'border-[#d2d2d7] hover:border-[#0071e3]'}`}
+              >
+                <Mic className={`h-[28px] w-[28px] ${isRecording ? 'text-red-500 animate-pulse' : 'text-[#6e6e73]'}`} />
+              </button>
               <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Voice Recording</h3>
               <p className="text-[15px] text-[#6e6e73] max-w-[420px] mx-auto">
                 Describe your workflow and tasks verbally. Tasks will populate automatically when you stop.

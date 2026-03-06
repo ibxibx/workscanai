@@ -27,7 +27,9 @@ def create_workflow(workflow_data: WorkflowCreate, db: Session = Depends(get_db)
     # Create workflow
     workflow = Workflow(
         name=workflow_data.name,
-        description=workflow_data.description
+        description=workflow_data.description,
+        source_text=workflow_data.source_text,
+        input_mode=workflow_data.input_mode,
     )
     db.add(workflow)
     db.flush()  # Get workflow.id

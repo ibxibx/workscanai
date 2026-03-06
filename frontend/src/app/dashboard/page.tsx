@@ -1,8 +1,27 @@
 'use client'
 
 import Link from 'next/link'
-import { Sparkles, Clock, Plus, TrendingUp, DollarSign, Zap } from 'lucide-react'
+import { Sparkles, Clock, Plus, TrendingUp, DollarSign, Zap, Download, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+
+// ── Local storage key for tracking this browser's workflow IDs ────────────────
+const MY_WORKFLOWS_KEY = 'workscan_my_workflow_ids'
+
+export function saveMyWorkflowId(id: number) {
+  try {
+    const existing: number[] = JSON.parse(localStorage.getItem(MY_WORKFLOWS_KEY) || '[]')
+    if (!existing.includes(id)) {
+      existing.push(id)
+      localStorage.setItem(MY_WORKFLOWS_KEY, JSON.stringify(existing))
+    }
+  } catch {}
+}
+
+function getMyWorkflowIds(): number[] {
+  try {
+    return JSON.parse(localStorage.getItem(MY_WORKFLOWS_KEY) || '[]')
+  } catch { return [] }
+}
 
 interface WorkflowSummary {
   id: number
@@ -18,52 +37,59 @@ interface WorkflowSummary {
 export default function DashboardPage() {
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [downloadingCombined, setDownloadingCombined] = useState<'docx' | 'pdf' | null>(null)
 
   useEffect(() => {
     const fetchWorkflows = async () => {
       try {
-        // Fetch all workflows
-        const wfRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflows`)
-        if (!wfRes.ok) throw new Error('Failed to fetch workflows')
-        const wfData = await wfRes.json()
+        // Only fetch workflows submitted from this browser
+        const myIds = getMyWorkflowIds()
 
-        // For each workflow, try to fetch its analysis
-        const enriched: WorkflowSummary[] = await Promise.all(
-          wfData.map(async (wf: any) => {
-            try {
-              const aRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/results/${wf.id}`)
-              if (aRes.ok) {
-                const aData = await aRes.json()
-                // Prefer task count from the analysis response (more reliable),
-                // fall back to the workflow list's tasks array
-                const taskCount =
-                  aData.workflow?.tasks?.length ??
-                  wf.tasks?.length ??
-                  0
-                return {
-                  id: wf.id,
-                  name: wf.name,
-                  description: wf.description,
-                  created_at: wf.created_at,
-                  automation_score: aData.automation_score,
-                  hours_saved: aData.hours_saved,
-                  annual_savings: aData.annual_savings,
-                  task_count: taskCount,
+        if (myIds.length === 0) {
+          setWorkflows([])
+          setLoading(false)
+          return
+        }
+
+        // Fetch each of this user's workflows individually by ID
+        const enriched: WorkflowSummary[] = (
+          await Promise.all(
+            myIds.map(async (id) => {
+              try {
+                const aRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/results/${id}`)
+                if (aRes.ok) {
+                  const aData = await aRes.json()
+                  return {
+                    id,
+                    name: aData.workflow?.name ?? `Workflow ${id}`,
+                    description: aData.workflow?.description ?? null,
+                    created_at: aData.workflow?.created_at ?? new Date().toISOString(),
+                    automation_score: aData.automation_score,
+                    hours_saved: aData.hours_saved,
+                    annual_savings: aData.annual_savings,
+                    task_count: aData.workflow?.tasks?.length ?? 0,
+                  }
                 }
-              }
-            } catch {}
-            return {
-              id: wf.id,
-              name: wf.name,
-              description: wf.description,
-              created_at: wf.created_at,
-              automation_score: null,
-              hours_saved: null,
-              annual_savings: null,
-              task_count: wf.tasks?.length ?? 0,
-            }
-          })
-        )
+                // Analysis not ready yet — try workflow endpoint
+                const wfRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflows/${id}`)
+                if (wfRes.ok) {
+                  const wf = await wfRes.json()
+                  return {
+                    id,
+                    name: wf.name,
+                    description: wf.description ?? null,
+                    created_at: wf.created_at,
+                    automation_score: null,
+                    hours_saved: null,
+                    annual_savings: null,
+                    task_count: wf.tasks?.length ?? 0,
+                  }
+                }
+              } catch {}
+              return null
+            })
+          )
+        ).filter(Boolean) as WorkflowSummary[]
 
         // Sort newest first
         enriched.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -95,6 +121,34 @@ export default function DashboardPage() {
     if (score >= 75) return 'bg-green-100 text-green-700 border-green-200'
     if (score >= 50) return 'bg-yellow-100 text-yellow-700 border-yellow-200'
     return 'bg-red-100 text-red-700 border-red-200'
+  }
+
+  const downloadCombined = async (format: 'docx' | 'pdf') => {
+    const ids = analyzed.map(w => w.id)
+    if (ids.length < 2) return
+    setDownloadingCombined(format)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/combined/${format}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workflow_ids: ids }),
+      })
+      if (!res.ok) throw new Error('Failed to generate report')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `WorkScanAI_Combined_Report.${format}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error(e)
+      alert('Failed to generate combined report. Please try again.')
+    } finally {
+      setDownloadingCombined(null)
+    }
   }
 
   return (
@@ -190,11 +244,10 @@ export default function DashboardPage() {
             ) : (
               <div className="text-[40px] font-semibold tracking-tight mb-[4px]">
                 {avgScore !== null ? (
-                  <span className={getScoreColor(avgScore)}>{avgScore}</span>
+                  <span className={getScoreColor(avgScore)}>{avgScore}%</span>
                 ) : (
                   <span className="text-[#86868b]">—</span>
                 )}
-                <span className="text-[24px] text-[#86868b]">/100</span>
               </div>
             )}
             <div className="text-[13px] text-[#86868b]">Average automation readiness</div>
@@ -214,7 +267,43 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="text-[13px] text-green-600 text-right max-w-[200px]">
-              Annual cost reduction across all analyzed workflows
+              Annual cost reduction across your analyzed workflows
+            </div>
+          </div>
+        )}
+
+        {/* Combined report download — only show when 2+ analyses exist */}
+        {!loading && analyzed.length >= 2 && (
+          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[28px] mb-[48px]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px]">
+              <div>
+                <div className="text-[15px] font-semibold text-[#1d1d1f] mb-[4px]">
+                  Download all {analyzed.length} analyses as one report
+                </div>
+                <div className="text-[13px] text-[#6e6e73]">
+                  Combined document with every workflow, task breakdown, and roadmap in one file.
+                </div>
+              </div>
+              <div className="flex gap-[10px] shrink-0">
+                <button
+                  onClick={() => downloadCombined('docx')}
+                  disabled={downloadingCombined !== null}
+                  className="inline-flex items-center gap-[8px] bg-[#1d1d1f] hover:bg-[#3d3d3f] disabled:bg-[#86868b] disabled:cursor-not-allowed text-white px-[20px] py-[10px] rounded-full text-[14px] font-medium transition-all"
+                >
+                  {downloadingCombined === 'docx'
+                    ? <><Loader2 className="h-[14px] w-[14px] animate-spin" /> Generating…</>
+                    : <><Download className="h-[14px] w-[14px]" /> DOCX</>}
+                </button>
+                <button
+                  onClick={() => downloadCombined('pdf')}
+                  disabled={downloadingCombined !== null}
+                  className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] disabled:bg-[#86868b] disabled:cursor-not-allowed text-white px-[20px] py-[10px] rounded-full text-[14px] font-medium transition-all"
+                >
+                  {downloadingCombined === 'pdf'
+                    ? <><Loader2 className="h-[14px] w-[14px] animate-spin" /> Generating…</>
+                    : <><Download className="h-[14px] w-[14px]" /> PDF</>}
+                </button>
+              </div>
             </div>
           </div>
         )}
