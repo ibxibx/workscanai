@@ -562,13 +562,18 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
                     <div className="md:col-span-2">
                       <label className={labelClass}>Task Name <span className="text-red-500">*</span></label>
-                      <input type="text" value={task.name} onChange={e => updateTask(idx, 'name', e.target.value)}
-                        placeholder="e.g., Write social media posts" className={inputClass} required />
+                      <textarea value={task.name} onChange={e => updateTask(idx, 'name', e.target.value)}
+                        placeholder="e.g., Write social media posts"
+                        rows={2}
+                        className={`${inputClass} resize-none leading-snug`}
+                        required />
                     </div>
                     <div className="md:col-span-2">
                       <label className={labelClass}>Description <span className="text-[#86868b] normal-case font-normal">(optional)</span></label>
-                      <input type="text" value={task.description} onChange={e => updateTask(idx, 'description', e.target.value)}
-                        placeholder="Additional context or details…" className={inputClass} />
+                      <textarea value={task.description} onChange={e => updateTask(idx, 'description', e.target.value)}
+                        placeholder="Additional context or details…"
+                        rows={3}
+                        className={`${inputClass} resize-none leading-snug`} />
                     </div>
                     <div>
                       <label className={labelClass}>Frequency</label>
