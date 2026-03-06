@@ -297,8 +297,32 @@ export default function RoadmapPage() {
                             </div>
 
                             <div className="bg-[#f5f5f7] rounded-[10px] px-[16px] py-[12px] text-[14px] text-[#1d1d1f] mb-[14px]">
-                              <span className="font-semibold text-[#0071e3]">→ </span>
-                              {result.recommendation}
+                              {(() => {
+                                const rec = result.recommendation || ''
+                                const opt2 = rec.match(/(Option\s+2\s*[—\-–])/)
+                                if (opt2 && opt2.index) {
+                                  const p1 = rec.slice(0, opt2.index).trim()
+                                  const p2 = rec.slice(opt2.index).trim()
+                                  return (
+                                    <>
+                                      <div className="mb-[10px]">
+                                        <span className="font-semibold text-[#0071e3]">→ </span>
+                                        {p1}
+                                      </div>
+                                      <div className="border-t border-[#e0e0e5] pt-[10px]">
+                                        <span className="font-semibold text-[#0071e3]">→ </span>
+                                        {p2}
+                                      </div>
+                                    </>
+                                  )
+                                }
+                                return (
+                                  <>
+                                    <span className="font-semibold text-[#0071e3]">→ </span>
+                                    {rec}
+                                  </>
+                                )
+                              })()}
                             </div>
 
                             {tools.length > 0 && (

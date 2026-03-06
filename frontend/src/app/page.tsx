@@ -80,7 +80,7 @@ export default function LandingPage() {
           <div className="max-w-[680px] mx-auto mt-[24px] sm:mt-[40px]">
             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[18px] p-[20px] sm:p-[32px]">
               <p className="text-[16px] sm:text-[21px] leading-[1.381] font-normal text-white/90 mb-[20px] sm:mb-[28px]">
-                AI-powered analysis reveals which tasks are ready for automation — and exactly how much you'll save.
+                Find out which of your tasks AI can automate <em>right now</em> — and see exactly how many hours and how much money you'll get back every year.
               </p>
               <div className="flex gap-[16px] justify-center items-center flex-wrap">
                 <a
@@ -107,7 +107,7 @@ export default function LandingPage() {
               <div className="text-[11px] sm:text-[13px] text-white/60 mt-[4px]">to analyze</div>
             </div>
             <div className="text-center border-x border-white/20 px-[12px] sm:px-0">
-              <div className="text-[24px] sm:text-[36px] font-semibold tracking-tight text-white drop-shadow">0–100</div>
+              <div className="text-[24px] sm:text-[36px] font-semibold tracking-tight text-white drop-shadow">0–100%</div>
               <div className="text-[11px] sm:text-[13px] text-white/60 mt-[4px]">automation score</div>
             </div>
             <div className="text-center">
@@ -161,50 +161,165 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Example */}
+      {/* How It Works */}
       <section id="example" className="py-[80px]">
         <div className="max-w-[980px] mx-auto px-6">
-          <div className="text-center mb-[48px]">
+
+          {/* Heading */}
+          <div className="text-center mb-[56px]">
             <div className="relative inline-block">
               <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[100px]"></div>
               <h2 className="relative text-[40px] leading-[1.1] font-semibold tracking-tight mb-[12px] text-[#1d1d1f] px-[32px]">
-                From chaos to clarity.
+                See exactly what you get.
               </h2>
             </div>
             <p className="text-[19px] text-[#6e6e73]">
-              Marketing team workflow analyzed in real-time.
+              A real marketing team workflow — analyzed end to end.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-[24px]">
-            <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
-              <div className="text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[20px]">Input</div>
-              <div className="space-y-[12px] text-[14px] leading-[1.5] text-[#1d1d1f]">
-                <div>• Social posts (30 min/day)</div>
-                <div>• Schedule platforms (15 min/day)</div>
-                <div>• Comment responses (45 min/day)</div>
-                <div>• Weekly reports (2 hrs/week)</div>
-                <div>• Topic research (1 hr/day)</div>
+          {/* Step flow: Input → Analysis → Roadmap */}
+          <div className="space-y-[16px]">
+
+            {/* ── Row 1: Input + Overall Score ── */}
+            <div className="grid md:grid-cols-2 gap-[16px]">
+
+              {/* Input */}
+              <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
+                <div className="text-[11px] font-semibold text-[#86868b] tracking-widest uppercase mb-[20px]">① Input — 5 Tasks Entered</div>
+                <div className="space-y-[10px]">
+                  {[
+                    { name: 'Write social media posts',      freq: 'Daily',   time: '30 min' },
+                    { name: 'Schedule posts across platforms', freq: 'Daily',   time: '15 min' },
+                    { name: 'Respond to comments',           freq: 'Daily',   time: '45 min' },
+                    { name: 'Generate performance reports',  freq: 'Weekly',  time: '2 hrs'  },
+                    { name: 'Research trending topics',      freq: 'Daily',   time: '1 hr'   },
+                  ].map((t, i) => (
+                    <div key={i} className="flex items-center justify-between bg-white border border-[#e8e8ed] rounded-[10px] px-[14px] py-[10px]">
+                      <span className="text-[13px] font-medium text-[#1d1d1f]">{t.name}</span>
+                      <div className="flex gap-[8px] shrink-0 ml-[12px]">
+                        <span className="text-[11px] text-[#86868b] bg-[#f5f5f7] px-[8px] py-[3px] rounded-full">{t.freq}</span>
+                        <span className="text-[11px] text-[#86868b] bg-[#f5f5f7] px-[8px] py-[3px] rounded-full">{t.time}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Overall Score */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-[18px] p-[32px] flex flex-col justify-between">
+                <div className="text-[11px] font-semibold text-[#0071e3] tracking-widest uppercase mb-[20px]">② Analysis — Summary</div>
+                <div className="flex items-center gap-[24px] mb-[24px]">
+                  <div>
+                    <div className="text-[64px] leading-none font-semibold tracking-tight text-[#0071e3]">72%</div>
+                    <div className="text-[15px] text-[#6e6e73]">Automation Score</div>
+                  </div>
+                  <div className="h-[64px] w-[1px] bg-blue-200"></div>
+                  <div className="space-y-[12px]">
+                    <div>
+                      <div className="text-[28px] font-semibold tracking-tight text-green-600">€28,000</div>
+                      <div className="text-[12px] text-[#6e6e73]">Annual cost savings</div>
+                    </div>
+                    <div>
+                      <div className="text-[22px] font-semibold tracking-tight text-[#1d1d1f]">436 hrs</div>
+                      <div className="text-[12px] text-[#6e6e73]">Reclaimed per year</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-[8px]">
+                  <div className="bg-green-100 border border-green-200 rounded-[10px] p-[10px] text-center">
+                    <div className="text-[18px] font-semibold text-green-700">2</div>
+                    <div className="text-[10px] text-green-600 font-medium">High potential</div>
+                  </div>
+                  <div className="bg-yellow-100 border border-yellow-200 rounded-[10px] p-[10px] text-center">
+                    <div className="text-[18px] font-semibold text-yellow-700">2</div>
+                    <div className="text-[10px] text-yellow-600 font-medium">Medium potential</div>
+                  </div>
+                  <div className="bg-red-50 border border-red-200 rounded-[10px] p-[10px] text-center">
+                    <div className="text-[18px] font-semibold text-red-500">1</div>
+                    <div className="text-[10px] text-red-500 font-medium">Needs human</div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-[18px] p-[32px]">
-              <div className="text-[12px] font-semibold text-[#0071e3] tracking-wide uppercase mb-[20px]">Analysis</div>
-              <div className="space-y-[16px]">
-                <div>
-                  <div className="text-[32px] font-semibold tracking-tight text-[#1d1d1f]">72/100</div>
-                  <div className="text-[12px] text-[#6e6e73]">Automation Score</div>
-                </div>
-                <div>
-                  <div className="text-[24px] font-semibold tracking-tight text-[#1d1d1f]">€28,000</div>
-                  <div className="text-[12px] text-[#6e6e73]">Annual Savings • 436 hours</div>
-                </div>
-                <div className="pt-[8px] border-t border-[#d2d2d7]">
-                  <div className="text-[12px] text-green-600 mb-[4px]">✓ Quick Wins</div>
-                  <div className="text-[13px] text-[#6e6e73]">Scheduling, Reports (90%+)</div>
-                </div>
+            {/* ── Row 2: Per-task breakdown ── */}
+            <div className="bg-white border border-[#d2d2d7] rounded-[18px] p-[32px]">
+              <div className="text-[11px] font-semibold text-[#86868b] tracking-widest uppercase mb-[20px]">② Analysis — Task Breakdown</div>
+              <div className="space-y-[10px]">
+                {[
+                  { name: 'Schedule posts across platforms', score: 92, difficulty: 'Easy',   saving: '109 hrs/yr', badge: 'green',  rec: 'Use Buffer or Zapier — fully automatable today.' },
+                  { name: 'Generate performance reports',    score: 88, difficulty: 'Easy',   saving: '96 hrs/yr',  badge: 'green',  rec: 'Python script or Looker Studio — 95% automated.' },
+                  { name: 'Write social media posts',        score: 65, difficulty: 'Medium', saving: '87 hrs/yr',  badge: 'yellow', rec: 'AI drafts posts, human reviews tone and brand.' },
+                  { name: 'Research trending topics',        score: 58, difficulty: 'Medium', saving: '102 hrs/yr', badge: 'yellow', rec: 'AI aggregates signals, human curates final picks.' },
+                  { name: 'Respond to comments',             score: 34, difficulty: 'Hard',   saving: '42 hrs/yr',  badge: 'red',    rec: 'AI drafts replies — human approval required.' },
+                ].map((t, i) => (
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-[10px] border border-[#e8e8ed] rounded-[12px] px-[16px] py-[12px]">
+                    <div className="flex items-center gap-[12px] flex-1 min-w-0">
+                      <span className={`shrink-0 text-[12px] font-bold px-[10px] py-[4px] rounded-full border ${
+                        t.badge === 'green'  ? 'bg-green-100 text-green-700 border-green-200' :
+                        t.badge === 'yellow' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                        'bg-red-50 text-red-500 border-red-200'
+                      }`}>{t.score}%</span>
+                      <span className="text-[13px] font-medium text-[#1d1d1f] truncate">{t.name}</span>
+                    </div>
+                    <div className="flex items-center gap-[16px] shrink-0 text-[12px] text-[#6e6e73]">
+                      <span className="hidden sm:block">{t.difficulty}</span>
+                      <span className="text-green-600 font-medium">{t.saving}</span>
+                    </div>
+                    <div className="text-[12px] text-[#0071e3] sm:max-w-[260px]">💡 {t.rec}</div>
+                  </div>
+                ))}
               </div>
             </div>
+
+            {/* ── Row 3: Roadmap ── */}
+            <div className="grid sm:grid-cols-3 gap-[16px]">
+              <div className="bg-green-50 border border-green-200 rounded-[18px] p-[24px]">
+                <div className="text-[11px] font-semibold text-green-700 tracking-widest uppercase mb-[4px]">③ Roadmap — Phase 1</div>
+                <div className="text-[13px] text-green-600 mb-[16px]">Quick Wins · 0–3 months</div>
+                <div className="space-y-[8px]">
+                  <div className="bg-white border border-green-100 rounded-[8px] px-[12px] py-[8px]">
+                    <div className="text-[12px] font-semibold text-[#1d1d1f]">Schedule posts</div>
+                    <div className="text-[11px] text-[#6e6e73]">Buffer / Zapier · 92%</div>
+                  </div>
+                  <div className="bg-white border border-green-100 rounded-[8px] px-[12px] py-[8px]">
+                    <div className="text-[12px] font-semibold text-[#1d1d1f]">Performance reports</div>
+                    <div className="text-[11px] text-[#6e6e73]">Looker Studio / Python · 88%</div>
+                  </div>
+                </div>
+                <div className="mt-[14px] text-[12px] font-medium text-green-700">→ 205 hrs/yr · €11,800 saved</div>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-[18px] p-[24px]">
+                <div className="text-[11px] font-semibold text-yellow-700 tracking-widest uppercase mb-[4px]">③ Roadmap — Phase 2</div>
+                <div className="text-[13px] text-yellow-600 mb-[16px]">Medium-term · 3–6 months</div>
+                <div className="space-y-[8px]">
+                  <div className="bg-white border border-yellow-100 rounded-[8px] px-[12px] py-[8px]">
+                    <div className="text-[12px] font-semibold text-[#1d1d1f]">Social post drafting</div>
+                    <div className="text-[11px] text-[#6e6e73]">GPT-4 + brand guidelines · 65%</div>
+                  </div>
+                  <div className="bg-white border border-yellow-100 rounded-[8px] px-[12px] py-[8px]">
+                    <div className="text-[12px] font-semibold text-[#1d1d1f]">Topic research</div>
+                    <div className="text-[11px] text-[#6e6e73]">Perplexity / Claude · 58%</div>
+                  </div>
+                </div>
+                <div className="mt-[14px] text-[12px] font-medium text-yellow-700">→ 189 hrs/yr · €10,900 saved</div>
+              </div>
+
+              <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[24px]">
+                <div className="text-[11px] font-semibold text-[#86868b] tracking-widest uppercase mb-[4px]">③ Roadmap — Phase 3</div>
+                <div className="text-[13px] text-[#6e6e73] mb-[16px]">Human-in-loop · 6–12 months</div>
+                <div className="space-y-[8px]">
+                  <div className="bg-white border border-[#e8e8ed] rounded-[8px] px-[12px] py-[8px]">
+                    <div className="text-[12px] font-semibold text-[#1d1d1f]">Comment responses</div>
+                    <div className="text-[11px] text-[#6e6e73]">AI drafts · human approves · 34%</div>
+                  </div>
+                </div>
+                <div className="mt-[14px] text-[12px] font-medium text-[#6e6e73]">→ 42 hrs/yr · €2,400 saved</div>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>

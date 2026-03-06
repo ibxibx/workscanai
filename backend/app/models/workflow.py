@@ -12,6 +12,8 @@ class Workflow(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
+    source_text = Column(Text, nullable=True)   # raw input: voice transcript / doc text / manual notes
+    input_mode = Column(String(50), nullable=True)  # 'manual' | 'voice' | 'document'
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

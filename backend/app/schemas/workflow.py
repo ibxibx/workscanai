@@ -26,6 +26,8 @@ class TaskResponse(TaskCreate):
 class WorkflowCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
+    source_text: Optional[str] = None   # raw voice transcript / doc text / manual notes
+    input_mode: Optional[str] = None    # 'manual' | 'voice' | 'document'
     tasks: List[TaskCreate] = Field(default_factory=list)
 
 
@@ -33,6 +35,8 @@ class WorkflowResponse(BaseModel):
     id: int
     name: str
     description: Optional[str]
+    source_text: Optional[str] = None
+    input_mode: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime]
     tasks: List[TaskResponse] = []
