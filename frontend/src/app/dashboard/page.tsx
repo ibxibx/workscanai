@@ -159,7 +159,7 @@ export default function DashboardPage() {
         <div className="mb-[48px]">
           <div className="relative inline-block">
             <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[100px]"></div>
-            <h1 className="relative text-[48px] leading-[1.08] font-semibold tracking-tight mb-[12px] px-[32px]">
+            <h1 className="relative text-[48px] leading-[1.08] font-semibold italic tracking-tight mb-[12px] px-[32px]">
               Dashboard
             </h1>
           </div>
@@ -179,7 +179,7 @@ export default function DashboardPage() {
                     Start New
                   </span>
                 </div>
-                <h2 className="text-[28px] font-semibold tracking-tight mb-[8px]">
+                <h2 className="text-[28px] font-semibold italic tracking-tight mb-[8px]">
                   Analyze a Workflow
                 </h2>
                 <p className="text-[15px] text-[#6e6e73] max-w-[600px]">
@@ -311,7 +311,7 @@ export default function DashboardPage() {
         {/* Recent Analyses */}
         <div>
           <div className="flex items-center justify-between mb-[24px]">
-            <h2 className="text-[28px] font-semibold tracking-tight">Recent Analyses</h2>
+            <h2 className="text-[28px] font-semibold italic tracking-tight">Recent Analyses</h2>
           </div>
 
           {loading ? (
@@ -328,7 +328,7 @@ export default function DashboardPage() {
               <div className="inline-flex items-center justify-center w-[64px] h-[64px] rounded-full bg-white border border-[#d2d2d7] mb-[20px]">
                 <Clock className="h-[28px] w-[28px] text-[#86868b]" />
               </div>
-              <h3 className="text-[19px] font-semibold mb-[8px]">No analyses yet</h3>
+              <h3 className="text-[19px] font-semibold italic mb-[8px]">No analyses yet</h3>
               <p className="text-[15px] text-[#6e6e73] mb-[24px] max-w-[400px] mx-auto">
                 Create your first workflow analysis to unlock automation insights and ROI calculations.
               </p>
@@ -352,7 +352,7 @@ export default function DashboardPage() {
                     <div className="flex items-start justify-between gap-[16px]">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-[12px] mb-[8px]">
-                          <h3 className="text-[19px] font-semibold text-[#1d1d1f] truncate group-hover:text-[#0071e3] transition-colors">
+                          <h3 className="text-[19px] font-semibold italic text-[#1d1d1f] truncate group-hover:text-[#0071e3] transition-colors">
                             {wf.name}
                           </h3>
                           {wf.automation_score === null && (

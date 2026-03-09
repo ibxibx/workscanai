@@ -176,7 +176,7 @@ export default function RoadmapPage() {
         <div className="mb-[48px]">
           <div className="relative inline-block">
             <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/20 to-transparent blur-[100px]" />
-            <h1 className="relative text-[48px] leading-[1.08] font-semibold tracking-tight mb-[8px] px-[32px]">
+            <h1 className="relative text-[48px] leading-[1.08] font-semibold italic tracking-tight mb-[8px] px-[32px]">
               Implementation Roadmap
             </h1>
           </div>
@@ -239,7 +239,7 @@ export default function RoadmapPage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-[10px] mb-[4px]">
-                        <h2 className="text-[21px] font-semibold">{cfg.label}</h2>
+                        <h2 className="text-[21px] font-semibold italic">{cfg.label}</h2>
                         <span className={`px-[10px] py-[3px] rounded-full text-[12px] font-semibold border ${cfg.badge}`}>
                           {doneCount}/{tasks.length} done
                         </span>
@@ -273,7 +273,7 @@ export default function RoadmapPage() {
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-[12px] mb-[12px]">
-                              <h3 className={`text-[17px] font-semibold ${isDone ? 'line-through text-[#86868b]' : ''}`}>
+                              <h3 className={`text-[17px] font-semibold italic ${isDone ? 'line-through text-[#86868b]' : ''}`}>
                                 {result.task.name}
                               </h3>
                               <div className="shrink-0 text-right">
@@ -344,7 +344,7 @@ export default function RoadmapPage() {
         {/* Bottom CTA */}
         <div className="mt-[56px] pt-[40px] border-t border-[#d2d2d7] flex flex-col sm:flex-row items-center justify-between gap-[16px]">
           <div>
-            <p className="text-[17px] font-semibold mb-[4px]">Ready to get started?</p>
+            <p className="text-[17px] font-semibold italic mb-[4px]">Ready to get started?</p>
             <p className="text-[14px] text-[#6e6e73]">Begin with Phase 1 quick wins for the fastest ROI.</p>
           </div>
           <Link href={`/dashboard/results/${id}`}

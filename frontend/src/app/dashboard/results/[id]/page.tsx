@@ -227,7 +227,7 @@ Visit: https://workscanai.com
         <div className="mb-[48px]">
           <div className="relative inline-block">
             <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[100px]"></div>
-            <h1 className="relative text-[48px] leading-[1.08] font-semibold tracking-tight mb-[8px] px-[32px]">
+            <h1 className="relative text-[48px] leading-[1.08] font-semibold italic tracking-tight mb-[8px] px-[32px]">
               {analysisData.workflow.name}
             </h1>
           </div>
@@ -275,7 +275,7 @@ Visit: https://workscanai.com
 
         {/* Task Breakdown */}
         <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px] mb-[32px]">
-          <h2 className="text-[28px] font-semibold tracking-tight mb-[32px]">Task Breakdown</h2>
+          <h2 className="text-[28px] font-semibold italic tracking-tight mb-[32px]">Task Breakdown</h2>
           <div className="space-y-[16px]">
             {analysisData.results.map((result, index) => {
          // Safe access to task data
@@ -284,7 +284,7 @@ Visit: https://workscanai.com
           return (
          <div key={index} className="border border-[#d2d2d7] rounded-[12px] p-[24px] bg-white">
         <div className="flex justify-between items-start mb-[16px]">
-        <h3 className="text-[19px] font-semibold text-[#1d1d1f]">{taskName}</h3>
+        <h3 className="text-[19px] font-semibold italic text-[#1d1d1f]">{taskName}</h3>
                   <span className={`px-[12px] py-[6px] rounded-full text-[13px] font-semibold ${
                     result.ai_readiness_score >= 80 ? 'bg-green-100 text-green-700' :
                     result.ai_readiness_score >= 60 ? 'bg-yellow-100 text-yellow-700' :
