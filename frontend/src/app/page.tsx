@@ -68,7 +68,7 @@ export default function LandingPage() {
           <div className="w-full max-w-[980px] mx-auto px-4 sm:px-6 py-[48px] sm:py-[90px] text-center">
 
           {/* Headline */}
-          <h1 className="text-[32px] sm:text-[44px] md:text-[56px] leading-[1.07] font-semibold tracking-tight text-white mb-[16px] drop-shadow-lg">
+          <h1 className="text-[32px] sm:text-[44px] md:text-[56px] leading-[1.07] font-semibold italic tracking-tight text-white mb-[16px] drop-shadow-lg">
             The future of work
             <br />
             starts with knowing
@@ -80,7 +80,7 @@ export default function LandingPage() {
           <div className="max-w-[680px] mx-auto mt-[24px] sm:mt-[40px]">
             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[18px] p-[20px] sm:p-[32px]">
               <p className="text-[16px] sm:text-[21px] leading-[1.381] font-normal text-white/90 mb-[20px] sm:mb-[28px]">
-                Find out which of your tasks AI can automate <em>right now</em> — and see exactly how many hours and how much money you'll get back every year.
+                Find out which of your tasks AI can automate <em>right now</em> and how — save your time and money.
               </p>
               <div className="flex gap-[16px] justify-center items-center flex-wrap">
                 <a
