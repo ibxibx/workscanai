@@ -128,7 +128,7 @@ export default function LandingPage() {
               <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 <Sparkles className="h-[20px] w-[20px] text-white" />
               </div>
-              <h3 className="text-[19px] font-semibold mb-[8px] tracking-tight text-[#1d1d1f]">AI Analysis</h3>
+              <h3 className="text-[19px] font-semibold italic mb-[8px] tracking-tight text-[#1d1d1f]">AI Analysis</h3>
               <p className="text-[14px] text-[#6e6e73] leading-[1.4]">
                 Evaluates every task for automation readiness
               </p>
@@ -140,7 +140,7 @@ export default function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-[19px] font-semibold mb-[8px] tracking-tight text-[#1d1d1f]">ROI Calculator</h3>
+              <h3 className="text-[19px] font-semibold italic mb-[8px] tracking-tight text-[#1d1d1f]">ROI Calculator</h3>
               <p className="text-[14px] text-[#6e6e73] leading-[1.4]">
                 Calculates time and cost savings instantly
               </p>
@@ -152,7 +152,7 @@ export default function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
               </div>
-              <h3 className="text-[19px] font-semibold mb-[8px] tracking-tight text-[#1d1d1f]">Action Roadmap</h3>
+              <h3 className="text-[19px] font-semibold italic mb-[8px] tracking-tight text-[#1d1d1f]">Action Roadmap</h3>
               <p className="text-[14px] text-[#6e6e73] leading-[1.4]">
                 Prioritized plan from quick wins to long-term
               </p>
@@ -169,7 +169,7 @@ export default function LandingPage() {
           <div className="text-center mb-[56px]">
             <div className="relative inline-block">
               <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[100px]"></div>
-              <h2 className="relative text-[40px] leading-[1.1] font-semibold tracking-tight mb-[12px] text-[#1d1d1f] px-[32px]">
+              <h2 className="relative text-[40px] leading-[1.1] font-semibold italic tracking-tight mb-[12px] text-[#1d1d1f] px-[32px]">
                 See exactly what you get.
               </h2>
             </div>
@@ -347,7 +347,7 @@ export default function LandingPage() {
           <div className="text-center mb-[48px]">
             <div className="relative inline-block">
               <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/15 to-transparent blur-[100px]"></div>
-              <h2 className="relative text-[40px] leading-[1.1] font-semibold tracking-tight mb-[12px] text-[#1d1d1f] px-[32px]">
+              <h2 className="relative text-[40px] leading-[1.1] font-semibold italic tracking-tight mb-[12px] text-[#1d1d1f] px-[32px]">
                 Start your analysis now.
               </h2>
             </div>
