@@ -422,7 +422,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       <form onSubmit={handleSubmit} className="space-y-[24px]">
 
         {/* Input Mode Tabs */}
-        <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[6px] flex gap-[4px]">
+        <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[6px] flex flex-wrap gap-[4px]">
           {([
             { mode: 'manual',   icon: FileText, label: 'Manual Entry' },
             { mode: 'voice',    icon: Mic,      label: 'Voice Input' },

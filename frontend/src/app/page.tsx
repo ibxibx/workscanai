@@ -207,9 +207,9 @@ export default function LandingPage() {
               </div>
 
               {/* Overall Score */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-[18px] p-[32px] flex flex-col justify-between">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-[18px] p-[16px] sm:p-[32px] flex flex-col justify-between min-w-0 overflow-hidden">
                 <div className="text-[11px] font-semibold text-[#0071e3] tracking-widest uppercase mb-[20px]">② Analysis — Summary</div>
-                <div className="flex items-center gap-[24px] mb-[24px]">
+                <div className="flex flex-wrap items-center gap-[16px] mb-[24px]">
                   <div>
                     <div className="text-[64px] leading-none font-semibold tracking-tight text-[#0071e3]">72%</div>
                     <div className="text-[15px] text-[#6e6e73]">Automation Score</div>
