@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Required for Docker — Vercel safely ignores this setting
-  output: 'standalone',
+  // output: 'standalone', // commented out — breaks Vercel deployment (use for Docker only)
   reactStrictMode: false,
   logging: {
     fetches: {
