@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const API_URL = process.env.API_URL || 'http://localhost:8000'
+function getPythonBackendUrl(): string {
+  if (process.env.NODE_ENV === 'development') return 'http://localhost:8000'
+  return process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
+}
 
 export async function POST(request: NextRequest) {
     try {
           const formData = await request.formData()
-          const response = await fetch(`${API_URL}/api/extract-tasks`, {
+          const response = await fetch(`${getPythonBackendUrl()}/api/extract-tasks`, {
                   method: 'POST',
                   body: formData,
           })
