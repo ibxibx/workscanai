@@ -223,7 +223,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     try {
       // Step 0 — save workflow
       advanceTo(0)
-      const wfRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflows`, {
+      const wfRes = await fetch(`/api/workflows`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -250,7 +250,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
       // Step 2 — AI analysis (longest step — show estimated task count)
       advanceTo(2)
-      const analysisRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analyze`, {
+      const analysisRes = await fetch(`/api/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

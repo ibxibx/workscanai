@@ -69,7 +69,7 @@ export default function ResultsPage() {
     const fetchAnalysis = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/results/${id}`,
+          `/api/results/${id}`,
           { signal: controller.signal }
         )
 
@@ -132,7 +132,7 @@ export default function ResultsPage() {
 
   const downloadAsDocx = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/${id}/docx`)
+      const response = await fetch(`/api/reports/${id}/docx`)
       if (!response.ok) throw new Error('Failed to generate report')
       
       const blob = await response.blob()
@@ -152,7 +152,7 @@ export default function ResultsPage() {
 
   const downloadAsPdf = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/${id}/pdf`)
+      const response = await fetch(`/api/reports/${id}/pdf`)
       if (!response.ok) throw new Error('Failed to generate report')
       
       const blob = await response.blob()

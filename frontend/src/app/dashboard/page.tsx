@@ -56,7 +56,7 @@ export default function DashboardPage() {
           await Promise.all(
             myIds.map(async (id) => {
               try {
-                const aRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/results/${id}`)
+                const aRes = await fetch(`/api/results/${id}`)
                 if (aRes.ok) {
                   const aData = await aRes.json()
                   return {
@@ -71,7 +71,7 @@ export default function DashboardPage() {
                   }
                 }
                 // Analysis not ready yet — try workflow endpoint
-                const wfRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflows/${id}`)
+                const wfRes = await fetch(`/api/workflows/${id}`)
                 if (wfRes.ok) {
                   const wf = await wfRes.json()
                   return {
@@ -128,7 +128,7 @@ export default function DashboardPage() {
     if (ids.length < 2) return
     setDownloadingCombined(format)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/combined/${format}`, {
+      const res = await fetch(`/api/reports/combined/${format}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workflow_ids: ids }),
