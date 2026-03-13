@@ -5,14 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.core.database import get_db
-from app.core.security import check_rate_limit, verify_recaptcha
-from app.models.workflow import Workflow, Task, Analysis, AnalysisResult
-from app.schemas.workflow import (
+from backend_app.core.database import get_db
+from backend_app.core.security import check_rate_limit, verify_recaptcha
+from backend_app.models.workflow import Workflow, Task, Analysis, AnalysisResult
+from backend_app.schemas.workflow import (
     WorkflowCreate, WorkflowResponse,
     AnalyzeRequest, AnalysisResponse, AnalysisResultResponse
 )
-from app.services.ai_analyzer import AIAnalyzer
+from backend_app.services.ai_analyzer import AIAnalyzer
 
 router = APIRouter()
 

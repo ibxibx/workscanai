@@ -3,8 +3,8 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.database import engine, Base
-from app.api.routes import workflows, extraction, reports
+from backend_app.core.database import engine, Base
+from backend_app.api.routes import workflows, extraction, reports
 from mangum import Mangum
 
 # Create database tables

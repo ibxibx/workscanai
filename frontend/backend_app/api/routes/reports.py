@@ -9,9 +9,9 @@ from pydantic import BaseModel
 import os
 import tempfile
 
-from app.core.database import get_db
-from app.models.workflow import Workflow, Analysis
-from app.services.report_generator import ReportGenerator
+from backend_app.core.database import get_db
+from backend_app.models.workflow import Workflow, Analysis
+from backend_app.services.report_generator import ReportGenerator
 
 router = APIRouter()
 

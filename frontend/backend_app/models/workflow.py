@@ -3,7 +3,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.core.database import Base
+from backend_app.core.database import Base
 
 
 class Workflow(Base):
