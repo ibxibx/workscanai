@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
-from app.core.config import settings
+from backend_app.core.config import settings
 
 
 def _get_db_url(url: str) -> str:

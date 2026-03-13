@@ -2,16 +2,13 @@ import sys
 import os
 
 # On Vercel, __file__ = /var/task/api/index.py
-# backend is copied to /var/task/backend_bundle/ by the build command in vercel.json
+# root_dir = /var/task (the frontend/ directory contents)
+# The FastAPI app package is at /var/task/backend_app/
 this_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.normpath(os.path.join(this_dir, '..'))
 
-# Try backend_bundle (Vercel production) first, then backend (local dev fallback)
-for subdir in ['backend_bundle', 'backend', '']:
-    candidate = os.path.join(root_dir, subdir) if subdir else root_dir
-    if os.path.isdir(os.path.join(candidate, 'app')):
-        if candidate not in sys.path:
-            sys.path.insert(0, candidate)
-        break
+# Add root_dir to sys.path so we can import backend_app
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
 
-from app.main import handler
+from backend_app.main import handler

@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 from fastapi import Request, HTTPException
 import httpx
-from app.core.config import settings
+from backend_app.core.config import settings
 
 # ── Rate limit config (read from Settings / .env) ─────────────────────────────
 MAX_ANALYSES_PER_HOUR = settings.MAX_ANALYSES_PER_HOUR
