@@ -165,7 +165,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     try {
       const fd = new FormData()
       fd.append('file', file)
-      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/extract-tasks`, { method: 'POST', body: fd })
+      const r = await fetch(`/api/extract-tasks`, { method: 'POST', body: fd })
       if (!r.ok) throw new Error()
       const d = await r.json()
       setSourceText(d.text || '')
@@ -181,7 +181,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     setIsExtractingTasks(true)
     setExtractStatus('extracting')
     try {
-      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/parse-tasks`, {
+      const r = await fetch(`/api/parse-tasks`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
       })
