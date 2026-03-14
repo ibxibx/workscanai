@@ -50,10 +50,18 @@ class AnalysisResultResponse(BaseModel):
     id: int
     task_id: int
     ai_readiness_score: float
+    # F1 sub-scores
+    score_repeatability: Optional[float] = None
+    score_data_availability: Optional[float] = None
+    score_error_tolerance: Optional[float] = None
+    score_integration: Optional[float] = None
     time_saved_percentage: Optional[float]
     recommendation: Optional[str]
     difficulty: Optional[str]
     estimated_hours_saved: Optional[float]
+    # F3 risk
+    risk_level: Optional[str] = None
+    risk_flag: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -66,6 +74,12 @@ class AnalysisResponse(BaseModel):
     automation_score: float
     annual_savings: Optional[float]
     hours_saved: Optional[float]
+    # F4 readiness
+    readiness_score: Optional[float] = None
+    readiness_data_quality: Optional[float] = None
+    readiness_process_docs: Optional[float] = None
+    readiness_tool_maturity: Optional[float] = None
+    readiness_team_skills: Optional[float] = None
     created_at: datetime
     results: List[AnalysisResultResponse] = []
     

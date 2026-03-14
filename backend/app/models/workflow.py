@@ -67,12 +67,17 @@ class Analysis(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     workflow_id = Column(Integer, ForeignKey("workflows.id"), nullable=False, unique=True)
-    automation_score = Column(Float, nullable=False)  # 0-100
-    annual_savings = Column(Float, nullable=True)  # USD
-    hours_saved = Column(Float, nullable=True)  # hours per year
+    automation_score = Column(Float, nullable=False)   # 0-100 avg task score
+    annual_savings = Column(Float, nullable=True)
+    hours_saved = Column(Float, nullable=True)
+    # F4 — company AI readiness (derived from sub-scores)
+    readiness_score = Column(Float, nullable=True)          # 0-100 overall
+    readiness_data_quality = Column(Float, nullable=True)
+    readiness_process_docs = Column(Float, nullable=True)
+    readiness_tool_maturity = Column(Float, nullable=True)
+    readiness_team_skills = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Relationships
     workflow = relationship("Workflow", back_populates="analysis")
     results = relationship("AnalysisResult", back_populates="analysis", cascade="all, delete-orphan")
 
@@ -83,11 +88,20 @@ class AnalysisResult(Base):
     id = Column(Integer, primary_key=True, index=True)
     analysis_id = Column(Integer, ForeignKey("analyses.id"), nullable=False)
     task_id = Column(Integer, ForeignKey("tasks.id"), nullable=False)
-    ai_readiness_score = Column(Float, nullable=False)  # 0-100
-    time_saved_percentage = Column(Float, nullable=True)  # 0-100
+    ai_readiness_score = Column(Float, nullable=False)  # 0-100 composite
+    # F1 — sub-scores
+    score_repeatability = Column(Float, nullable=True)      # how rule-based/repetitive
+    score_data_availability = Column(Float, nullable=True)  # data structured & accessible
+    score_error_tolerance = Column(Float, nullable=True)    # cost of AI mistakes
+    score_integration = Column(Float, nullable=True)        # ease of tool integration
+    time_saved_percentage = Column(Float, nullable=True)
+    # F2 — enriched recommendation
     recommendation = Column(Text, nullable=True)
-    difficulty = Column(String(50), nullable=True)  # easy, medium, hard
+    difficulty = Column(String(50), nullable=True)
     estimated_hours_saved = Column(Float, nullable=True)
+    # F3 — risk & compliance
+    risk_level = Column(String(20), nullable=True)   # safe / caution / warning
+    risk_flag = Column(Text, nullable=True)           # human-readable risk note
     
     # Relationships
     analysis = relationship("Analysis", back_populates="results")

@@ -173,7 +173,12 @@ async def analyze_workflow(
         workflow_id=workflow.id,
         automation_score=roi_metrics['automation_score'],
         hours_saved=roi_metrics['hours_saved'],
-        annual_savings=roi_metrics['annual_savings']
+        annual_savings=roi_metrics['annual_savings'],
+        readiness_score=roi_metrics.get('readiness_score'),
+        readiness_data_quality=roi_metrics.get('readiness_data_quality'),
+        readiness_process_docs=roi_metrics.get('readiness_process_docs'),
+        readiness_tool_maturity=roi_metrics.get('readiness_tool_maturity'),
+        readiness_team_skills=roi_metrics.get('readiness_team_skills'),
     )
     db.add(analysis)
     db.flush()
@@ -184,10 +189,16 @@ async def analyze_workflow(
             analysis_id=analysis.id,
             task_id=task_analysis['task_obj'].id,
             ai_readiness_score=task_analysis['ai_readiness_score'],
+            score_repeatability=task_analysis.get('score_repeatability'),
+            score_data_availability=task_analysis.get('score_data_availability'),
+            score_error_tolerance=task_analysis.get('score_error_tolerance'),
+            score_integration=task_analysis.get('score_integration'),
             time_saved_percentage=task_analysis.get('time_saved_percentage'),
             recommendation=task_analysis.get('recommendation'),
             difficulty=task_analysis.get('difficulty'),
-            estimated_hours_saved=task_analysis.get('estimated_hours_saved')
+            estimated_hours_saved=task_analysis.get('estimated_hours_saved'),
+            risk_level=task_analysis.get('risk_level'),
+            risk_flag=task_analysis.get('risk_flag'),
         )
         db.add(result)
     
