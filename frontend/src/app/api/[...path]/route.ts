@@ -14,11 +14,19 @@ async function handler(
 
     const isBodyless = ['GET', 'HEAD'].includes(request.method)
     const body = isBodyless ? undefined : await request.arrayBuffer()
-    const contentType = request.headers.get('content-type')
+
+    // Forward all incoming headers (including x-user-email, authorization, etc.)
+    const forwardHeaders: Record<string, string> = {}
+    request.headers.forEach((val, key) => {
+      // Skip hop-by-hop headers that shouldn't be forwarded
+      if (!['host', 'connection', 'transfer-encoding'].includes(key.toLowerCase())) {
+        forwardHeaders[key] = val
+      }
+    })
 
     const upstream = await fetch(url, {
       method: request.method,
-      headers: contentType ? { 'content-type': contentType } : {},
+      headers: forwardHeaders,
       body: body ? Buffer.from(body) : undefined,
     })
 
