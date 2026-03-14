@@ -17,6 +17,13 @@ def _get_db_url(url: str) -> str:
     # Strip trailing ? left after removal
     if url.endswith('?'):
         url = url[:-1]
+    # Add sslmode=require and gssencmode=disable if not present (forces IPv4-compatible SSL)
+    connector = '&' if '?' in url else '?'
+    if 'sslmode' not in url:
+        url += connector + 'sslmode=require'
+        connector = '&'
+    if 'gssencmode' not in url:
+        url += connector + 'gssencmode=disable'
     # Ensure correct driver prefix
     if url.startswith('postgresql://'):
         return url.replace('postgresql://', 'postgresql+psycopg2://', 1)
