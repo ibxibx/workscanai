@@ -8,7 +8,14 @@ from app.core.config import settings
 
 
 def _get_db_url(url: str) -> str:
-    """Normalize DB URL: ensure psycopg2 driver for PostgreSQL."""
+    """Normalize DB URL: ensure psycopg2 driver, strip pgbouncer param."""
+    # Strip ?pgbouncer=true — psycopg2 doesn't support it (pooler handles it)
+    if "pgbouncer" in url:
+        from urllib.parse import urlparse, urlencode, parse_qs, urlunparse
+        parsed = urlparse(url)
+        params = {k: v for k, v in parse_qs(parsed.query).items() if k != "pgbouncer"}
+        new_query = urlencode({k: v[0] for k, v in params.items()})
+        url = urlunparse(parsed._replace(query=new_query))
     if url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+psycopg2://", 1)
     if url.startswith("postgres://"):
