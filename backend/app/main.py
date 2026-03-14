@@ -7,8 +7,11 @@ from app.core.database import engine, Base
 from app.api.routes import workflows, extraction, reports
 from mangum import Mangum
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database tables (graceful — don't crash if DB unreachable at boot)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Warning: Could not create DB tables at startup: {e}")
 
 app = FastAPI(title="WorkScanAI API", version="1.0.0")
 
