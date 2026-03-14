@@ -42,6 +42,10 @@ if _is_postgres:
         _db_url,
         poolclass=NullPool,
         echo=settings.DEBUG,
+        connect_args={
+            "gssencmode": "disable",
+            "sslmode": "require",
+        },
     )
 else:
     # SQLite for local dev
