@@ -39,9 +39,9 @@ def _get_or_create_user(email: str, db: Session) -> User:
 
 async def _send_magic_email(email: str, token: str):
     magic_url = f"{APP_URL}/auth/verify?token={token}"
+    resend_key = os.getenv("RESEND_API_KEY", "")
 
-    if not RESEND_API_KEY:
-        # Dev mode — just print the link
+    if not resend_key:
         print(f"[DEV] Magic link for {email}: {magic_url}")
         return
 
@@ -64,6 +64,7 @@ async def _send_magic_email(email: str, token: str):
             timeout=10,
         )
         if resp.status_code >= 400:
+            print(f"[auth] Resend error {resp.status_code}: {resp.text}")
             raise HTTPException(status_code=500, detail="Failed to send email")
 
 
@@ -84,7 +85,11 @@ async def request_magic_link(body: MagicLinkRequest, db: Session = Depends(get_d
     db.add(magic)
     db.commit()
 
-    await _send_magic_email(email, token)
+    try:
+        await _send_magic_email(email, token)
+    except Exception as e:
+        print(f"[auth] Email send failed: {e}")
+        # Don't expose send errors to client — token is still valid
     return {"message": "Magic link sent — check your email."}
 
 
