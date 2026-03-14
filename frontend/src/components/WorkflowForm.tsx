@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown, CheckCircle2, Circle } from 'lucide-react'
+import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown, CheckCircle2, Circle, LogIn } from 'lucide-react'
 import { saveMyWorkflowId } from '@/app/dashboard/page'
+import { useAuth } from '@/lib/auth'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Task {
@@ -55,6 +56,7 @@ async function getRecaptchaToken(action: string): Promise<string> {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFormProps) {
+  const { email } = useAuth()
   const [workflowName, setWorkflowName] = useState('')
   const [workflowDescription, setWorkflowDescription] = useState('')
   const [tasks, setTasks] = useState<Task[]>([{
@@ -211,6 +213,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault()
+    if (!email) { window.location.href = '/auth'; return }
     if (!workflowName.trim()) { onError('Please provide a workflow name'); return }
     if (!tasks.some(t => t.name.trim())) { onError('Please add at least one task'); return }
     onError('')
@@ -225,7 +228,10 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       advanceTo(0)
       const wfRes = await fetch(`/api/workflows`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(email ? { 'x-user-email': email } : {}),
+        },
         body: JSON.stringify({
           name: workflowName, description: workflowDescription,
           source_text: effectiveSourceText || undefined,
@@ -252,7 +258,10 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       advanceTo(2)
       const analysisRes = await fetch(`/api/analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(email ? { 'x-user-email': email } : {}),
+        },
         body: JSON.stringify({
           workflow_id: workflow.id,
           hourly_rate: hourlyRate,
@@ -656,10 +665,17 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
               <><Loader2 className="animate-spin h-[18px] w-[18px]" /> Running Analysis…</>
             ) : isExtractingTasks ? (
               <><Loader2 className="animate-spin h-[18px] w-[18px]" /> Extracting tasks…</>
+            ) : !email ? (
+              <><LogIn className="h-[18px] w-[18px]" /> Sign in to Analyze</>
             ) : (
               'Analyze Workflow'
             )}
           </button>
+          {!email && (
+            <p className="text-[13px] text-[#6e6e73] mt-2">
+              <a href="/auth" className="text-[#0071e3] hover:underline font-medium">Sign in</a> to run analyses. Free tier: 5 per 24 hours.
+            </p>
+          )}
         </div>
 
       </form>
