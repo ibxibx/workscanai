@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, notFound } from 'next/navigation'
-import { Download, Share2, Map, Check } from 'lucide-react'
+import { Download, Share2, Map, Check, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react'
 import Link from 'next/link'
 
 interface WorkflowTask {
@@ -15,10 +15,16 @@ interface TaskResult {
   task_id: number
   task?: WorkflowTask
   ai_readiness_score: number
+  score_repeatability?: number
+  score_data_availability?: number
+  score_error_tolerance?: number
+  score_integration?: number
   time_saved_percentage: number
   recommendation: string
   difficulty: string
   estimated_hours_saved: number
+  risk_level?: string
+  risk_flag?: string
 }
 
 interface AnalysisData {
@@ -33,6 +39,11 @@ interface AnalysisData {
   automation_score: number
   hours_saved: number
   annual_savings: number
+  readiness_score?: number
+  readiness_data_quality?: number
+  readiness_process_docs?: number
+  readiness_tool_maturity?: number
+  readiness_team_skills?: number
   results: TaskResult[]
 }
 
@@ -278,71 +289,118 @@ Visit: https://workscanai.com
           <h2 className="text-[28px] font-semibold italic tracking-tight mb-[32px]">Task Breakdown</h2>
           <div className="space-y-[16px]">
             {analysisData.results.map((result, index) => {
-         // Safe access to task data
-          const taskName = result.task?.name || `Task ${index + 1}`
-  
-          return (
-         <div key={index} className="border border-[#d2d2d7] rounded-[12px] p-[24px] bg-white">
-        <div className="flex justify-between items-start mb-[16px]">
-        <h3 className="text-[19px] font-semibold italic text-[#1d1d1f]">{taskName}</h3>
-                  <span className={`px-[12px] py-[6px] rounded-full text-[13px] font-semibold ${
-                    result.ai_readiness_score >= 80 ? 'bg-green-100 text-green-700' :
-                    result.ai_readiness_score >= 60 ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-red-100 text-red-700'
-                  }`}>
-                    {Math.round(result.ai_readiness_score)}% Ready
-                  </span>
-                </div>
-                <div className="grid md:grid-cols-3 gap-[16px] text-[14px] mb-[16px]">
-                  <div>
-                    <span className="text-[#86868b]">Time Saved: </span>
-                    <span className="font-medium text-[#1d1d1f]">{Math.round(result.time_saved_percentage)}%</span>
+              const taskName = result.task?.name || `Task ${index + 1}`
+              const hasSubScores = result.score_repeatability != null
+              const riskColor = result.risk_level === 'warning' ? 'bg-red-50 border-red-200 text-red-700' :
+                                result.risk_level === 'caution' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
+                                'bg-green-50 border-green-200 text-green-700'
+              const RiskIcon = result.risk_level === 'warning' ? ShieldX :
+                               result.risk_level === 'caution' ? ShieldAlert : ShieldCheck
+
+              return (
+                <div key={index} className="border border-[#d2d2d7] rounded-[12px] p-[24px] bg-white">
+                  {/* Header row */}
+                  <div className="flex justify-between items-start mb-[16px]">
+                    <h3 className="text-[19px] font-semibold italic text-[#1d1d1f]">{taskName}</h3>
+                    <span className={`px-[12px] py-[6px] rounded-full text-[13px] font-semibold ${
+                      result.ai_readiness_score >= 80 ? 'bg-green-100 text-green-700' :
+                      result.ai_readiness_score >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {Math.round(result.ai_readiness_score)}% Ready
+                    </span>
                   </div>
-                  <div>
-                    <span className="text-[#86868b]">Difficulty: </span>
-                    <span className="font-medium text-[#1d1d1f] capitalize">{result.difficulty}</span>
-                  </div>
-                  <div>
-                    <span className="text-[#86868b]">Hours saved per year: </span>
-                    <span className="font-medium text-[#1d1d1f]">{Math.round(result.estimated_hours_saved)} hrs</span>
-                  </div>
-                </div>
-                <div className="p-[16px] bg-blue-50 border border-blue-200 rounded-[8px]">
-                  <div className="text-[16px] font-bold text-[#0071e3] mb-[12px]">💡 Recommendation</div>
-                  {result.recommendation && (() => {
-                    const text = result.recommendation;
-                    const opt1Match = text.match(/(Option\s+1\s*[—–-])/);
-                    const opt2Match = text.match(/(Option\s+2\s*[—–-])/);
-                    if (opt1Match && opt2Match && opt2Match.index) {
-                      const beforeOpt1 = opt1Match.index ? text.slice(0, opt1Match.index).trim() : '';
-                      const part1 = text.slice(opt1Match.index!, opt2Match.index).trim();
-                      const part2 = text.slice(opt2Match.index).trim();
-                      return (
-                        <div className="flex flex-col gap-[8px]">
-                          {beforeOpt1 && <div className="text-[13px] text-[#1d1d1f]">{beforeOpt1}</div>}
-                          <div className="text-[14px] text-[#1d1d1f]">{part1}</div>
-                          <div className="text-[14px] text-[#1d1d1f]">{part2}</div>
+
+                  {/* F1 — Sub-scores */}
+                  {hasSubScores && (
+                    <div className="grid grid-cols-4 gap-[8px] mb-[16px]">
+                      {[
+                        {label: 'Repeatability', val: result.score_repeatability},
+                        {label: 'Data Access', val: result.score_data_availability},
+                        {label: 'Error Tolerance', val: result.score_error_tolerance},
+                        {label: 'Integration', val: result.score_integration},
+                      ].map(({label, val}) => (
+                        <div key={label} className="bg-[#f5f5f7] rounded-[8px] p-[10px] text-center">
+                          <div className="text-[18px] font-semibold text-[#1d1d1f]">{val != null ? Math.round(val) : '—'}</div>
+                          <div className="text-[10px] text-[#86868b] mt-[2px]">{label}</div>
                         </div>
-                      );
-                    }
-                    if (opt2Match && opt2Match.index) {
-                      const part1 = text.slice(0, opt2Match.index).trim();
-                      const part2 = text.slice(opt2Match.index).trim();
-                      return (
-                        <div className="flex flex-col gap-[8px]">
-                          <div className="text-[14px] text-[#1d1d1f]">{part1}</div>
-                          <div className="text-[14px] text-[#1d1d1f]">{part2}</div>
-                        </div>
-                      );
-                    }
-                    return <div className="text-[14px] text-[#1d1d1f]">{text}</div>;
-                  })()}
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="grid md:grid-cols-3 gap-[16px] text-[14px] mb-[16px]">
+                    <div><span className="text-[#86868b]">Time Saved: </span><span className="font-medium">{Math.round(result.time_saved_percentage)}%</span></div>
+                    <div><span className="text-[#86868b]">Difficulty: </span><span className="font-medium capitalize">{result.difficulty}</span></div>
+                    <div><span className="text-[#86868b]">Hours saved/yr: </span><span className="font-medium">{Math.round(result.estimated_hours_saved)} hrs</span></div>
+                  </div>
+
+                  {/* F3 — Risk badge */}
+                  {result.risk_flag && (
+                    <div className={`flex items-start gap-[8px] px-[14px] py-[10px] rounded-[8px] border mb-[12px] text-[13px] ${riskColor}`}>
+                      <RiskIcon className="w-4 h-4 mt-[1px] shrink-0" />
+                      <span>{result.risk_flag}</span>
+                    </div>
+                  )}
+
+                  {/* F2 — Priced recommendations */}
+                  <div className="p-[16px] bg-blue-50 border border-blue-200 rounded-[8px]">
+                    <div className="text-[14px] font-bold text-[#0071e3] mb-[10px]">💡 Recommendation</div>
+                    {result.recommendation && (() => {
+                      const text = result.recommendation
+                      const opt1Match = text.match(/(Option\s+1\s*[—–-])/)
+                      const opt2Match = text.match(/(Option\s+2\s*[—–-])/)
+                      if (opt1Match && opt2Match && opt2Match.index) {
+                        const part1 = text.slice(opt1Match.index!, opt2Match.index).trim()
+                        const part2 = text.slice(opt2Match.index).trim()
+                        return (
+                          <div className="flex flex-col gap-[8px]">
+                            <div className="text-[13px] text-[#1d1d1f]">{part1}</div>
+                            <div className="text-[13px] text-[#1d1d1f] border-t border-blue-200 pt-[8px]">{part2}</div>
+                          </div>
+                        )
+                      }
+                      return <p className="text-[13px] text-[#1d1d1f]">{text}</p>
+                    })()}
+                  </div>
                 </div>
-              </div>
-           )
-          })}
+              )
+            })}
           </div>
         </div>
+
+        {/* F4 — Company AI Readiness Score */}
+        {analysisData.readiness_score != null && (
+          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px] mb-[32px]">
+            <div className="flex items-start justify-between mb-[24px]">
+              <div>
+                <h2 className="text-[28px] font-semibold italic tracking-tight">Company AI Readiness</h2>
+                <p className="text-[14px] text-[#86868b] mt-[4px]">How ready is your organisation to adopt AI automation</p>
+              </div>
+              <div className="text-center">
+                <div className="text-[56px] font-semibold tracking-tight text-[#0071e3]">{Math.round(analysisData.readiness_score)}%</div>
+                <div className="text-[13px] text-[#86868b]">Overall Readiness</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-[12px]">
+              {[
+                {label: 'Data Quality', val: analysisData.readiness_data_quality, desc: 'How structured & accessible your data is'},
+                {label: 'Process Documentation', val: analysisData.readiness_process_docs, desc: 'How rule-based & repeatable your workflows are'},
+                {label: 'Tool Maturity', val: analysisData.readiness_tool_maturity, desc: 'How easily tools integrate with your stack'},
+                {label: 'Error Tolerance', val: analysisData.readiness_team_skills, desc: 'How tolerant processes are to AI mistakes'},
+              ].map(({label, val, desc}) => (
+                <div key={label} className="bg-white rounded-[12px] p-[16px] border border-[#d2d2d7]">
+                  <div className={`text-[28px] font-semibold mb-[4px] ${
+                    val == null ? 'text-[#86868b]' :
+                    val >= 70 ? 'text-green-600' :
+                    val >= 50 ? 'text-yellow-600' : 'text-red-500'
+                  }`}>{val != null ? Math.round(val) : '—'}</div>
+                  <div className="text-[13px] font-medium text-[#1d1d1f]">{label}</div>
+                  <div className="text-[11px] text-[#86868b] mt-[2px]">{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex flex-wrap gap-[16px]">

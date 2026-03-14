@@ -1,5 +1,5 @@
 """
-Enhanced AI service for workflow analysis using Claude API
+AI service for workflow analysis — F1 sub-scores, F2 tool pricing, F3 risk flags, F4 readiness
 """
 import os
 from anthropic import Anthropic
@@ -12,195 +12,194 @@ class AIAnalyzer:
         if not api_key:
             raise ValueError("ANTHROPIC_API_KEY not found in environment")
         self.client = Anthropic(api_key=api_key)
-    
+
     def analyze_task(self, task: Dict) -> Dict:
         """
-        Analyze a single task for automation potential with specific tool recommendations
+        Analyze a single task returning sub-scores, priced recommendations, and risk flag.
         """
-        prompt = f"""You are an expert automation consultant with deep knowledge of AI tools, no-code platforms, and workflow automation solutions.
+        prompt = f"""You are a senior automation consultant. Analyze this specific task with precision.
 
-TASK TO ANALYZE:
+TASK:
 Name: {task['name']}
-Description: {task.get('description', 'Same as task name')}
-Frequency: {task.get('frequency', 'Unknown')} 
-Time per occurrence: {task.get('time_per_task', 'Unknown')} minutes
-Category: {task.get('category', 'Unknown')}
-Current Complexity: {task.get('complexity', 'Unknown')}
+Description: {task.get('description', task['name'])}
+Frequency: {task.get('frequency', 'weekly')}
+Time per occurrence: {task.get('time_per_task', 30)} minutes
+Category: {task.get('category', 'general')}
+Complexity: {task.get('complexity', 'medium')}
 
-YOUR MISSION:
-Provide a practical, actionable automation assessment for THIS SPECIFIC task.
+OUTPUT EXACTLY this format (no extra text, no markdown, no blank lines between fields):
 
-ANALYSIS CRITERIA:
-
-1. AI READINESS SCORE (0-100):
-   - 90-100: Fully automatable with existing tools (e.g., data entry, scheduling, email sorting)
-   - 70-89: Highly automatable with minimal human oversight (e.g., content drafting, report generation)
-   - 50-69: Partially automatable, requires human review (e.g., customer responses, analysis)
-   - 30-49: AI-assisted but human-led (e.g., creative work, strategic decisions)
-   - 0-29: Requires human judgment, empathy, or expertise (e.g., complex negotiations, counseling)
-
-2. TIME SAVED PERCENTAGE (0-100):
-   - Consider: Can this be 100% automated or only partially?
-   - Factor in: Setup time, error checking, edge cases
-
-3. IMPLEMENTATION DIFFICULTY:
-   - easy: No-code tools, drag-and-drop setup (Zapier, Make.com, Buffer, Calendly)
-   - medium: Low-code setup, API connections (Python scripts, Google Apps Script, ChatGPT API)
-   - hard: Custom development required (Machine learning models, complex integrations)
-
-4. SPECIFIC TOOL RECOMMENDATION:
-   Based on the task category, recommend ACTUAL tools:
-   
-   DATA ENTRY & PROCESSING:
-   - Zapier, Make.com (automation)
-   - Google Sheets + Apps Script
-   - UiPath, Automation Anywhere (RPA)
-   
-   COMMUNICATION & SCHEDULING:
-   - Calendly, Cal.com (scheduling)
-   - Superhuman, SaneBox (email management)
-   - Slack workflows, Microsoft Power Automate
-   
-   CONTENT CREATION:
-   - ChatGPT, Claude (writing assistance)
-   - Jasper, Copy.ai (marketing copy)
-   - Canva (visual content)
-   - Descript (video/audio)
-   
-   ANALYSIS & REPORTING:
-   - Tableau, Power BI (dashboards)
-   - Python + pandas (data processing)
-   - Google Data Studio
-   
-   CUSTOMER SERVICE:
-   - Intercom, Zendesk (with AI features)
-   - Chatbots (ManyChat, Drift)
-   - AI phone assistants (Aircall AI)
-   
-   PROJECT MANAGEMENT:
-   - Asana, Monday.com (with automations)
-   - Jira automation rules
-   
-   RESEARCH & MONITORING:
-   - Perplexity, ChatGPT with browsing
-   - Google Alerts
-   - Brand monitoring tools
-
-RESPOND IN THIS EXACT FORMAT (no extra text, no markdown):
-SCORE: [number 0-100]
-TIME_SAVED: [number 0-100]
+SCORE_REPEATABILITY: [0-100] (how rule-based and repetitive — 100=pure routine, 0=always unique)
+SCORE_DATA: [0-100] (is the data structured, digital, and accessible — 100=clean API/DB, 0=paper/verbal)
+SCORE_ERROR: [0-100] (how tolerant of AI mistakes — 100=errors are harmless, 0=errors cause serious harm)
+SCORE_INTEGRATION: [0-100] (how easy to connect tools — 100=native integrations exist, 0=custom dev needed)
+COMPOSITE_SCORE: [weighted average: repeatability*0.3 + data*0.3 + error*0.2 + integration*0.2]
+TIME_SAVED: [0-100]
 DIFFICULTY: [easy/medium/hard]
-RECOMMENDATION: Option 1 — [Tool/Platform name]: [One sentence on how it automates this task and key benefit]. Option 2 — [Alternative tool or manual approach]: [One sentence on how this second approach works and when to prefer it].
+RISK_LEVEL: [safe/caution/warning]
+RISK_FLAG: [One sentence. safe="✅ Safe to automate fully — no sensitive data or compliance concerns." caution="⚠️ Review outputs before sending — [specific reason]." warning="🔴 Contains [PII/financial/medical/legal] data — anonymize before passing to external AI."]
+RECOMMENDATION: Option 1 — [Specific tool + plan tier + price]: [What it does for this task. Setup time: X hours. Estimated payback: Y weeks.] Option 2 — [Alternative tool + plan + price]: [What it does for this task. Setup time: X hours. Estimated payback: Y weeks.]
 
-EXAMPLE OUTPUTS:
-For "Schedule social media posts":
-SCORE: 95
-TIME_SAVED: 90
+SCORING RULES:
+- Scores must reflect the SPECIFIC task — vary them meaningfully (don't cluster around 75)
+- COMPOSITE_SCORE = (SCORE_REPEATABILITY*0.3 + SCORE_DATA*0.3 + SCORE_ERROR*0.2 + SCORE_INTEGRATION*0.2)
+- TIME_SAVED reflects realistic automation percentage for this specific task
+
+RISK RULES:
+- warning: task involves PII (names, emails, addresses), financial transactions, medical/health info, legal documents, HR/personnel data
+- caution: task involves customer-facing output, brand decisions, numerical accuracy requirements
+- safe: purely internal, operational, non-sensitive data
+
+RECOMMENDATION RULES:
+- Name the EXACT plan and its REAL current price (e.g. "Zapier Professional ($49/mo)", "Make.com Core ($9/mo)", "Buffer Essentials (free)")
+- Give a realistic setup time in hours
+- Calculate payback in weeks: (setup_hours * hourly_rate) / (weekly_hours_saved * hourly_rate) — assume €50/hr
+- Recommend tools that actually integrate with this task type
+
+EXAMPLES OF GOOD OUTPUT:
+For "Send weekly performance report to manager":
+SCORE_REPEATABILITY: 92
+SCORE_DATA: 85
+SCORE_ERROR: 78
+SCORE_INTEGRATION: 88
+COMPOSITE_SCORE: 87
+TIME_SAVED: 85
 DIFFICULTY: easy
-RECOMMENDATION: Option 1 — Buffer or Hootsuite: Connect all social accounts and batch-schedule a full week of posts in one 15-minute session, eliminating daily manual posting. Option 2 — Zapier + Google Sheets: Build a no-code workflow that reads from a shared content calendar and auto-publishes at set times, ideal for teams already using Sheets.
+RISK_LEVEL: safe
+RISK_FLAG: ✅ Safe to automate fully — internal reporting with no sensitive personal data.
+RECOMMENDATION: Option 1 — Google Looker Studio (free): Connects to Sheets/GA/BigQuery and auto-emails a PDF report on schedule. Setup time: 3 hours. Estimated payback: 1 week. Option 2 — Zapier Professional ($49/mo): Triggers a weekly digest from your data source and emails formatted HTML summary. Setup time: 2 hours. Estimated payback: 2 weeks.
 
-For "Respond to customer support emails":
-SCORE: 65
-TIME_SAVED: 50
+For "Review and approve employee expense claims":
+SCORE_REPEATABILITY: 45
+SCORE_DATA: 60
+SCORE_ERROR: 25
+SCORE_INTEGRATION: 55
+COMPOSITE_SCORE: 47
+TIME_SAVED: 35
 DIFFICULTY: medium
-RECOMMENDATION: Option 1 — Zendesk AI or Intercom: Auto-generate draft replies based on ticket content and knowledge base articles, letting staff review and send in one click. Option 2 — Gmail + ChatGPT API via Make.com: Trigger a Make.com scenario that calls GPT-4 for each new email and inserts a draft reply, keeping your existing inbox without a helpdesk subscription.
-
-For "Create quarterly financial forecasts":
-SCORE: 40
-TIME_SAVED: 30
-DIFFICULTY: hard
-RECOMMENDATION: Option 1 — Python with pandas and Prophet: Script pulls historical data from your ERP or spreadsheets, runs time-series forecasting, and outputs a formatted report — analysts then review and adjust. Option 2 — Microsoft Power BI with built-in forecasting: Non-coders can enable one-click trend forecasting on existing dashboards, with human analysts adding market context in a final review step.
+RISK_LEVEL: warning
+RISK_FLAG: 🔴 Contains financial and employee PII data — use on-premise or privacy-compliant tools only, never pipe raw receipts to public AI.
+RECOMMENDATION: Option 1 — Expensify Business ($9/user/mo): OCR scans receipts, auto-categorizes, flags policy violations, and routes for human approval only on exceptions. Setup time: 4 hours. Estimated payback: 3 weeks. Option 2 — SAP Concur Essentials (from $8/user/mo): Enterprise expense automation with audit trail, approval workflows, and ERP sync — human reviews flagged items only. Setup time: 8 hours. Estimated payback: 5 weeks.
 
 Now analyze the task above:"""
 
         try:
             message = self.client.messages.create(
                 model="claude-sonnet-4-20250514",
-                max_tokens=500,
+                max_tokens=600,
                 messages=[{"role": "user", "content": prompt}]
             )
-            
-            response_text = message.content[0].text
-            
-            # Parse the response
-            lines = response_text.strip().split('\n')
-            result = {}
-            
-            for line in lines:
-                if line.startswith('SCORE:'):
-                    try:
-                        result['ai_readiness_score'] = float(line.split(':')[1].strip())
-                    except:
-                        result['ai_readiness_score'] = 50.0
-                elif line.startswith('TIME_SAVED:'):
-                    try:
-                        result['time_saved_percentage'] = float(line.split(':')[1].strip())
-                    except:
-                        result['time_saved_percentage'] = 25.0
-                elif line.startswith('DIFFICULTY:'):
-                    difficulty = line.split(':')[1].strip().lower()
-                    result['difficulty'] = difficulty if difficulty in ['easy', 'medium', 'hard'] else 'medium'
-                elif line.startswith('RECOMMENDATION:'):
-                    result['recommendation'] = line.split(':', 1)[1].strip()
-            
-            # Ensure all required fields are present
-            if 'ai_readiness_score' not in result:
-                result['ai_readiness_score'] = 50.0
-            if 'time_saved_percentage' not in result:
-                result['time_saved_percentage'] = 25.0
-            if 'difficulty' not in result:
-                result['difficulty'] = 'medium'
-            if 'recommendation' not in result:
-                result['recommendation'] = 'Automation potential identified - review with team to determine best approach.'
-            
-            return result
-            
+            return self._parse_response(message.content[0].text)
         except Exception as e:
             print(f"AI analysis error: {e}")
-            # Return thoughtful defaults on error
-            return {
-                'ai_readiness_score': 50.0,
-                'time_saved_percentage': 25.0,
-                'difficulty': 'medium',
-                'recommendation': 'Unable to analyze at this time. Please review this task manually for automation opportunities.'
-            }
-    
+            return self._defaults()
+
+    def _parse_response(self, text: str) -> Dict:
+        result = {}
+        for line in text.strip().split('\n'):
+            line = line.strip()
+            if ':' not in line:
+                continue
+            key, _, val = line.partition(':')
+            key = key.strip()
+            val = val.strip()
+            if key == 'SCORE_REPEATABILITY':
+                result['score_repeatability'] = self._float(val)
+            elif key == 'SCORE_DATA':
+                result['score_data_availability'] = self._float(val)
+            elif key == 'SCORE_ERROR':
+                result['score_error_tolerance'] = self._float(val)
+            elif key == 'SCORE_INTEGRATION':
+                result['score_integration'] = self._float(val)
+            elif key == 'COMPOSITE_SCORE':
+                result['ai_readiness_score'] = self._float(val)
+            elif key == 'TIME_SAVED':
+                result['time_saved_percentage'] = self._float(val)
+            elif key == 'DIFFICULTY':
+                d = val.lower()
+                result['difficulty'] = d if d in ['easy', 'medium', 'hard'] else 'medium'
+            elif key == 'RISK_LEVEL':
+                r = val.lower()
+                result['risk_level'] = r if r in ['safe', 'caution', 'warning'] else 'safe'
+            elif key == 'RISK_FLAG':
+                result['risk_flag'] = val
+            elif key == 'RECOMMENDATION':
+                result['recommendation'] = val
+
+        # Fallback composite from sub-scores if missing
+        if 'ai_readiness_score' not in result:
+            subs = [
+                result.get('score_repeatability', 50) * 0.3,
+                result.get('score_data_availability', 50) * 0.3,
+                result.get('score_error_tolerance', 50) * 0.2,
+                result.get('score_integration', 50) * 0.2,
+            ]
+            result['ai_readiness_score'] = round(sum(subs), 1)
+
+        # Fill any missing fields
+        for k, v in self._defaults().items():
+            result.setdefault(k, v)
+        return result
+
+    def _float(self, val: str) -> float:
+        try:
+            return float(val.split()[0])
+        except:
+            return 50.0
+
+    def _defaults(self) -> Dict:
+        return {
+            'ai_readiness_score': 50.0,
+            'score_repeatability': None,
+            'score_data_availability': None,
+            'score_error_tolerance': None,
+            'score_integration': None,
+            'time_saved_percentage': 25.0,
+            'difficulty': 'medium',
+            'risk_level': 'safe',
+            'risk_flag': '✅ Safe to automate fully.',
+            'recommendation': 'Review task manually for automation opportunities.',
+        }
+
     def calculate_roi(self, tasks_analysis: List[Dict], hourly_rate: float) -> Dict:
-        """
-        Calculate ROI metrics from analyzed tasks
-        """
         total_score = 0
         total_hours_saved = 0
-        
+
         for analysis in tasks_analysis:
             total_score += analysis['ai_readiness_score']
-            
-            # Calculate hours saved per year
             task = analysis['task']
-            time_per_task = task.get('time_per_task', 0) / 60  # Convert to hours
+            time_per_task = task.get('time_per_task', 0) / 60
             time_saved_pct = analysis.get('time_saved_percentage', 0) / 100
-            
-            # Estimate frequency
             freq = task.get('frequency', 'weekly')
-            if freq == 'daily':
-                yearly_occurrences = 250  # work days
-            elif freq == 'weekly':
-                yearly_occurrences = 52
-            elif freq == 'monthly':
-                yearly_occurrences = 12
-            else:
-                yearly_occurrences = 52  # default to weekly
-            
-            hours_saved = time_per_task * time_saved_pct * yearly_occurrences
+            yearly = 250 if freq == 'daily' else 52 if freq == 'weekly' else 12
+            hours_saved = time_per_task * time_saved_pct * yearly
             total_hours_saved += hours_saved
             analysis['estimated_hours_saved'] = hours_saved
-        
-        avg_score = total_score / len(tasks_analysis) if tasks_analysis else 0
-        annual_savings = total_hours_saved * hourly_rate
-        
+
+        n = len(tasks_analysis)
+        avg_score = total_score / n if n else 0
+
+        # F4 — derive company AI readiness from sub-score averages
+        def avg_sub(key):
+            vals = [a.get(key) for a in tasks_analysis if a.get(key) is not None]
+            return round(sum(vals) / len(vals), 1) if vals else None
+
+        readiness_data = avg_sub('score_data_availability')
+        readiness_process = avg_sub('score_repeatability')
+        readiness_integration = avg_sub('score_integration')
+        readiness_error = avg_sub('score_error_tolerance')
+
+        # Tool maturity = integration ease, team skills = error tolerance proxy
+        subs = [x for x in [readiness_data, readiness_process, readiness_integration, readiness_error] if x]
+        readiness_overall = round(sum(subs) / len(subs), 1) if subs else None
+
         return {
             'automation_score': round(avg_score, 2),
             'hours_saved': round(total_hours_saved, 2),
-            'annual_savings': round(annual_savings, 2)
+            'annual_savings': round(total_hours_saved * hourly_rate, 2),
+            'readiness_score': readiness_overall,
+            'readiness_data_quality': readiness_data,
+            'readiness_process_docs': readiness_process,
+            'readiness_tool_maturity': readiness_integration,
+            'readiness_team_skills': readiness_error,
         }
-
