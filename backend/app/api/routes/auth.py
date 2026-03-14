@@ -9,7 +9,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 import httpx
 
 from app.core.database import get_db
@@ -24,7 +24,7 @@ TOKEN_TTL_MINUTES = 15
 
 
 class MagicLinkRequest(BaseModel):
-    email: EmailStr
+    email: str
 
 
 def _get_or_create_user(email: str, db: Session) -> User:
@@ -70,6 +70,8 @@ async def _send_magic_email(email: str, token: str):
 @router.post("/auth/request")
 async def request_magic_link(body: MagicLinkRequest, db: Session = Depends(get_db)):
     email = body.email.lower().strip()
+    if '@' not in email or '.' not in email.split('@')[-1]:
+        raise HTTPException(status_code=422, detail="Invalid email address.")
     _get_or_create_user(email, db)
 
     # Invalidate old unused tokens for this email
