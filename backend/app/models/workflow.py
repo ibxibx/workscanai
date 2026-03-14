@@ -1,9 +1,30 @@
 # SQLAlchemy database models
 
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Text, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    workflows = relationship("Workflow", back_populates="user")
+
+
+class MagicToken(Base):
+    __tablename__ = "magic_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), nullable=False, index=True)
+    token = Column(String(64), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class Workflow(Base):
@@ -12,12 +33,13 @@ class Workflow(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    source_text = Column(Text, nullable=True)   # raw input: voice transcript / doc text / manual notes
-    input_mode = Column(String(50), nullable=True)  # 'manual' | 'voice' | 'document'
+    source_text = Column(Text, nullable=True)
+    input_mode = Column(String(50), nullable=True)
+    user_email = Column(String(255), ForeignKey("users.email"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relationships
+    user = relationship("User", back_populates="workflows")
     tasks = relationship("Task", back_populates="workflow", cascade="all, delete-orphan")
     analysis = relationship("Analysis", back_populates="workflow", uselist=False)
 

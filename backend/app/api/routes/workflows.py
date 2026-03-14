@@ -1,13 +1,15 @@
 """
 API routes for workflow management and analysis
 """
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy import func as sqlfunc
+from typing import List, Optional
+from datetime import datetime, timedelta, timezone
 
 from app.core.database import get_db
 from app.core.security import check_rate_limit, verify_recaptcha
-from app.models.workflow import Workflow, Task, Analysis, AnalysisResult
+from app.models.workflow import Workflow, Task, Analysis, AnalysisResult, User
 from app.schemas.workflow import (
     WorkflowCreate, WorkflowResponse,
     AnalyzeRequest, AnalysisResponse, AnalysisResultResponse
@@ -15,21 +17,49 @@ from app.schemas.workflow import (
 from app.services.ai_analyzer import AIAnalyzer
 
 router = APIRouter()
+DAILY_ANALYSIS_LIMIT = 5
+
+
+def _get_user_daily_analyses(email: str, db: Session) -> int:
+    """Count analyses in the last 24 hours for this email."""
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    return (
+        db.query(sqlfunc.count(Analysis.id))
+        .join(Workflow, Analysis.workflow_id == Workflow.id)
+        .filter(Workflow.user_email == email)
+        .filter(Analysis.created_at >= since)
+        .scalar() or 0
+    )
 
 
 @router.post("/workflows", response_model=WorkflowResponse, status_code=201)
-def create_workflow(workflow_data: WorkflowCreate, db: Session = Depends(get_db)):
+def create_workflow(
+    workflow_data: WorkflowCreate,
+    db: Session = Depends(get_db),
+    x_user_email: Optional[str] = Header(None),
+):
     """Create a new workflow with tasks"""
     
     print(f"Received workflow data: {workflow_data}")
     print(f"Tasks count: {len(workflow_data.tasks)}")
-    
+    print(f"User email: {x_user_email}")
+
+    # Ensure user exists if email provided
+    if x_user_email:
+        email = x_user_email.lower().strip()
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            user = User(email=email)
+            db.add(user)
+            db.flush()
+
     # Create workflow
     workflow = Workflow(
         name=workflow_data.name,
         description=workflow_data.description,
         source_text=workflow_data.source_text,
         input_mode=workflow_data.input_mode,
+        user_email=x_user_email.lower().strip() if x_user_email else None,
     )
     db.add(workflow)
     db.flush()  # Get workflow.id
@@ -66,20 +96,43 @@ def get_workflow(workflow_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/workflows", response_model=List[WorkflowResponse])
-def list_workflows(db: Session = Depends(get_db)):
-    """List all workflows"""
-    workflows = db.query(Workflow).all()
-    return workflows
+def list_workflows(
+    db: Session = Depends(get_db),
+    x_user_email: Optional[str] = Header(None),
+):
+    """List workflows — filtered by user email if provided"""
+    q = db.query(Workflow)
+    if x_user_email:
+        q = q.filter(Workflow.user_email == x_user_email.lower().strip())
+    return q.order_by(Workflow.created_at.desc()).all()
 
 
 @router.post("/analyze", response_model=AnalysisResponse)
-async def analyze_workflow(request: AnalyzeRequest, http_request: Request, db: Session = Depends(get_db)):
-    """Analyze a workflow using AI (rate-limited + CAPTCHA-protected)"""
+async def analyze_workflow(
+    request: AnalyzeRequest,
+    http_request: Request,
+    db: Session = Depends(get_db),
+    x_user_email: Optional[str] = Header(None),
+):
+    """Analyze a workflow using AI (rate-limited per user email)"""
 
-    # 1. Rate limiting — max N analyses per IP per hour
+    # 1. Require authentication
+    if not x_user_email:
+        raise HTTPException(status_code=401, detail="Sign in required to run analyses.")
+    email = x_user_email.lower().strip()
+
+    # 2. Rate limit — 5 analyses per 24 hours per email
+    count = _get_user_daily_analyses(email, db)
+    if count >= DAILY_ANALYSIS_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Daily limit reached ({DAILY_ANALYSIS_LIMIT} analyses per 24 hours). Try again later.",
+        )
+
+    # 3. IP-based rate limit (existing)
     check_rate_limit(http_request)
 
-    # 2. reCAPTCHA v3 — skip silently if token absent in dev mode
+    # 4. reCAPTCHA — skip silently if token absent
     if request.recaptcha_token:
         await verify_recaptcha(request.recaptcha_token)
     
