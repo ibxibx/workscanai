@@ -101,8 +101,14 @@ class AnalysisResult(Base):
     difficulty = Column(String(50), nullable=True)
     estimated_hours_saved = Column(Float, nullable=True)
     # F3 — risk & compliance
-    risk_level = Column(String(20), nullable=True)   # safe / caution / warning
-    risk_flag = Column(Text, nullable=True)           # human-readable risk note
+    risk_level = Column(String(20), nullable=True)
+    risk_flag = Column(Text, nullable=True)
+    # F9 — agentification roadmap
+    agent_phase = Column(Integer, nullable=True)        # 1/2/3
+    agent_label = Column(String(100), nullable=True)
+    agent_milestone = Column(Text, nullable=True)
+    # F13 — multi-agent orchestration
+    orchestration = Column(Text, nullable=True)
     
     # Relationships
     analysis = relationship("Analysis", back_populates="results")

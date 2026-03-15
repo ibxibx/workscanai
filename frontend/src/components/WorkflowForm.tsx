@@ -72,6 +72,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [inputMode, setInputMode] = useState<'manual' | 'voice' | 'document'>('manual')
   const [isRecording, setIsRecording] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)      // 0-100 simulated %
+  const [uploadStage, setUploadStage] = useState('')            // stage label
   const [hourlyRate, setHourlyRate] = useState(50)
   const [transcript, setTranscript] = useState('')
   const [sourceText, setSourceText] = useState('')
@@ -270,7 +272,27 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     const file = e.target.files?.[0]
     if (!file) return
     setIsUploading(true)
-    onError('')  // clear any previous error
+    setUploadProgress(0)
+    setUploadStage('Reading file…')
+    onError('')
+
+    // Simulated progress ticker — advances up to 90% while real work runs
+    let fakeProgress = 0
+    const STAGES = [
+      { at: 5,  label: 'Reading file…' },
+      { at: 20, label: 'Extracting text…' },
+      { at: 45, label: 'Parsing document structure…' },
+      { at: 65, label: 'Running AI analysis…' },
+      { at: 82, label: 'Populating tasks…' },
+      { at: 91, label: 'Almost done…' },
+    ]
+    const ticker = setInterval(() => {
+      fakeProgress = Math.min(fakeProgress + (Math.random() * 3 + 1), 91)
+      setUploadProgress(Math.round(fakeProgress))
+      const stage = [...STAGES].reverse().find(s => fakeProgress >= s.at)
+      if (stage) setUploadStage(stage.label)
+    }, 350)
+
     try {
       const fd = new FormData()
       fd.append('file', file)
@@ -278,20 +300,26 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       if (!r.ok) throw new Error('upload')
       const d = await r.json()
       setSourceText(d.text || '')
-      // extractTasksFromText handles its own errors silently — don't propagate them here
+      setUploadProgress(93)
+      setUploadStage('Extracting tasks with AI…')
       try {
         await extractTasksFromText(d.text)
       } catch {
-        // extraction failed after upload succeeded — tasks may still be partially set
-        // don't show an error; the user can edit manually
+        // extraction failed — user can fill manually, no error shown
       }
+      setUploadProgress(100)
+      setUploadStage('Done!')
     } catch (err: any) {
       if (err?.message === 'upload') {
         onError('Could not read this file. Please try a PDF, Word doc, or text file.')
       }
-      // if it's not an upload error, swallow silently
     } finally {
-      setIsUploading(false)
+      clearInterval(ticker)
+      setTimeout(() => {
+        setIsUploading(false)
+        setUploadProgress(0)
+        setUploadStage('')
+      }, 900)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -727,28 +755,88 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         {inputMode === 'document' && (
           <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px] text-center">
             <input type="file" ref={fileInputRef} onChange={handleDocumentUpload}
-              accept=".txt,.doc,.docx,.pdf,.png,.jpg,.jpeg" className="hidden" />
-            <div className="mb-[20px]">
-              <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border border-[#d2d2d7] mb-[16px]">
-                <Upload className="h-[28px] w-[28px] text-[#6e6e73]" />
-              </div>
-              <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Upload Document</h3>
-              <p className="text-[15px] text-[#6e6e73] max-w-[420px] mx-auto">
-                Upload a file with your workflow description. Supports PDF, Word, text, and images.
-              </p>
-            </div>
+              accept=".txt,.md,.rst,.rtf,.csv,.tsv,.json,.xml,.html,.yaml,.yml,.log,.pdf,.doc,.docx,.odt,.xls,.xlsx,.xlsm,.xlsb,.ods,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.webp,.bmp,.tiff,.tif,.heic,.heif,.avif,.ico,.svg"
+              className="hidden" />
+
             {!isUploading ? (
-              <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all">
-                <Upload className="h-[18px] w-[18px]" /> Choose File
-              </button>
+              <>
+                <div className="mb-[20px]">
+                  <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border border-[#d2d2d7] mb-[16px]">
+                    <Upload className="h-[28px] w-[28px] text-[#6e6e73]" />
+                  </div>
+                  <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Upload Document</h3>
+                  <p className="text-[15px] text-[#6e6e73] max-w-[440px] mx-auto">
+                    Upload any business document — AI extracts and structures your workflow tasks automatically.
+                  </p>
+                </div>
+                <button type="button" onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all mb-[20px]">
+                  <Upload className="h-[18px] w-[18px]" /> Choose File
+                </button>
+                <div className="text-[12px] text-[#86868b] space-y-[4px]">
+                  <p>📄 Documents · PDF · Word (.doc/.docx) · ODT · RTF · TXT · Markdown</p>
+                  <p>📊 Spreadsheets · Excel (.xlsx/.xls/.xlsm) · ODS · CSV · TSV</p>
+                  <p>📑 Presentations · PowerPoint (.pptx/.ppt)</p>
+                  <p>🖼 Images · PNG · JPG · WebP · GIF · BMP · TIFF · HEIC · SVG · ICO</p>
+                  <p>🗂 Data · JSON · XML · YAML · HTML · LOG</p>
+                </div>
+              </>
             ) : (
-              <div className="flex items-center justify-center gap-[10px] text-[#6e6e73]">
-                <Loader2 className="animate-spin h-[20px] w-[20px]" />
-                <span className="text-[15px]">Processing document…</span>
+              /* ── Rich upload progress ── */
+              <div className="py-[8px]">
+                <div className="inline-flex items-center justify-center w-[64px] h-[64px] rounded-full bg-white border border-[#d2d2d7] mb-[20px]">
+                  {uploadProgress < 100
+                    ? <Loader2 className="h-[28px] w-[28px] text-[#0071e3] animate-spin" />
+                    : <CheckCircle2 className="h-[28px] w-[28px] text-green-500" />
+                  }
+                </div>
+                <h3 className="text-[18px] font-semibold text-[#1d1d1f] mb-[6px]">
+                  {uploadProgress < 100 ? 'Analysing your document…' : 'Tasks extracted!'}
+                </h3>
+                <p className="text-[14px] text-[#6e6e73] mb-[24px]">{uploadStage}</p>
+
+                {/* Progress bar */}
+                <div className="w-full max-w-[360px] mx-auto mb-[12px]">
+                  <div className="flex justify-between text-[12px] text-[#86868b] mb-[6px]">
+                    <span>Progress</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full h-[6px] bg-[#e8e8ed] rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500 ease-out"
+                      style={{
+                        width: `${uploadProgress}%`,
+                        background: uploadProgress === 100
+                          ? '#22c55e'
+                          : 'linear-gradient(90deg, #0071e3, #34aadc)',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Stage pills */}
+                <div className="flex flex-wrap justify-center gap-[6px] max-w-[400px] mx-auto">
+                  {['Reading file', 'Extracting text', 'AI parsing', 'Populating tasks'].map((s, i) => {
+                    const thresholds = [5, 25, 55, 90]
+                    const done = uploadProgress >= thresholds[i]
+                    const active = uploadProgress >= thresholds[i] && (i === 3 ? uploadProgress < 100 : uploadProgress < thresholds[i + 1])
+                    return (
+                      <span key={s} className={`text-[11px] px-[10px] py-[4px] rounded-full border font-medium transition-all ${
+                        uploadProgress >= 100 ? 'bg-green-50 border-green-200 text-green-700'
+                        : done ? 'bg-[#0071e3]/10 border-[#0071e3]/30 text-[#0071e3]'
+                        : 'bg-white border-[#e8e8ed] text-[#86868b]'
+                      }`}>
+                        {done && uploadProgress < 100 ? '✓ ' : ''}{s}
+                      </span>
+                    )
+                  })}
+                </div>
+
+                <p className="text-[12px] text-[#86868b] mt-[20px]">
+                  This can take 15–30 seconds for large documents — hang tight
+                </p>
               </div>
             )}
-            <p className="text-[13px] text-[#86868b] mt-[16px]">.txt · .doc · .docx · .pdf · .png · .jpg</p>
           </div>
         )}
 

@@ -62,6 +62,12 @@ class AnalysisResultResponse(BaseModel):
     # F3 risk
     risk_level: Optional[str] = None
     risk_flag: Optional[str] = None
+    # F9 agentification
+    agent_phase: Optional[int] = None
+    agent_label: Optional[str] = None
+    agent_milestone: Optional[str] = None
+    # F13 orchestration
+    orchestration: Optional[str] = None
     
     class Config:
         from_attributes = True

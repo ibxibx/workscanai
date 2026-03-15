@@ -25,6 +25,12 @@ interface TaskResult {
   estimated_hours_saved: number
   risk_level?: string
   risk_flag?: string
+  // F9 agentification
+  agent_phase?: number
+  agent_label?: string
+  agent_milestone?: string
+  // F13 orchestration
+  orchestration?: string
 }
 
 interface AnalysisData {
@@ -343,7 +349,7 @@ Visit: https://workscanai.com
                   )}
 
                   {/* F2 — Priced recommendations */}
-                  <div className="p-[16px] bg-blue-50 border border-blue-200 rounded-[8px]">
+                  <div className="p-[16px] bg-blue-50 border border-blue-200 rounded-[8px] mb-[12px]">
                     <div className="text-[14px] font-bold text-[#0071e3] mb-[10px]">💡 Recommendation</div>
                     {result.recommendation && (() => {
                       const text = result.recommendation
@@ -362,6 +368,39 @@ Visit: https://workscanai.com
                       return <p className="text-[13px] text-[#1d1d1f]">{text}</p>
                     })()}
                   </div>
+
+                  {/* F9 — Agentification roadmap phase */}
+                  {result.agent_phase != null && (
+                    <div className={`p-[16px] rounded-[8px] border mb-[12px] ${
+                      result.agent_phase === 3 ? 'bg-purple-50 border-purple-200' :
+                      result.agent_phase === 2 ? 'bg-indigo-50 border-indigo-200' :
+                      'bg-slate-50 border-slate-200'
+                    }`}>
+                      <div className="flex items-center gap-[8px] mb-[6px]">
+                        <span className={`text-[11px] font-bold px-[8px] py-[3px] rounded-full ${
+                          result.agent_phase === 3 ? 'bg-purple-100 text-purple-700' :
+                          result.agent_phase === 2 ? 'bg-indigo-100 text-indigo-700' :
+                          'bg-slate-100 text-slate-600'
+                        }`}>
+                          PHASE {result.agent_phase}
+                        </span>
+                        <span className="text-[13px] font-semibold text-[#1d1d1f]">
+                          {result.agent_label || 'Agentification Roadmap'}
+                        </span>
+                      </div>
+                      {result.agent_milestone && (
+                        <p className="text-[13px] text-[#6e6e73]">🎯 {result.agent_milestone}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* F13 — Multi-agent orchestration */}
+                  {result.orchestration && (
+                    <div className="p-[16px] bg-[#1d1d1f] rounded-[8px]">
+                      <div className="text-[12px] font-bold text-[#86868b] tracking-wide uppercase mb-[6px]">⚙ Orchestration Blueprint</div>
+                      <p className="text-[13px] text-[#e8e8ed] leading-relaxed font-mono">{result.orchestration}</p>
+                    </div>
+                  )}
                 </div>
               )
             })}

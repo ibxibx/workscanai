@@ -199,6 +199,10 @@ async def analyze_workflow(
             estimated_hours_saved=task_analysis.get('estimated_hours_saved'),
             risk_level=task_analysis.get('risk_level'),
             risk_flag=task_analysis.get('risk_flag'),
+            agent_phase=task_analysis.get('agent_phase'),
+            agent_label=task_analysis.get('agent_label'),
+            agent_milestone=task_analysis.get('agent_milestone'),
+            orchestration=task_analysis.get('orchestration'),
         )
         db.add(result)
     

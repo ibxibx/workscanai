@@ -11,13 +11,20 @@ from sqlalchemy import text
 # Create database tables (graceful — don't crash if DB unreachable at boot)
 try:
     Base.metadata.create_all(bind=engine)
-    # Safe migration: add otp_code column to magic_tokens if not present
+    # Safe migrations: add new columns if not present
     with engine.connect() as conn:
-        try:
-            conn.execute(text("ALTER TABLE magic_tokens ADD COLUMN otp_code VARCHAR(6)"))
-            conn.commit()
-        except Exception:
-            pass  # Column already exists — that's fine
+        for ddl in [
+            "ALTER TABLE magic_tokens ADD COLUMN otp_code VARCHAR(6)",
+            "ALTER TABLE analysis_results ADD COLUMN agent_phase INTEGER",
+            "ALTER TABLE analysis_results ADD COLUMN agent_label VARCHAR(100)",
+            "ALTER TABLE analysis_results ADD COLUMN agent_milestone TEXT",
+            "ALTER TABLE analysis_results ADD COLUMN orchestration TEXT",
+        ]:
+            try:
+                conn.execute(text(ddl))
+                conn.commit()
+            except Exception:
+                pass  # column already exists
 except Exception as e:
     print(f"Warning: Could not create DB tables at startup: {e}")
 
