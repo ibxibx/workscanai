@@ -270,16 +270,27 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     const file = e.target.files?.[0]
     if (!file) return
     setIsUploading(true)
+    onError('')  // clear any previous error
     try {
       const fd = new FormData()
       fd.append('file', file)
       const r = await fetch(`/api/extract-tasks`, { method: 'POST', body: fd })
-      if (!r.ok) throw new Error()
+      if (!r.ok) throw new Error('upload')
       const d = await r.json()
       setSourceText(d.text || '')
-      await extractTasksFromText(d.text)
-    } catch { onError('Failed to process document. Please try again.') }
-    finally {
+      // extractTasksFromText handles its own errors silently — don't propagate them here
+      try {
+        await extractTasksFromText(d.text)
+      } catch {
+        // extraction failed after upload succeeded — tasks may still be partially set
+        // don't show an error; the user can edit manually
+      }
+    } catch (err: any) {
+      if (err?.message === 'upload') {
+        onError('Could not read this file. Please try a PDF, Word doc, or text file.')
+      }
+      // if it's not an upload error, swallow silently
+    } finally {
       setIsUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
@@ -311,15 +322,15 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     } catch {
       setIsExtractingTasks(false)
       setExtractStatus('idle')
-      onError('Failed to extract tasks. Please try manual input.')
+      // Don't surface extraction errors — tasks may be partially populated
+      // and the user can fill in or edit manually
     }
   }
 
 
   // ── Core analysis runner (separated so it can be called after auth) ───────
   const runAnalysis = async (userEmail: string) => {
-    if (!workflowName.trim()) { onError('Please provide a workflow name'); return }
-    if (!tasks.some(t => t.name.trim())) { onError('Please add at least one task'); return }
+    // Validation already done in handleSubmit before modal opens
     onError('')
     setStepError(null)
 
