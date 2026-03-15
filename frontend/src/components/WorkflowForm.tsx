@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown, CheckCircle2, Circle, LogIn } from 'lucide-react'
+import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown,
+         CheckCircle2, Circle, Mail, ArrowRight, X, RefreshCw } from 'lucide-react'
 import { saveMyWorkflowId } from '@/app/dashboard/page'
 import { useAuth } from '@/lib/auth'
 
@@ -22,12 +23,15 @@ interface WorkflowFormProps {
 
 // ── Progress steps shown during analysis ──────────────────────────────────────
 const STEPS = [
-  { id: 'saving',    label: 'Saving workflow',          detail: 'Storing your tasks…' },
-  { id: 'captcha',   label: 'Verifying request',        detail: 'Running security check…' },
-  { id: 'analyzing', label: 'AI analysis running',      detail: 'Claude is evaluating each task…' },
-  { id: 'roi',       label: 'Calculating ROI',          detail: 'Estimating time & cost savings…' },
-  { id: 'done',      label: 'Analysis complete',        detail: 'Redirecting to results…' },
+  { id: 'saving',    label: 'Saving workflow',     detail: 'Storing your tasks…' },
+  { id: 'captcha',   label: 'Verifying request',   detail: 'Running security check…' },
+  { id: 'analyzing', label: 'AI analysis running', detail: 'Claude is evaluating each task…' },
+  { id: 'roi',       label: 'Calculating ROI',     detail: 'Estimating time & cost savings…' },
+  { id: 'done',      label: 'Analysis complete',   detail: 'Redirecting to results…' },
 ]
+
+// ── Auth modal steps ──────────────────────────────────────────────────────────
+type AuthStep = 'email' | 'code' | 'success'
 
 // ── reCAPTCHA v3 helper ───────────────────────────────────────────────────────
 const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''
@@ -56,7 +60,9 @@ async function getRecaptchaToken(action: string): Promise<string> {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFormProps) {
-  const { email } = useAuth()
+  const { email: sessionEmail, isLoaded: authLoaded } = useAuth()
+
+  // ── Form state ──────────────────────────────────────────────────────────────
   const [workflowName, setWorkflowName] = useState('')
   const [workflowDescription, setWorkflowDescription] = useState('')
   const [tasks, setTasks] = useState<Task[]>([{
@@ -68,24 +74,53 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [isUploading, setIsUploading] = useState(false)
   const [hourlyRate, setHourlyRate] = useState(50)
   const [transcript, setTranscript] = useState('')
-  const [sourceText, setSourceText] = useState('')  // persists raw text across all modes
+  const [sourceText, setSourceText] = useState('')
   const [isExtractingTasks, setIsExtractingTasks] = useState(false)
   const [extractStatus, setExtractStatus] = useState<'idle' | 'extracting' | 'done'>('idle')
 
-  // Progress state
-  const [activeStep, setActiveStep] = useState<number>(-1)   // -1 = not started
+  // ── Analysis progress state ─────────────────────────────────────────────────
+  const [activeStep, setActiveStep] = useState<number>(-1)
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
   const [stepError, setStepError] = useState<string | null>(null)
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null)
   const isAnalyzing = activeStep >= 0 && activeStep < STEPS.length - 1
 
+  // ── Inline auth modal state ─────────────────────────────────────────────────
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authStep, setAuthStep] = useState<AuthStep>('email')
+  const [authEmail, setAuthEmailState] = useState('')
+  const [authCode, setAuthCode] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
+  const [authError, setAuthError] = useState('')
+  // Pending workflow data saved before showing the modal
+  const pendingSubmitRef = useRef(false)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<any>(null)
+  const codeInputRef = useRef<HTMLInputElement>(null)
 
   // Preload reCAPTCHA script on mount
   useEffect(() => { loadRecaptchaScript() }, [])
 
-  // ── Progress helpers ─────────────────────────────────────────────────────
+  // After successful auth inside modal, auto-trigger the analysis
+  useEffect(() => {
+    if (authLoaded && sessionEmail && pendingSubmitRef.current) {
+      pendingSubmitRef.current = false
+      setShowAuthModal(false)
+      runAnalysis(sessionEmail)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionEmail, authLoaded])
+
+  // Focus code input when we reach the code step
+  useEffect(() => {
+    if (authStep === 'code') {
+      setTimeout(() => codeInputRef.current?.focus(), 100)
+    }
+  }, [authStep])
+
+
+  // ── Progress helpers ──────────────────────────────────────────────────────
   const advanceTo = (step: number) => {
     setActiveStep(step)
     setCompletedSteps(prev => {
@@ -116,7 +151,78 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     setTasks(t => { const n = [...t]; n[i] = { ...n[i], [field]: value }; return n })
   }
 
-  // ── Voice / document ───────────────────────────────────────────────────────
+  // ── Auth modal helpers ────────────────────────────────────────────────────
+  const sendAuthCode = async () => {
+    if (!authEmail.trim() || !authEmail.includes('@')) {
+      setAuthError('Please enter a valid email address.')
+      return
+    }
+    setAuthLoading(true)
+    setAuthError('')
+    try {
+      const res = await fetch('/api/auth/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: authEmail.trim() }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.detail || 'Failed to send code')
+      }
+      setAuthStep('code')
+    } catch (e: any) {
+      setAuthError(e.message || 'Something went wrong. Please try again.')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  const verifyAuthCode = async () => {
+    if (authCode.length !== 4) {
+      setAuthError('Please enter the 4-digit code from your email.')
+      return
+    }
+    setAuthLoading(true)
+    setAuthError('')
+    try {
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: authEmail.trim(), code: authCode.trim() }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.detail || 'Invalid code')
+      // Persist session
+      localStorage.setItem('wsai_email', d.email)
+      // Dispatch storage event so AuthProvider picks it up in same tab
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'wsai_email', newValue: d.email
+      }))
+      setAuthStep('success')
+      // Short pause to show success, then trigger analysis
+      setTimeout(() => {
+        pendingSubmitRef.current = false
+        setShowAuthModal(false)
+        runAnalysis(d.email)
+      }, 1000)
+    } catch (e: any) {
+      setAuthError(e.message || 'Incorrect code. Please try again.')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  const openAuthModal = () => {
+    setShowAuthModal(true)
+    setAuthStep('email')
+    setAuthEmailState('')
+    setAuthCode('')
+    setAuthError('')
+    pendingSubmitRef.current = true
+  }
+
+
+  // ── Voice / document ──────────────────────────────────────────────────────
   const startVoiceRecording = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
@@ -194,7 +300,6 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         if (d.workflow_name) setWorkflowName(d.workflow_name)
         if (d.workflow_description) setWorkflowDescription(d.workflow_description)
         setExtractStatus('done')
-        // Show "done" briefly then reset
         setTimeout(() => {
           setIsExtractingTasks(false)
           setExtractStatus('idle')
@@ -210,27 +315,24 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     }
   }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
-  const handleSubmit = async (ev: React.FormEvent) => {
-    ev.preventDefault()
-    if (!email) { window.location.href = '/auth'; return }
+
+  // ── Core analysis runner (separated so it can be called after auth) ───────
+  const runAnalysis = async (userEmail: string) => {
     if (!workflowName.trim()) { onError('Please provide a workflow name'); return }
     if (!tasks.some(t => t.name.trim())) { onError('Please add at least one task'); return }
     onError('')
     setStepError(null)
 
-    // For manual mode, use the workflow description as the source text
     const effectiveSourceText = sourceText.trim() ||
       (inputMode === 'manual' && workflowDescription.trim() ? workflowDescription.trim() : '')
 
     try {
-      // Step 0 — save workflow
       advanceTo(0)
       const wfRes = await fetch(`/api/workflows`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(email ? { 'x-user-email': email } : {}),
+          'x-user-email': userEmail,
         },
         body: JSON.stringify({
           name: workflowName, description: workflowDescription,
@@ -250,17 +352,15 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       const workflow = await wfRes.json()
       saveMyWorkflowId(workflow.id)
 
-      // Step 1 — reCAPTCHA
       advanceTo(1)
       const recaptchaToken = await getRecaptchaToken('analyze_workflow')
 
-      // Step 2 — AI analysis (longest step — show estimated task count)
       advanceTo(2)
       const analysisRes = await fetch(`/api/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(email ? { 'x-user-email': email } : {}),
+          'x-user-email': userEmail,
         },
         body: JSON.stringify({
           workflow_id: workflow.id,
@@ -271,10 +371,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       if (!analysisRes.ok) {
         const err = await analysisRes.json()
         if (analysisRes.status === 429) {
-          // Show the friendly rate-limit card inside the overlay — don't dismiss it
           const msg = err.detail?.message || 'You have reached the daily analysis limit.'
           setRateLimitMessage(msg)
-          return  // keep overlay open showing the rate-limit card
+          return
         }
         if (analysisRes.status === 403) {
           throw new Error(err.detail?.message || 'Security check failed. Please refresh and try again.')
@@ -282,11 +381,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         throw new Error(err.detail || 'Failed to analyze workflow')
       }
 
-      // Step 3 — ROI (already done server-side, just show the step briefly)
       advanceTo(3)
       await new Promise(r => setTimeout(r, 600))
 
-      // Step 4 — done
       advanceTo(4)
       await new Promise(r => setTimeout(r, 700))
 
@@ -298,35 +395,184 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     }
   }
 
+  // ── Form submit ───────────────────────────────────────────────────────────
+  const handleSubmit = async (ev: React.FormEvent) => {
+    ev.preventDefault()
+    if (!workflowName.trim()) { onError('Please provide a workflow name'); return }
+    if (!tasks.some(t => t.name.trim())) { onError('Please add at least one task'); return }
+
+    if (!sessionEmail) {
+      // Not signed in — show inline auth modal, preserve all form state
+      openAuthModal()
+      return
+    }
+    await runAnalysis(sessionEmail)
+  }
+
+
   // ── Styles ─────────────────────────────────────────────────────────────────
   const inputClass = "w-full px-[14px] py-[10px] bg-white border border-[#d2d2d7] rounded-[10px] text-[15px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] transition-all"
   const selectClass = `${inputClass} appearance-none cursor-pointer`
   const labelClass = "block text-[13px] font-medium text-[#6e6e73] mb-[6px] uppercase tracking-wide"
 
-  // ── Progress overlay ──────────────────────────────────────────────────────
   const taskCount = tasks.filter(t => t.name.trim()).length
   const showProgress = activeStep >= 0 || rateLimitMessage !== null
 
+  // ── Auth modal ─────────────────────────────────────────────────────────────
+  const AuthModal = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="bg-white border border-[#d2d2d7] rounded-[24px] shadow-2xl w-full max-w-[420px] overflow-hidden">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-[32px] pt-[28px] pb-[20px] border-b border-[#f0f0f5]">
+          <div>
+            <h2 className="text-[20px] font-semibold text-[#1d1d1f]">
+              {authStep === 'success' ? 'You\'re signed in!' : 'Sign in to run analysis'}
+            </h2>
+            <p className="text-[13px] text-[#6e6e73] mt-[3px]">
+              {authStep === 'email' && 'Your workflow is ready — just sign in first.'}
+              {authStep === 'code'  && `We sent a 6-digit code to ${authEmail}`}
+              {authStep === 'success' && 'Starting your analysis now…'}
+            </p>
+          </div>
+          {authStep !== 'success' && (
+            <button
+              onClick={() => { setShowAuthModal(false); pendingSubmitRef.current = false }}
+              className="ml-[16px] shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-[#f5f5f7] transition-colors text-[#86868b] hover:text-[#1d1d1f]"
+            >
+              <X className="w-[16px] h-[16px]" />
+            </button>
+          )}
+        </div>
+
+        {/* Body */}
+        <div className="px-[32px] py-[28px] space-y-[16px]">
+
+          {/* ── Success state ── */}
+          {authStep === 'success' && (
+            <div className="text-center py-[8px]">
+              <div className="inline-flex items-center justify-center w-[64px] h-[64px] rounded-full bg-green-50 border border-green-200 mb-[16px]">
+                <CheckCircle2 className="w-[32px] h-[32px] text-green-500" />
+              </div>
+              <p className="text-[15px] text-[#6e6e73]">Analysis is starting…</p>
+            </div>
+          )}
+
+          {/* ── Email entry step ── */}
+          {authStep === 'email' && (
+            <>
+              <div>
+                <label className="block text-[13px] font-medium text-[#1d1d1f] mb-[8px]">
+                  Email address
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-[14px] top-1/2 -translate-y-1/2 w-[16px] h-[16px] text-[#86868b]" />
+                  <input
+                    type="email"
+                    value={authEmail}
+                    onChange={e => { setAuthEmailState(e.target.value); setAuthError('') }}
+                    onKeyDown={e => e.key === 'Enter' && sendAuthCode()}
+                    placeholder="you@company.com"
+                    autoFocus
+                    className="w-full pl-[42px] pr-[14px] py-[12px] bg-white border border-[#d2d2d7] rounded-[10px] text-[15px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] transition-all"
+                  />
+                </div>
+              </div>
+              {authError && <p className="text-[13px] text-red-500">{authError}</p>}
+              <button
+                onClick={sendAuthCode}
+                disabled={authLoading || !authEmail.includes('@')}
+                className="w-full flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-50 disabled:cursor-not-allowed text-white py-[13px] rounded-[12px] text-[15px] font-semibold transition-all"
+              >
+                {authLoading
+                  ? <><Loader2 className="animate-spin w-[16px] h-[16px]" /> Sending…</>
+                  : <> Send login code <ArrowRight className="w-[16px] h-[16px]" /></>
+                }
+              </button>
+              <p className="text-[12px] text-[#86868b] text-center">
+                No password needed · Free tier: 5 analyses / 24 h
+              </p>
+            </>
+          )}
+
+
+          {/* ── Code entry step ── */}
+          {authStep === 'code' && (
+            <>
+              <div>
+                <label className="block text-[13px] font-medium text-[#1d1d1f] mb-[8px]">
+                  Enter 4-digit code
+                </label>
+                <input
+                  ref={codeInputRef}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={authCode}
+                  onChange={e => {
+                    const v = e.target.value.replace(/\D/g, '')
+                    setAuthCode(v)
+                    setAuthError('')
+                  }}
+                  onKeyDown={e => e.key === 'Enter' && authCode.length === 4 && verifyAuthCode()}
+                  placeholder="0000"
+                  className="w-full text-center text-[40px] font-bold tracking-[18px] py-[16px] bg-white border border-[#d2d2d7] rounded-[12px] text-[#1d1d1f] placeholder-[#d2d2d7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] transition-all"
+                />
+                <p className="text-[12px] text-[#86868b] mt-[8px] text-center">
+                  Check your inbox — code expires in 15 minutes
+                </p>
+              </div>
+              {authError && <p className="text-[13px] text-red-500 text-center">{authError}</p>}
+              <button
+                onClick={verifyAuthCode}
+                disabled={authLoading || authCode.length !== 4}
+                className="w-full flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-50 disabled:cursor-not-allowed text-white py-[13px] rounded-[12px] text-[15px] font-semibold transition-all"
+              >
+                {authLoading
+                  ? <><Loader2 className="animate-spin w-[16px] h-[16px]" /> Verifying…</>
+                  : <><CheckCircle2 className="w-[16px] h-[16px]" /> Verify &amp; Analyze</>
+                }
+              </button>
+              <div className="flex items-center justify-between text-[13px]">
+                <button
+                  onClick={() => { setAuthStep('email'); setAuthCode(''); setAuthError('') }}
+                  className="text-[#6e6e73] hover:text-[#1d1d1f] flex items-center gap-[4px] transition-colors"
+                >
+                  ← Change email
+                </button>
+                <button
+                  onClick={sendAuthCode}
+                  disabled={authLoading}
+                  className="text-[#0071e3] hover:underline flex items-center gap-[4px] disabled:opacity-50"
+                >
+                  <RefreshCw className="w-[12px] h-[12px]" /> Resend code
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+
   return (
     <>
+      {/* ── Inline auth modal ──────────────────────────────────────────────── */}
+      {showAuthModal && <AuthModal />}
+
       {/* ── Analysis progress overlay ─────────────────────────────────────── */}
       {showProgress && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-md">
           <div className="bg-white border border-[#d2d2d7] rounded-[24px] shadow-2xl p-[48px] w-full max-w-[480px] mx-4">
 
-            {/* ── Rate limit card ──────────────────────────────────────────── */}
+            {/* Rate limit card */}
             {rateLimitMessage ? (
               <div className="text-center">
-                {/* Icon */}
                 <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-amber-50 border border-amber-200 mb-[24px]">
                   <span className="text-[32px]">☕</span>
                 </div>
-
-                <h2 className="text-[22px] font-semibold text-[#1d1d1f] mb-[16px]">
-                  Daily limit reached
-                </h2>
-
-                {/* Multi-line message — backend sends \n\n paragraphs */}
+                <h2 className="text-[22px] font-semibold text-[#1d1d1f] mb-[16px]">Daily limit reached</h2>
                 <div className="text-left bg-[#f5f5f7] border border-[#d2d2d7] rounded-[14px] px-[24px] py-[20px] mb-[28px] space-y-[12px]">
                   {rateLimitMessage.split('\n\n').map((para, i) => (
                     <p key={i} className={`text-[15px] leading-relaxed ${i === 0 ? 'font-medium text-[#1d1d1f]' : 'text-[#6e6e73]'}`}>
@@ -334,17 +580,13 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                     </p>
                   ))}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={resetProgress}
-                  className="inline-flex items-center gap-[8px] bg-[#1d1d1f] hover:bg-[#3d3d3f] text-white px-[28px] py-[14px] rounded-full font-semibold text-[15px] transition-all"
-                >
+                <button type="button" onClick={resetProgress}
+                  className="inline-flex items-center gap-[8px] bg-[#1d1d1f] hover:bg-[#3d3d3f] text-white px-[28px] py-[14px] rounded-full font-semibold text-[15px] transition-all">
                   Got it, close
                 </button>
               </div>
             ) : (
-              /* ── Normal progress stepper ─────────────────────────────────── */
+              /* Normal progress stepper */
               <>
                 <div className="text-center mb-[40px]">
                   <div className="text-[24px] font-semibold text-[#1d1d1f] mb-[6px]">
@@ -356,63 +598,40 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                     </p>
                   )}
                 </div>
-
-                {/* Step list */}
                 <div className="space-y-[20px]">
                   {STEPS.map((step, i) => {
                     const isDone = completedSteps.has(i)
                     const isActive = activeStep === i
-
                     return (
                       <div key={step.id} className="flex items-center gap-[16px]">
                         <div className="shrink-0 w-[36px] h-[36px] flex items-center justify-center">
-                          {isDone ? (
-                            <CheckCircle2 className="h-[28px] w-[28px] text-green-500" />
-                          ) : isActive ? (
-                            <Loader2 className="h-[28px] w-[28px] text-[#0071e3] animate-spin" />
-                          ) : (
-                            <Circle className="h-[28px] w-[28px] text-[#d2d2d7]" />
-                          )}
+                          {isDone ? <CheckCircle2 className="h-[28px] w-[28px] text-green-500" />
+                            : isActive ? <Loader2 className="h-[28px] w-[28px] text-[#0071e3] animate-spin" />
+                            : <Circle className="h-[28px] w-[28px] text-[#d2d2d7]" />}
                         </div>
                         <div className="flex-1">
                           <div className={`text-[15px] font-semibold transition-colors ${
-                            isDone ? 'text-green-600' : isActive ? 'text-[#1d1d1f]' : 'text-[#86868b]'
-                          }`}>
+                            isDone ? 'text-green-600' : isActive ? 'text-[#1d1d1f]' : 'text-[#86868b]'}`}>
                             {step.label}
                           </div>
-                          {isActive && (
-                            <div className="text-[13px] text-[#6e6e73] mt-[2px]">{step.detail}</div>
-                          )}
+                          {isActive && <div className="text-[13px] text-[#6e6e73] mt-[2px]">{step.detail}</div>}
                         </div>
-                        {isDone && (
-                          <span className="text-[12px] font-medium text-green-600 bg-green-50 border border-green-200 px-[10px] py-[3px] rounded-full">
-                            Done
-                          </span>
-                        )}
-                        {isActive && activeStep < STEPS.length - 1 && (
-                          <span className="text-[12px] font-medium text-[#0071e3] bg-blue-50 border border-blue-200 px-[10px] py-[3px] rounded-full">
-                            Running
-                          </span>
-                        )}
+                        {isDone && <span className="text-[12px] font-medium text-green-600 bg-green-50 border border-green-200 px-[10px] py-[3px] rounded-full">Done</span>}
+                        {isActive && activeStep < STEPS.length - 1 && <span className="text-[12px] font-medium text-[#0071e3] bg-blue-50 border border-blue-200 px-[10px] py-[3px] rounded-full">Running</span>}
                       </div>
                     )
                   })}
                 </div>
-
-                {/* Progress bar */}
                 <div className="mt-[36px]">
                   <div className="flex justify-between text-[12px] text-[#86868b] mb-[8px]">
                     <span>Progress</span>
                     <span>{Math.round((completedSteps.size / STEPS.length) * 100)}%</span>
                   </div>
                   <div className="w-full h-[4px] bg-[#e8e8ed] rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#0071e3] rounded-full transition-all duration-700 ease-out"
-                      style={{ width: `${(completedSteps.size / STEPS.length) * 100}%` }}
-                    />
+                    <div className="h-full bg-[#0071e3] rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${(completedSteps.size / STEPS.length) * 100}%` }} />
                   </div>
                 </div>
-
                 {SITE_KEY && (
                   <p className="text-[11px] text-[#86868b] text-center mt-[20px]">
                     Protected by reCAPTCHA ·{' '}
@@ -427,7 +646,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         </div>
       )}
 
-      {/* ── Form ─────────────────────────────────────────────────────────── */}
+
+      {/* ── Form ──────────────────────────────────────────────────────────── */}
       <form onSubmit={handleSubmit} className="space-y-[24px]">
 
         {/* Input Mode Tabs */}
@@ -437,18 +657,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
             { mode: 'voice',    icon: Mic,      label: 'Voice Input' },
             { mode: 'document', icon: Upload,   label: 'Upload Document' },
           ] as const).map(({ mode, icon: Icon, label }) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setInputMode(mode)}
+            <button key={mode} type="button" onClick={() => setInputMode(mode)}
               className={`flex-1 flex items-center justify-center gap-[8px] px-[16px] py-[12px] rounded-[12px] text-[15px] font-medium transition-all ${
                 inputMode === mode
                   ? 'bg-white text-[#1d1d1f] shadow-sm border border-[#d2d2d7]'
-                  : 'text-[#6e6e73] hover:text-[#1d1d1f]'
-              }`}
-            >
-              <Icon className="h-[16px] w-[16px]" />
-              {label}
+                  : 'text-[#6e6e73] hover:text-[#1d1d1f]'}`}>
+              <Icon className="h-[16px] w-[16px]" />{label}
             </button>
           ))}
         </div>
@@ -457,11 +671,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         {inputMode === 'voice' && (
           <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px] text-center">
             <div className="mb-[20px]">
-              <button
-                type="button"
-                onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
-                className={`inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border mb-[16px] transition-all hover:scale-105 active:scale-95 ${isRecording ? 'border-red-300 hover:border-red-400' : 'border-[#d2d2d7] hover:border-[#0071e3]'}`}
-              >
+              <button type="button" onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                className={`inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border mb-[16px] transition-all hover:scale-105 active:scale-95 ${isRecording ? 'border-red-300 hover:border-red-400' : 'border-[#d2d2d7] hover:border-[#0071e3]'}`}>
                 <Mic className={`h-[28px] w-[28px] ${isRecording ? 'text-red-500 animate-pulse' : 'text-[#6e6e73]'}`} />
               </button>
               <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Voice Recording</h3>
@@ -482,9 +693,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                   <span className="text-[17px] font-medium text-red-600">Recording… speak now</span>
                 </div>
                 {transcript && (
-                  <div className="bg-white border border-[#d2d2d7] rounded-[12px] p-[16px] text-left text-[14px] text-[#1d1d1f] max-h-[120px] overflow-y-auto">
-                    {transcript}
-                  </div>
+                  <div className="bg-white border border-[#d2d2d7] rounded-[12px] p-[16px] text-left text-[14px] text-[#1d1d1f] max-h-[120px] overflow-y-auto">{transcript}</div>
                 )}
                 <button type="button" onClick={stopVoiceRecording}
                   className="inline-flex items-center gap-[8px] bg-red-500 hover:bg-red-600 text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all">
@@ -492,18 +701,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                 </button>
               </div>
             )}
-            {/* Extracting / done status — shown after recording stops */}
             {!isRecording && isExtractingTasks && (
               <div className={`mt-[20px] inline-flex items-center gap-[10px] px-[20px] py-[12px] rounded-full text-[15px] font-medium transition-all ${
-                extractStatus === 'done'
-                  ? 'bg-green-50 border border-green-200 text-green-700'
-                  : 'bg-blue-50 border border-blue-200 text-[#0071e3]'
-              }`}>
-                {extractStatus === 'done' ? (
-                  <><CheckCircle2 className="h-[18px] w-[18px]" /> Tasks populated — scroll down to review</>
-                ) : (
-                  <><Loader2 className="animate-spin h-[18px] w-[18px]" /> Extracting and populating tasks…</>
-                )}
+                extractStatus === 'done' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-blue-50 border border-blue-200 text-[#0071e3]'}`}>
+                {extractStatus === 'done'
+                  ? <><CheckCircle2 className="h-[18px] w-[18px]" /> Tasks populated — scroll down to review</>
+                  : <><Loader2 className="animate-spin h-[18px] w-[18px]" /> Extracting and populating tasks…</>}
               </div>
             )}
           </div>
@@ -538,6 +741,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           </div>
         )}
 
+
         {/* Workflow Details */}
         <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
           <h2 className="text-[21px] font-semibold text-[#1d1d1f] mb-[28px]">Workflow Details</h2>
@@ -563,7 +767,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           </div>
         </div>
 
-        {/* Tasks — manual mode and after voice populates */}
+        {/* Tasks */}
         {(inputMode === 'manual' || inputMode === 'voice') && (
           <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
             <div className="flex items-center justify-between mb-[28px]">
@@ -589,16 +793,13 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                     <div className="md:col-span-2">
                       <label className={labelClass}>Task Name <span className="text-red-500">*</span></label>
                       <textarea value={task.name} onChange={e => updateTask(idx, 'name', e.target.value)}
-                        placeholder="e.g., Write social media posts"
-                        rows={2}
-                        className={`${inputClass} resize-none leading-snug`}
-                        required />
+                        placeholder="e.g., Write social media posts" rows={2}
+                        className={`${inputClass} resize-none leading-snug`} required />
                     </div>
                     <div className="md:col-span-2">
                       <label className={labelClass}>Description <span className="text-[#86868b] normal-case font-normal">(optional)</span></label>
                       <textarea value={task.description} onChange={e => updateTask(idx, 'description', e.target.value)}
-                        placeholder="Additional context or details…"
-                        rows={3}
+                        placeholder="Additional context or details…" rows={3}
                         className={`${inputClass} resize-none leading-snug`} />
                     </div>
                     <div>
@@ -665,15 +866,13 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
               <><Loader2 className="animate-spin h-[18px] w-[18px]" /> Running Analysis…</>
             ) : isExtractingTasks ? (
               <><Loader2 className="animate-spin h-[18px] w-[18px]" /> Extracting tasks…</>
-            ) : !email ? (
-              <><LogIn className="h-[18px] w-[18px]" /> Sign in to Analyze</>
             ) : (
-              'Analyze Workflow'
+              'Analyze Workflow →'
             )}
           </button>
-          {!email && (
-            <p className="text-[13px] text-[#6e6e73] mt-2">
-              <a href="/auth" className="text-[#0071e3] hover:underline font-medium">Sign in</a> to run analyses. Free tier: 5 per 24 hours.
+          {!sessionEmail && !isAnalyzing && (
+            <p className="text-[13px] text-[#86868b]">
+              You'll be asked to sign in — your input won't be lost.
             </p>
           )}
         </div>
