@@ -6,10 +6,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.api.routes import workflows, extraction, reports, auth
 from mangum import Mangum
+from sqlalchemy import text
 
 # Create database tables (graceful — don't crash if DB unreachable at boot)
 try:
     Base.metadata.create_all(bind=engine)
+    # Safe migration: add otp_code column to magic_tokens if not present
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE magic_tokens ADD COLUMN otp_code VARCHAR(6)"))
+            conn.commit()
+        except Exception:
+            pass  # Column already exists — that's fine
 except Exception as e:
     print(f"Warning: Could not create DB tables at startup: {e}")
 

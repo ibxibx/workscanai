@@ -18,6 +18,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setEmail(localStorage.getItem('wsai_email'))
     setIsLoaded(true)
+
+    // Listen for same-tab storage updates (e.g. after inline auth modal sign-in)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'wsai_email') {
+        setEmail(e.newValue)
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
   function signOut() {
