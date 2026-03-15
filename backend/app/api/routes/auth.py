@@ -1,8 +1,8 @@
 """
-Magic link + OTP authentication routes.
-POST /api/auth/request      - send magic link + OTP code email
-GET  /api/auth/verify       - verify magic link token, return session email
-POST /api/auth/verify-otp   - verify 6-digit OTP code, return session email
+OTP authentication routes.
+POST /api/auth/request      - send 4-digit OTP code by email
+GET  /api/auth/verify       - verify magic link token (fallback), return session email
+POST /api/auth/verify-otp   - verify 4-digit OTP code, return session email
 GET  /api/auth/me           - validate session email header
 """
 import secrets
@@ -44,35 +44,31 @@ def _get_or_create_user(email: str, db: Session) -> User:
     return user
 
 
-async def _send_magic_email(email: str, token: str, otp_code: str = ""):
-    magic_url = f"{APP_URL}/auth/verify?token={token}"
+async def _send_otp_email(email: str, otp_code: str):
     resend_key = os.getenv("RESEND_API_KEY", "")
 
     if not resend_key:
-        print(f"[DEV] Magic link for {email}: {magic_url}")
-        if otp_code:
-            print(f"[DEV] OTP code for {email}: {otp_code}")
+        print(f"[DEV] OTP code for {email}: {otp_code}")
         return
 
-    otp_block = ""
-    if otp_code:
-        otp_block = f"""
-      <div style="margin: 20px 0; padding: 20px; background: #f3f4f6; border-radius: 10px; text-align: center;">
-        <p style="margin: 0 0 8px; color: #6b7280; font-size: 13px;">Or enter this code in the app:</p>
-        <div style="font-size: 48px; font-weight: 700; letter-spacing: 12px; color: #1d1d1f; font-family: monospace;">{otp_code}</div>
-        <p style="margin: 8px 0 0; color: #9ca3af; font-size: 12px;">Expires in {TOKEN_TTL_MINUTES} minutes</p>
-      </div>
-    """
-
     html = f"""
-    <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 40px auto; padding: 32px; border: 1px solid #e5e7eb; border-radius: 12px;">
-      <h2 style="margin: 0 0 8px; font-size: 22px;">Sign in to WorkScanAI</h2>
-      <p style="color: #6b7280; margin: 0 0 24px;">Click the button below to sign in — or use the code. Both expire in {TOKEN_TTL_MINUTES} minutes.</p>
-      <a href="{magic_url}" style="display:inline-block;background:#0071e3;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;">
-        Sign in →
-      </a>
-      {otp_block}
-      <p style="color:#9ca3af;font-size:12px;margin:24px 0 0;">If you didn't request this, ignore this email.</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 420px; margin: 40px auto; padding: 40px 32px; border: 1px solid #e5e7eb; border-radius: 16px; background: #ffffff;">
+      <div style="margin-bottom: 28px;">
+        <div style="display: inline-flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <div style="width: 28px; height: 28px; background: #0071e3; border-radius: 8px; display: inline-block;"></div>
+          <span style="font-size: 16px; font-weight: 600; color: #1d1d1f;">WorkScanAI</span>
+        </div>
+      </div>
+      <h2 style="margin: 0 0 8px; font-size: 22px; font-weight: 600; color: #1d1d1f;">Your sign-in code</h2>
+      <p style="color: #6b7280; margin: 0 0 32px; font-size: 15px; line-height: 1.5;">
+        Enter this code in the app to sign in. It expires in {TOKEN_TTL_MINUTES} minutes.
+      </p>
+      <div style="background: #f5f5f7; border-radius: 14px; padding: 28px 24px; text-align: center; margin-bottom: 28px;">
+        <div style="font-size: 56px; font-weight: 700; letter-spacing: 16px; color: #1d1d1f; font-family: 'SF Mono', 'Fira Code', monospace; line-height: 1;">{otp_code}</div>
+      </div>
+      <p style="color: #9ca3af; font-size: 12px; margin: 0; line-height: 1.6;">
+        If you didn't request this, you can safely ignore this email.
+      </p>
     </div>
     """
 
@@ -80,7 +76,7 @@ async def _send_magic_email(email: str, token: str, otp_code: str = ""):
         resp = await client.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
-            json={"from": FROM_EMAIL, "to": [email], "subject": "Your WorkScanAI sign-in link", "html": html},
+            json={"from": FROM_EMAIL, "to": [email], "subject": f"{otp_code} is your WorkScanAI code", "html": html},
             timeout=10,
         )
         if resp.status_code >= 400:
@@ -108,11 +104,11 @@ async def request_magic_link(body: MagicLinkRequest, db: Session = Depends(get_d
     db.commit()
 
     try:
-        await _send_magic_email(email, token, otp_code)
+        await _send_otp_email(email, otp_code)
     except Exception as e:
         print(f"[auth] Email send failed: {e}")
         # Don't expose send errors to client — token is still valid
-    return {"message": "Magic link sent — check your email."}
+    return {"message": "Code sent — check your email."}
 
 
 @router.get("/auth/verify")
