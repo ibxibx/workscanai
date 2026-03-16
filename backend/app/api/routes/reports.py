@@ -30,6 +30,14 @@ def _build_analysis_data(workflow: Workflow, analysis: Analysis) -> dict:
         'hours_saved': analysis.hours_saved,
         'annual_savings': analysis.annual_savings,
         'hourly_rate': 50,
+        # F4 AI readiness
+        'readiness_score': analysis.readiness_score,
+        'readiness_data_quality': analysis.readiness_data_quality,
+        'readiness_process_docs': analysis.readiness_process_docs,
+        'readiness_tool_maturity': analysis.readiness_tool_maturity,
+        'readiness_team_skills': analysis.readiness_team_skills,
+        # context
+        'analysis_context': workflow.analysis_context or 'individual',
         'results': [],
     }
     for result in analysis.results:
@@ -44,10 +52,30 @@ def _build_analysis_data(workflow: Workflow, analysis: Analysis) -> dict:
                 'complexity': task.complexity,
             },
             'ai_readiness_score': result.ai_readiness_score,
+            # F1 sub-scores
+            'score_repeatability': result.score_repeatability,
+            'score_data_availability': result.score_data_availability,
+            'score_error_tolerance': result.score_error_tolerance,
+            'score_integration': result.score_integration,
             'time_saved_percentage': result.time_saved_percentage,
+            # F2 tool recommendations
             'recommendation': result.recommendation,
             'difficulty': result.difficulty,
             'estimated_hours_saved': result.estimated_hours_saved,
+            # F3 risk flags
+            'risk_level': result.risk_level,
+            'risk_flag': result.risk_flag,
+            # F9 agentification
+            'agent_phase': result.agent_phase,
+            'agent_label': result.agent_label,
+            'agent_milestone': result.agent_milestone,
+            # F13 orchestration
+            'orchestration': result.orchestration,
+            # Context-aware fields
+            'countdown_window': result.countdown_window,
+            'human_edge_score': result.human_edge_score,
+            'pivot_skills': result.pivot_skills,
+            'pivot_roles': result.pivot_roles,
         })
     return data
 

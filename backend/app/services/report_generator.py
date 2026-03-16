@@ -190,6 +190,55 @@ class ReportGenerator:
             ('LINEAFTER',(0,0),(1,-1),0.5,GRAY_200)])))
         story.append(PageBreak())
 
+        # ── F4 AI Readiness (if data present) ────────────────────────────
+        readiness_score    = analysis_data.get('readiness_score')
+        readiness_labels   = [
+            ('Data Quality',     analysis_data.get('readiness_data_quality')),
+            ('Process Docs',     analysis_data.get('readiness_process_docs')),
+            ('Tool Maturity',    analysis_data.get('readiness_tool_maturity')),
+            ('Team Skills',      analysis_data.get('readiness_team_skills')),
+        ]
+        readiness_vals = [(lbl, v) for lbl, v in readiness_labels if v is not None]
+        if readiness_score is not None or readiness_vals:
+            story.append(Paragraph('AI Readiness Assessment', ST['section_title']))
+            story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=8))
+            if readiness_score is not None:
+                rs_color, rs_bg = score_color(readiness_score)
+                story.append(Table([[
+                    Paragraph(
+                        f'<font size="32"><b>{readiness_score:.0f}</b></font>'
+                        f'<font size="12" color="#6e6e73"> / 100</font><br/>'
+                        f'<font size="10" color="#6e6e73">Overall AI Readiness</font>',
+                        style('rso', fontName='Helvetica-Bold', alignment=TA_CENTER, leading=38)),
+                    Paragraph(
+                        'How prepared your organisation is for AI automation based on '
+                        'data quality, process documentation, tool maturity and team skills.',
+                        style('rsd', fontSize=9, fontName='Helvetica', textColor=GRAY_600, leading=14)),
+                ]], colWidths=[W*0.3, W*0.7],
+                style=TableStyle([
+                    ('BACKGROUND',(0,0),(-1,-1),rs_bg),
+                    ('TOPPADDING',(0,0),(-1,-1),14),('BOTTOMPADDING',(0,0),(-1,-1),14),
+                    ('LEFTPADDING',(0,0),(-1,-1),14),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+                    ('LINEAFTER',(0,0),(0,-1),1,rs_color),
+                ])))
+                story.append(Spacer(1,6*mm))
+            if readiness_vals:
+                rows = []
+                for lbl, val in readiness_vals:
+                    rc, _ = score_color(val)
+                    rows.append([
+                        Paragraph(lbl, style(f'rdl{lbl}', fontSize=9, fontName='Helvetica-Bold', textColor=GRAY_600)),
+                        Paragraph(f'<b>{val:.0f}</b>', style(f'rdv{lbl}', fontSize=10, fontName='Helvetica-Bold', textColor=rc)),
+                    ])
+                story.append(Table(rows, colWidths=[W*0.5, W*0.5],
+                    style=TableStyle([
+                        ('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),6),
+                        ('LEFTPADDING',(0,0),(-1,-1),14),
+                        ('ROWBACKGROUNDS',(0,0),(-1,-1),[WHITE, GRAY_100]),
+                        ('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200),
+                    ])))
+                story.append(Spacer(1, 10*mm))
+
         # ── Detailed Task Analysis ────────────────────────────────────────
         story.append(Paragraph('Detailed Task Analysis', ST['section_title']))
         story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
@@ -276,6 +325,81 @@ class ReportGenerator:
                     ('LEFTPADDING',(0,0),(-1,-1),10),('VALIGN',(0,0),(-1,-1),'TOP'),
                     ('LINEBEFORE',(0,0),(0,-1),3,BLUE)])))
 
+            # ── F1 Sub-scores ─────────────────────────────────────────────
+            sub_keys = [
+                ('score_repeatability',    'Repeatability'),
+                ('score_data_availability','Data Availability'),
+                ('score_error_tolerance',  'Error Tolerance'),
+                ('score_integration',      'Integration Ease'),
+            ]
+            sub_vals = [(lbl, result.get(k)) for k, lbl in sub_keys if result.get(k) is not None]
+            if sub_vals:
+                sub_cells = []
+                for lbl, val in sub_vals:
+                    bar_w = int((val / 100) * 60)
+                    sub_cells.append([
+                        Paragraph(lbl, style(f'sl{lbl}', fontSize=8, fontName='Helvetica', textColor=GRAY_600)),
+                        Paragraph(
+                            f'<font size="9"><b>{val:.0f}</b></font>',
+                            style(f'sv{lbl}', fontSize=9, fontName='Helvetica-Bold', textColor=GRAY_900, alignment=TA_RIGHT)
+                        ),
+                    ])
+                block.append(Table(sub_cells, colWidths=[W*0.55, W*0.45],
+                    style=TableStyle([
+                        ('TOPPADDING',(0,0),(-1,-1),3),('BOTTOMPADDING',(0,0),(-1,-1),3),
+                        ('LEFTPADDING',(0,0),(-1,-1),10),('RIGHTPADDING',(0,0),(-1,-1),10),
+                        ('BACKGROUND',(0,0),(-1,-1),GRAY_100),
+                        ('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200),
+                    ])))
+
+            # ── F3 Risk flag ───────────────────────────────────────────────
+            risk_flag = result.get('risk_flag')
+            risk_level = result.get('risk_level', 'safe')
+            if risk_flag:
+                risk_colors = {'safe': (GREEN, GREEN_LIGHT), 'caution': (AMBER, AMBER_LIGHT), 'warning': (RED, RED_LIGHT)}
+                rc_fg, rc_bg = risk_colors.get(risk_level, (GREEN, GREEN_LIGHT))
+                block.append(Table([[
+                    Paragraph('<b>Risk</b>', style(f'rk{idx}', fontSize=9, fontName='Helvetica-Bold', textColor=rc_fg, leading=12)),
+                    Paragraph(risk_flag, style(f'rf{idx}', fontSize=9, fontName='Helvetica', textColor=GRAY_900, leading=13)),
+                ]], colWidths=[18*mm, W-18*mm],
+                style=TableStyle([
+                    ('BACKGROUND',(0,0),(-1,-1),rc_bg),
+                    ('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),6),
+                    ('LEFTPADDING',(0,0),(-1,-1),10),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+                    ('LINEBEFORE',(0,0),(0,-1),3,rc_fg),
+                ])))
+
+            # ── F9 Agentification ──────────────────────────────────────────
+            agent_label = result.get('agent_label')
+            agent_milestone = result.get('agent_milestone')
+            orchestration = result.get('orchestration')
+            if agent_label:
+                phase_n = result.get('agent_phase', 1)
+                phase_colors = {1: AMBER, 2: BLUE, 3: GREEN}
+                ph_color = phase_colors.get(phase_n, BLUE)
+                agent_rows = [[
+                    Paragraph('<b>Agentification</b>', style(f'agl{idx}', fontSize=9, fontName='Helvetica-Bold', textColor=ph_color, leading=12)),
+                    Paragraph(agent_label, style(f'agv{idx}', fontSize=9, fontName='Helvetica-Bold', textColor=GRAY_900, leading=13)),
+                ]]
+                if agent_milestone:
+                    agent_rows.append([
+                        Paragraph('Milestone', style(f'aml{idx}', fontSize=8, fontName='Helvetica', textColor=GRAY_600, leading=12)),
+                        Paragraph(agent_milestone, style(f'amv{idx}', fontSize=9, fontName='Helvetica', textColor=GRAY_900, leading=13)),
+                    ])
+                if orchestration:
+                    agent_rows.append([
+                        Paragraph('Pipeline', style(f'aol{idx}', fontSize=8, fontName='Helvetica', textColor=GRAY_600, leading=12)),
+                        Paragraph(orchestration, style(f'aov{idx}', fontSize=9, fontName='Helvetica', textColor=GRAY_900, leading=13)),
+                    ])
+                block.append(Table(agent_rows, colWidths=[28*mm, W-28*mm],
+                    style=TableStyle([
+                        ('BACKGROUND',(0,0),(-1,-1),BLUE_LIGHT),
+                        ('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5),
+                        ('LEFTPADDING',(0,0),(-1,-1),10),('VALIGN',(0,0),(-1,-1),'TOP'),
+                        ('LINEBEFORE',(0,0),(0,-1),3,ph_color),
+                        ('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200),
+                    ])))
+
             block.append(Spacer(1,8*mm))
             story.append(KeepTogether(block))
 
@@ -319,6 +443,94 @@ class ReportGenerator:
                 pb.append(Paragraph('No tasks in this phase.',style(f'np{title}',fontSize=9,textColor=GRAY_600,fontName='Helvetica-Oblique',leftIndent=12,spaceAfter=4)))
             pb.append(Spacer(1,8*mm))
             story.append(KeepTogether(pb))
+
+        # ── Countdown / Career Pivot (individual context) ─────────────────
+        context = analysis_data.get('analysis_context', 'individual')
+        countdown_tasks = [r for r in sorted_results if r.get('countdown_window')]
+        pivot_tasks = [r for r in sorted_results if r.get('pivot_roles') or r.get('pivot_skills')]
+        if context == 'individual' and (countdown_tasks or pivot_tasks):
+            story.append(PageBreak())
+            story.append(Paragraph('Career Future Analysis', ST['section_title']))
+            story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
+
+            # Countdown table
+            if countdown_tasks:
+                story.append(Paragraph('Automation Countdown', style('cct', fontSize=13, fontName='Helvetica-Bold',
+                    textColor=GRAY_900, spaceBefore=6, spaceAfter=6)))
+                cw_map = {'now': ('🔴 Automate Now', RED, RED_LIGHT),
+                          '12-24': ('🟠 12–24 months', AMBER, AMBER_LIGHT),
+                          '24-48': ('🟡 24–48 months', colors.HexColor('#f5c518'), GRAY_100),
+                          '48+': ('🟢 48+ months', GREEN, GREEN_LIGHT)}
+                cw_rows = [[Paragraph('<b>Task</b>', ST['label']),
+                             Paragraph('<b>Timeline</b>', ST['label']),
+                             Paragraph('<b>Human Edge</b>', ST['label'])]]
+                for r in countdown_tasks:
+                    cw = r.get('countdown_window', '24-48')
+                    cw_label, cw_color, _ = cw_map.get(cw, ('Unknown', GRAY_600, GRAY_100))
+                    he = r.get('human_edge_score')
+                    he_str = f'{he:.0f}/100' if he is not None else '—'
+                    cw_rows.append([
+                        Paragraph(r['task']['name'], style(f'cwn{r["task"]["name"][:8]}', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
+                        Paragraph(cw_label, style(f'cwl{cw}', fontSize=9, fontName='Helvetica-Bold', textColor=cw_color)),
+                        Paragraph(he_str, style(f'cwh{r["task"]["name"][:8]}', fontSize=9, fontName='Helvetica', textColor=GRAY_600)),
+                    ])
+                story.append(Table(cw_rows, colWidths=[W*0.45, W*0.35, W*0.20],
+                    style=TableStyle([
+                        ('BACKGROUND',(0,0),(-1,0),GRAY_100),
+                        ('ROWBACKGROUNDS',(0,1),(-1,-1),[WHITE, GRAY_100]),
+                        ('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),6),
+                        ('LEFTPADDING',(0,0),(-1,-1),10),
+                        ('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200),
+                    ])))
+                story.append(Spacer(1, 10*mm))
+
+            # Pivot roles
+            if pivot_tasks:
+                story.append(Paragraph('Career Pivot Recommendations', style('cpr', fontSize=13,
+                    fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=6, spaceAfter=6)))
+                import json as _json
+                for r in pivot_tasks:
+                    task_name = r['task']['name']
+                    pivot_roles_raw = r.get('pivot_roles')
+                    pivot_skills_raw = r.get('pivot_skills')
+                    if not pivot_roles_raw:
+                        continue
+                    try:
+                        roles = _json.loads(pivot_roles_raw) if isinstance(pivot_roles_raw, str) else pivot_roles_raw
+                    except Exception:
+                        continue
+                    story.append(Paragraph(f'<b>{task_name}</b>',
+                        style(f'ptn{task_name[:12]}', fontSize=10, fontName='Helvetica-Bold', textColor=GRAY_900, spaceAfter=4)))
+                    role_rows = [[Paragraph('<b>Role</b>', ST['label']),
+                                  Paragraph('<b>Risk</b>', ST['label']),
+                                  Paragraph('<b>Pivot Distance</b>', ST['label'])]]
+                    for role_item in (roles if isinstance(roles, list) else []):
+                        role_name = role_item.get('role', '—')
+                        risk = role_item.get('risk', '—')
+                        pdist = role_item.get('pivot_distance', '—')
+                        risk_c = GREEN if risk == 'low' else (AMBER if risk == 'medium' else RED)
+                        role_rows.append([
+                            Paragraph(role_name, style(f'prn{role_name[:8]}', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
+                            Paragraph(risk, style(f'prr{risk}', fontSize=9, fontName='Helvetica-Bold', textColor=risk_c)),
+                            Paragraph(pdist, style(f'prd{pdist}', fontSize=9, fontName='Helvetica', textColor=GRAY_600)),
+                        ])
+                    story.append(Table(role_rows, colWidths=[W*0.5, W*0.2, W*0.3],
+                        style=TableStyle([
+                            ('BACKGROUND',(0,0),(-1,0),GRAY_100),
+                            ('ROWBACKGROUNDS',(0,1),(-1,-1),[WHITE, GRAY_100]),
+                            ('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5),
+                            ('LEFTPADDING',(0,0),(-1,-1),10),
+                            ('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200),
+                        ])))
+                    if pivot_skills_raw:
+                        try:
+                            skills = _json.loads(pivot_skills_raw) if isinstance(pivot_skills_raw, str) else pivot_skills_raw
+                            skills_str = '  ·  '.join(skills) if isinstance(skills, list) else str(skills)
+                            story.append(Paragraph(f'Skills to develop: {skills_str}',
+                                style(f'psk{task_name[:8]}', fontSize=8, fontName='Helvetica-Oblique',
+                                      textColor=GRAY_600, spaceAfter=8, leftIndent=10)))
+                        except Exception:
+                            pass
 
         # ── Conclusion ────────────────────────────────────────────────────
         story.append(PageBreak())
