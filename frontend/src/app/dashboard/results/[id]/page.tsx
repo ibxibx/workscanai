@@ -62,23 +62,23 @@ export default function ResultsPage() {
   const [copied, setCopied] = useState(false)
 
   const handleShare = useCallback(async () => {
-    const url = window.location.href
+    const shareUrl = `${window.location.origin}/report/${id}`
     try {
       if (navigator.share) {
         await navigator.share({
           title: analysisData ? `WorkScanAI — ${analysisData.workflow.name}` : 'WorkScanAI Analysis',
           text: 'Check out this automation analysis from WorkScanAI',
-          url,
+          url: shareUrl,
         })
       } else {
-        await navigator.clipboard.writeText(url)
+        await navigator.clipboard.writeText(shareUrl)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       }
     } catch {
       // User cancelled share or clipboard failed — silently ignore
     }
-  }, [analysisData])
+  }, [analysisData, id])
 
   useEffect(() => {
     const controller = new AbortController()
