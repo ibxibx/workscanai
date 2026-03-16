@@ -39,61 +39,37 @@ Frame recommendations as team productivity and startup velocity moves.""",
 Frame recommendations as strategic business decisions with financial impact.""",
         }.get(context, '')
 
-        prompt = f"""You are a Principal at McKinsey Digital specializing in enterprise AI transformation and career strategy.
+        prompt = f"""You are an AI automation analyst. Analyze this task and output EXACTLY this format with no extra text:
 
 {context_instruction}
 
-TASK TO ANALYZE:
-Name: {task['name']}
-Description: {task.get('description', task['name'])}
-Frequency: {task.get('frequency', 'weekly')}
-Time per occurrence: {task.get('time_per_task', 30)} minutes
-Category: {task.get('category', 'general')}
-Complexity: {task.get('complexity', 'medium')}
-Industry: {industry or 'General'}
-Team size: {team_size or 'Not specified'}
-
-OUTPUT EXACTLY this format — no extra text, no markdown, no blank lines between fields:
+TASK: {task['name']} | {task.get('description', '')} | {task.get('frequency','weekly')} | {task.get('time_per_task',30)}min | {task.get('category','general')} | {task.get('complexity','medium')} | Industry: {industry or 'General'}
 
 SCORE_REPEATABILITY: [0-100]
 SCORE_DATA: [0-100]
 SCORE_ERROR: [0-100]
 SCORE_INTEGRATION: [0-100]
-COMPOSITE_SCORE: [SCORE_REPEATABILITY*0.3 + SCORE_DATA*0.3 + SCORE_ERROR*0.2 + SCORE_INTEGRATION*0.2]
+COMPOSITE_SCORE: [weighted avg: R*0.3+D*0.3+E*0.2+I*0.2]
 TIME_SAVED: [0-100]
 DIFFICULTY: [easy/medium/hard]
 RISK_LEVEL: [safe/caution/warning]
-RISK_FLAG: [one sentence with emoji — safe="✅ Safe to automate." caution="⚠️ Review outputs — [reason]." warning="🔴 Contains [PII/financial/medical] — [mitigation]."]
-RECOMMENDATION: Option 1 — [Exact tool + plan + real price]: [What it does for this exact task. Setup: X hrs. Payback: Y weeks.] Option 2 — [Alternative tool + plan + price]: [What it does. Setup: X hrs. Payback: Y weeks.]
+RISK_FLAG: [one sentence — safe="✅ Safe to automate." caution="⚠️ Review: [reason]." warning="🔴 [PII/financial/medical] risk — [mitigation]."]
+RECOMMENDATION: Option 1 — [Tool+price]: [what it does, setup Xh, payback Yw.] Option 2 — [Tool+price]: [what it does, setup Xh, payback Yw.]
 AGENT_PHASE: [1/2/3]
-AGENT_LABEL: [Phase 1: Human-in-Loop AI Draft / Phase 2: Supervised Automation / Phase 3: Full Agent Delegation]
-AGENT_MILESTONE: [One concrete milestone: what gets built, what gets retired, what KPI is hit]
-ORCHESTRATION: [If COMPOSITE_SCORE >= 70: name the orchestration pattern — e.g. "Zapier multi-step Zap: trigger on [event] → Claude drafts [output] → routes to [destination]". If < 70: "Human oversight required — AI assists [specific subtask] only."]
-COUNTDOWN_WINDOW: [now/12-24/24-48/48+] (now=automatable today, 12-24=agents arriving soon, 24-48=as costs drop, 48+=requires human judgment long-term)
-HUMAN_EDGE_SCORE: [0-100] (how much of this task requires uniquely human skills: creativity, empathy, ethics, relationships, physical presence, lived experience — 0=fully replaceable, 100=irreplaceable)
-PIVOT_SKILLS: [JSON array of 3 skills to develop that keep a human relevant as AI takes this task — e.g. ["AI prompt engineering for [domain]", "Strategic [skill]", "Client relationship management"]]
-PIVOT_ROLES: [JSON array of 2 adjacent roles with lower automation risk — e.g. [{{"role": "AI Operations Manager", "risk": "low", "pivot_distance": "easy"}}, {{"role": "Strategy Consultant", "risk": "medium", "pivot_distance": "medium"}}]]
+AGENT_LABEL: [Phase 1: Human-in-Loop / Phase 2: Supervised / Phase 3: Full Delegation]
+AGENT_MILESTONE: [one concrete milestone]
+ORCHESTRATION: [automation pipeline if score>=70, else human-assist description]
+COUNTDOWN_WINDOW: [now/12-24/24-48/48+]
+HUMAN_EDGE_SCORE: [0-100]
+PIVOT_SKILLS: [JSON array of 3 skills]
+PIVOT_ROLES: [{{"role":"X","risk":"low/medium","pivot_distance":"easy/medium/hard"}},{{"role":"Y","risk":"...","pivot_distance":"..."}}]
 
-SCORING RULES:
-- Vary scores meaningfully — no clustering around 75. High complexity = lower repeatability. PII = lower error tolerance.
-- COMPOSITE = SCORE_REPEATABILITY*0.3 + SCORE_DATA*0.3 + SCORE_ERROR*0.2 + SCORE_INTEGRATION*0.2
-- HUMAN_EDGE_SCORE inversely correlates with COMPOSITE_SCORE but not perfectly — creative tasks can be 80% automatable yet still need human direction
-
-COUNTDOWN RULES:
-- now (0-12 months): COMPOSITE >= 75 AND tools already exist (Zapier, Make, n8n, GPT-4o, etc.)
-- 12-24 months: COMPOSITE 55-74 OR requires agent-level coordination just becoming available
-- 24-48 months: COMPOSITE 35-54 OR requires multimodal AI or physical robotics
-- 48+ months: COMPOSITE < 35 OR requires deep human judgment, ethics, physical touch, lived experience
-
-AGENTIFICATION PHASES:
-- Phase 1 (score < 55 OR risk=warning): AI drafts, human reviews every output
-- Phase 2 (score 55-79 OR risk=caution): AI executes, human reviews exceptions only
-- Phase 3 (score >= 80 AND risk=safe): Full agent delegation — AI acts autonomously"""
+Rules: vary scores meaningfully; COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2; warning only for PII/financial/legal/medical; now=score>=75 AND tools exist today."""
 
         try:
             message = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=900,
+                model="claude-haiku-4-5-20251001",
+                max_tokens=500,
                 messages=[{"role": "user", "content": prompt}]
             )
             return self._parse_response(message.content[0].text)
