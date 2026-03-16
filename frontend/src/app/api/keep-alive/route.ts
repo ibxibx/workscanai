@@ -1,22 +1,26 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    // Lightweight ping — just fetch one row from workflows
-    const { error } = await supabase
-      .from('workflows')
-      .select('id')
-      .limit(1);
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json({ ok: false, error: 'Missing Supabase env vars' }, { status: 500 });
+    }
 
-    if (error) {
-      console.error('[keep-alive] Supabase ping failed:', error.message);
-      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    // Lightweight ping via REST — no SDK needed
+    const res = await fetch(`${supabaseUrl}/rest/v1/workflows?select=id&limit=1`, {
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('[keep-alive] Supabase ping failed:', err);
+      return NextResponse.json({ ok: false, error: err }, { status: 500 });
     }
 
     console.log('[keep-alive] Supabase ping OK at', new Date().toISOString());
