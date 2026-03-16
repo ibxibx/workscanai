@@ -9,8 +9,8 @@ export default function SiteHeader() {
   const { email, signOut, isLoaded } = useAuth()
   const pathname = usePathname()
 
-  // Hide header on auth pages
-  if (pathname?.startsWith('/auth')) return null
+  // Hide header on auth pages and landing page (has its own nav)
+  if (pathname?.startsWith('/auth') || pathname === '/') return null
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#e5e5ea]">
