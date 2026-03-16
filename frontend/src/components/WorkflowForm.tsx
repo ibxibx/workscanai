@@ -857,10 +857,74 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           </p>
           <div className="grid grid-cols-3 gap-[10px] mb-[20px]">
             {([
-              { value: 'individual', emoji: '👤', label: 'Solo / Individual', desc: 'Your own tasks or role' },
-              { value: 'team',       emoji: '👥', label: 'Team / Startup',    desc: '2–50 people' },
-              { value: 'company',    emoji: '🏢', label: 'Company / Dept.',   desc: '50+ people or a full department' },
-            ] as const).map(({ value, emoji, label, desc }) => (
+              {
+                value: 'individual',
+                label: 'Solo / Individual',
+                desc: 'Your own tasks or role',
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px] mb-[8px]">
+                    {/* Head */}
+                    <circle cx="12" cy="7" r="3.5" />
+                    {/* Neural connection dots inside head */}
+                    <circle cx="11" cy="6.5" r="0.4" fill="currentColor" stroke="none" />
+                    <circle cx="13" cy="6.5" r="0.4" fill="currentColor" stroke="none" />
+                    <circle cx="12" cy="8" r="0.4" fill="currentColor" stroke="none" />
+                    {/* Body / shoulders */}
+                    <path d="M5.5 21c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6" />
+                    {/* Small circuit line on shoulder */}
+                    <line x1="8.5" y1="16.5" x2="7.5" y2="18" />
+                    <line x1="15.5" y1="16.5" x2="16.5" y2="18" />
+                  </svg>
+                ),
+              },
+              {
+                value: 'team',
+                label: 'Team / Startup',
+                desc: '2–50 people',
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px] mb-[8px]">
+                    {/* Left person */}
+                    <circle cx="8" cy="7" r="2.8" />
+                    <path d="M2.5 20.5c0-3 2.2-5 5.5-5" />
+                    {/* Right person */}
+                    <circle cx="16" cy="7" r="2.8" />
+                    <path d="M21.5 20.5c0-3-2.2-5-5.5-5" />
+                    {/* Center person (slightly larger) */}
+                    <circle cx="12" cy="5.5" r="3" />
+                    <path d="M7 20.5c0-3.2 2.3-5.5 5-5.5s5 2.3 5 5.5" />
+                    {/* Connection node between the three */}
+                    <circle cx="12" cy="12.5" r="0.5" fill="currentColor" stroke="none" />
+                    <line x1="8" y1="9.8" x2="11.5" y2="12.2" strokeWidth="1" />
+                    <line x1="16" y1="9.8" x2="12.5" y2="12.2" strokeWidth="1" />
+                  </svg>
+                ),
+              },
+              {
+                value: 'company',
+                label: 'Company / Dept.',
+                desc: '50+ people or a full department',
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-[28px] h-[28px] mb-[8px]">
+                    {/* Building outline */}
+                    <rect x="3" y="4" width="18" height="17" rx="1.5" />
+                    {/* Roof line */}
+                    <line x1="3" y1="8" x2="21" y2="8" />
+                    {/* Windows row 1 */}
+                    <rect x="6" y="10.5" width="3" height="2.5" rx="0.5" />
+                    <rect x="10.5" y="10.5" width="3" height="2.5" rx="0.5" />
+                    <rect x="15" y="10.5" width="3" height="2.5" rx="0.5" />
+                    {/* Windows row 2 */}
+                    <rect x="6" y="15" width="3" height="2.5" rx="0.5" />
+                    <rect x="15" y="15" width="3" height="2.5" rx="0.5" />
+                    {/* Door */}
+                    <rect x="10" y="15.5" width="4" height="5.5" rx="0.5" />
+                    {/* Antenna / signal on top */}
+                    <line x1="12" y1="4" x2="12" y2="2" />
+                    <circle cx="12" cy="1.5" r="0.5" fill="currentColor" stroke="none" />
+                  </svg>
+                ),
+              },
+            ] as const).map(({ value, label, desc, icon }) => (
               <button
                 key={value}
                 type="button"
@@ -871,7 +935,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                     : 'border-[#d2d2d7] bg-white text-[#1d1d1f] hover:border-[#0071e3]/40'
                 }`}
               >
-                <span className="text-[26px] mb-[6px]">{emoji}</span>
+                {icon}
                 <span className="text-[13px] font-semibold leading-tight">{label}</span>
                 <span className="text-[11px] text-[#86868b] mt-[3px] leading-tight">{desc}</span>
               </button>
