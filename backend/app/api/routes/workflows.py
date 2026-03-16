@@ -59,6 +59,9 @@ def create_workflow(
         description=workflow_data.description,
         source_text=workflow_data.source_text,
         input_mode=workflow_data.input_mode,
+        analysis_context=workflow_data.analysis_context,
+        team_size=workflow_data.team_size,
+        industry=workflow_data.industry,
         user_email=x_user_email.lower().strip() if x_user_email else None,
     )
     db.add(workflow)
@@ -157,7 +160,10 @@ async def analyze_workflow(
             'frequency': task.frequency,
             'time_per_task': task.time_per_task,
             'category': task.category,
-            'complexity': task.complexity
+            'complexity': task.complexity,
+            'analysis_context': workflow.analysis_context or 'individual',
+            'team_size': workflow.team_size,
+            'industry': workflow.industry,
         }
         
         analysis_result = analyzer.analyze_task(task_dict)
@@ -203,6 +209,10 @@ async def analyze_workflow(
             agent_label=task_analysis.get('agent_label'),
             agent_milestone=task_analysis.get('agent_milestone'),
             orchestration=task_analysis.get('orchestration'),
+            countdown_window=task_analysis.get('countdown_window'),
+            human_edge_score=task_analysis.get('human_edge_score'),
+            pivot_skills=task_analysis.get('pivot_skills'),
+            pivot_roles=task_analysis.get('pivot_roles'),
         )
         db.add(result)
     

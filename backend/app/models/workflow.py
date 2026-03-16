@@ -36,6 +36,9 @@ class Workflow(Base):
     description = Column(Text, nullable=True)
     source_text = Column(Text, nullable=True)
     input_mode = Column(String(50), nullable=True)
+    analysis_context = Column(String(50), nullable=True)   # 'individual' | 'team' | 'company'
+    team_size = Column(String(50), nullable=True)
+    industry = Column(String(100), nullable=True)
     user_email = Column(String(255), ForeignKey("users.email"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -109,6 +112,11 @@ class AnalysisResult(Base):
     agent_milestone = Column(Text, nullable=True)
     # F13 — multi-agent orchestration
     orchestration = Column(Text, nullable=True)
+    # New context-aware fields
+    countdown_window = Column(String(20), nullable=True)    # 'now'|'12-24'|'24-48'|'48+'
+    human_edge_score = Column(Float, nullable=True)         # 0-100 irreplaceability
+    pivot_skills = Column(Text, nullable=True)              # JSON skills to develop
+    pivot_roles = Column(Text, nullable=True)               # JSON adjacent roles
     
     # Relationships
     analysis = relationship("Analysis", back_populates="results")

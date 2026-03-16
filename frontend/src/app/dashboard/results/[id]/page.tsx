@@ -3,55 +3,59 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, notFound } from 'next/navigation'
 import { Download, Share2, Map, Check, ShieldCheck, ShieldAlert, ShieldX,
-         TrendingUp, Clock, Target, Zap, Users, BarChart3, AlertTriangle, Briefcase, Globe2, Building2 } from 'lucide-react'
+         Clock, Target, TrendingUp, Users, Building2, User, ArrowRight,
+         Zap, AlertTriangle, BarChart3, Briefcase, Globe2 } from 'lucide-react'
 import Link from 'next/link'
 
-interface WorkflowTask {
-  id: number
-  name: string
-  description: string
-}
+interface WorkflowTask { id: number; name: string; description: string }
 
 interface TaskResult {
-  task_id: number
-  task?: WorkflowTask
+  task_id: number; task?: WorkflowTask
   ai_readiness_score: number
-  score_repeatability?: number
-  score_data_availability?: number
-  score_error_tolerance?: number
-  score_integration?: number
-  time_saved_percentage: number
-  recommendation: string
-  difficulty: string
-  estimated_hours_saved: number
-  risk_level?: string
-  risk_flag?: string
-  // F9 agentification
-  agent_phase?: number
-  agent_label?: string
-  agent_milestone?: string
-  // F13 orchestration
+  score_repeatability?: number; score_data_availability?: number
+  score_error_tolerance?: number; score_integration?: number
+  time_saved_percentage: number; recommendation: string
+  difficulty: string; estimated_hours_saved: number
+  risk_level?: string; risk_flag?: string
+  agent_phase?: number; agent_label?: string; agent_milestone?: string
   orchestration?: string
+  // New context-aware fields
+  countdown_window?: string   // 'now'|'12-24'|'24-48'|'48+'
+  human_edge_score?: number   // 0-100
+  pivot_skills?: string       // JSON
+  pivot_roles?: string        // JSON
 }
 
 interface AnalysisData {
-  id: number
-  workflow_id: number
+  id: number; workflow_id: number
   workflow: {
-    id: number
-    name: string
-    description: string
+    id: number; name: string; description: string
     tasks: WorkflowTask[]
+    analysis_context?: string
+    team_size?: string; industry?: string
   }
-  automation_score: number
-  hours_saved: number
-  annual_savings: number
-  readiness_score?: number
-  readiness_data_quality?: number
-  readiness_process_docs?: number
-  readiness_tool_maturity?: number
+  automation_score: number; hours_saved: number; annual_savings: number
+  readiness_score?: number; readiness_data_quality?: number
+  readiness_process_docs?: number; readiness_tool_maturity?: number
   readiness_team_skills?: number
   results: TaskResult[]
+}
+
+// ── Countdown badge ──────────────────────────────────────────────────────────
+function CountdownBadge({ window: w }: { window?: string }) {
+  const map: Record<string, { label: string; color: string; dot: string }> = {
+    'now':   { label: '⚡ Automatable NOW',    color: 'bg-red-50 border-red-200 text-red-700',    dot: 'bg-red-500' },
+    '12-24': { label: '🟠 12–24 months',       color: 'bg-orange-50 border-orange-200 text-orange-700', dot: 'bg-orange-400' },
+    '24-48': { label: '🟡 24–48 months',       color: 'bg-yellow-50 border-yellow-200 text-yellow-700', dot: 'bg-yellow-400' },
+    '48+':   { label: '🟢 Safe 48+ months',    color: 'bg-green-50 border-green-200 text-green-700',  dot: 'bg-green-500' },
+  }
+  const m = map[w || '24-48'] || map['24-48']
+  return (
+    <span className={`inline-flex items-center gap-[6px] px-[10px] py-[4px] rounded-full border text-[11px] font-bold ${m.color}`}>
+      <span className={`w-[6px] h-[6px] rounded-full ${m.dot}`} />
+      {m.label}
+    </span>
+  )
 }
 
 export default function ResultsPage() {
@@ -66,282 +70,180 @@ export default function ResultsPage() {
     const shareUrl = `${window.location.origin}/report/${id}`
     try {
       if (navigator.share) {
-        await navigator.share({
-          title: analysisData ? `WorkScanAI — ${analysisData.workflow.name}` : 'WorkScanAI Analysis',
-          text: 'Check out this automation analysis from WorkScanAI',
-          url: shareUrl,
-        })
+        await navigator.share({ title: analysisData ? `WorkScanAI — ${analysisData.workflow.name}` : 'WorkScanAI Analysis', text: 'Check out this automation analysis from WorkScanAI', url: shareUrl })
       } else {
         await navigator.clipboard.writeText(shareUrl)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
+        setCopied(true); setTimeout(() => setCopied(false), 2000)
       }
-    } catch {
-      // User cancelled share or clipboard failed — silently ignore
-    }
+    } catch { }
   }, [analysisData, id])
 
   useEffect(() => {
     const controller = new AbortController()
-
     const fetchAnalysis = async () => {
       try {
-        const response = await fetch(
-          `/api/results/${id}`,
-          { signal: controller.signal }
-        )
-
+        const response = await fetch(`/api/results/${id}`, { signal: controller.signal })
         if (response.status === 404) notFound()
         if (!response.ok) throw new Error('Failed to fetch analysis results')
-
         const data = await response.json()
-
-        // Build a task lookup map from the embedded workflow tasks
         const taskMap: Record<number, WorkflowTask> = {}
-        if (data.workflow?.tasks) {
-          for (const t of data.workflow.tasks) {
-            taskMap[t.id] = t
-          }
-        }
-
-        // Enrich each result with its task object
+        if (data.workflow?.tasks) { for (const t of data.workflow.tasks) taskMap[t.id] = t }
         data.results = (data.results || []).map((r: TaskResult) => ({
-          ...r,
-          task: taskMap[r.task_id] || { id: r.task_id, name: `Task ${r.task_id}`, description: '' }
+          ...r, task: taskMap[r.task_id] || { id: r.task_id, name: `Task ${r.task_id}`, description: '' }
         }))
-
         setAnalysisData(data)
       } catch (err: unknown) {
         if (err instanceof Error && err.name === 'AbortError') return
-        console.error('Error fetching analysis:', err)
         setError('Failed to load analysis results. Make sure the backend is running.')
-      } finally {
-        setLoading(false)
-      }
+      } finally { setLoading(false) }
     }
-
     fetchAnalysis()
     return () => controller.abort()
   }, [id])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]">
-        <div className="max-w-[980px] mx-auto px-6 text-center">
-          <div className="text-[24px] text-[#86868b]">Loading analysis...</div>
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]"><div className="max-w-[980px] mx-auto px-6 text-center"><div className="text-[24px] text-[#86868b]">Loading analysis...</div></div></div>
+  if (error || !analysisData) return <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]"><div className="max-w-[980px] mx-auto px-6 text-center"><div className="text-[24px] text-red-600 mb-4">{error || 'No analysis data found'}</div><a href="/" className="text-[#0071e3] hover:underline">Go back to home</a></div></div>
 
-  if (error || !analysisData) {
-    return (
-      <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]">
-        <div className="max-w-[980px] mx-auto px-6 text-center">
-          <div className="text-[24px] text-red-600 mb-4">{error || 'No analysis data found'}</div>
-          <a href="/" className="text-[#0071e3] hover:underline">Go back to home</a>
-        </div>
-      </div>
-    )
-  }
-
+  const context = analysisData.workflow.analysis_context || 'individual'
   const totalTasks = analysisData.results.length
   const automationReady = analysisData.results.filter(r => r.ai_readiness_score >= 70).length
+  const quickWins = analysisData.results.filter(r => r.difficulty === 'easy').length
+  const avgHumanEdge = analysisData.results.reduce((s, r) => s + (r.human_edge_score || 50), 0) / Math.max(totalTasks, 1)
 
-  const downloadAsDocx = async () => {
+  const contextIcon = context === 'company' ? <Building2 className="h-[16px] w-[16px]" /> : context === 'team' ? <Users className="h-[16px] w-[16px]" /> : <User className="h-[16px] w-[16px]" />
+  const contextLabel = context === 'company' ? 'Company Analysis' : context === 'team' ? 'Team Analysis' : 'Personal Analysis'
+  const contextGradient = context === 'company' ? 'from-orange-500 to-red-600' : context === 'team' ? 'from-emerald-500 to-teal-600' : 'from-blue-500 to-purple-600'
+
+  const downloadReport = async (fmt: 'docx' | 'pdf') => {
     try {
-      const response = await fetch(`/api/reports/${id}/docx`)
+      const response = await fetch(`/api/reports/${id}/${fmt}`)
       if (!response.ok) throw new Error('Failed to generate report')
-      
       const blob = await response.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = url
-      a.download = `WorkScanAI-Analysis-${analysisData.workflow.name.replace(/\s+/g, '-')}.docx`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Error downloading DOCX:', error)
-      alert('Failed to generate DOCX report. Please try again.')
-    }
-  }
-
-  const downloadAsPdf = async () => {
-    try {
-      const response = await fetch(`/api/reports/${id}/pdf`)
-      if (!response.ok) throw new Error('Failed to generate report')
-      
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `WorkScanAI-Analysis-${analysisData.workflow.name.replace(/\s+/g, '-')}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Error downloading PDF:', error)
-      alert('Failed to generate PDF report. Please try again.')
-    }
-  }
-
-  const generateReportContent = () => {
-    return `
-WORKSCANAI AUTOMATION ANALYSIS REPORT
-=====================================
-
-Workflow: ${analysisData.workflow.name}
-Analysis Date: ${new Date().toLocaleDateString()}
-Analysis ID: ${id}
-
-EXECUTIVE SUMMARY
------------------
-Automation Score: ${Math.round(analysisData.automation_score)}%
-Total Tasks Analyzed: ${totalTasks}
-Tasks Ready for Automation: ${automationReady}
-Annual Savings Potential: €${Math.round(analysisData.annual_savings).toLocaleString()}
-Time Saved Per Year: ${Math.round(analysisData.hours_saved)} hours
-
-DETAILED TASK ANALYSIS
-----------------------
-
-${analysisData.results.map((result, index) => `
-${index + 1}. ${result.task?.name || `Task ${result.task_id}`}
-   Automation Readiness: ${Math.round(result.ai_readiness_score)}%
-   Time Savings Potential: ${Math.round(result.time_saved_percentage)}%
-   Implementation Difficulty: ${result.difficulty}
-   Recommendation: ${result.recommendation}
-   Estimated Hours Saved: ${Math.round(result.estimated_hours_saved)} hours/year
-`).join('\n')}
-
-RECOMMENDATIONS
----------------
-Quick Wins (Implement First):
-${analysisData.results.filter(r => r.difficulty === 'easy').map(r => `• ${r.task?.name || `Task ${r.task_id}`}`).join('\n')}
-
-Medium-Term Goals:
-${analysisData.results.filter(r => r.difficulty === 'medium').map(r => `• ${r.task?.name || `Task ${r.task_id}`}`).join('\n')}
-
-NEXT STEPS
-----------
-1. Start with the highest-scoring, easiest-to-implement tasks
-2. Set up automation tools recommended above
-3. Test automations with small batches before full rollout
-4. Monitor and iterate based on results
-
----
-Report generated by WorkScanAI
-Visit: https://workscanai.com
-    `.trim()
+      a.href = url; a.download = `WorkScanAI-${analysisData.workflow.name.replace(/\s+/g, '-')}.${fmt}`
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
+    } catch { alert(`Failed to generate ${fmt.toUpperCase()} report.`) }
   }
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]">
+    <div className="min-h-screen bg-[#fafafa] text-[#1d1d1f] pt-[88px] pb-[80px]">
       <div className="max-w-[980px] mx-auto px-6">
-        {/* Header */}
-        <div className="mb-[48px]">
-          <div className="relative inline-block">
-            <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/25 to-transparent blur-[100px]"></div>
-            <h1 className="relative text-[48px] leading-[1.08] font-semibold italic tracking-tight mb-[8px] px-[32px]">
-              {analysisData.workflow.name}
-            </h1>
+
+        {/* ── Header ─────────────────────────────────────────────────── */}
+        <div className="mb-[40px]">
+          <div className="flex items-center gap-[10px] mb-[16px]">
+            <div className={`w-[32px] h-[32px] rounded-full bg-gradient-to-br ${contextGradient} flex items-center justify-center text-white`}>
+              {contextIcon}
+            </div>
+            <span className="text-[13px] font-semibold text-[#86868b] uppercase tracking-widest">{contextLabel}</span>
+            {analysisData.workflow.industry && (
+              <span className="text-[12px] text-[#86868b] bg-[#f5f5f7] border border-[#e8e8ed] px-[10px] py-[3px] rounded-full">
+                {analysisData.workflow.industry}
+              </span>
+            )}
           </div>
-          <p className="text-[14px] text-[#86868b]">Analysis ID: {id}</p>
+          <h1 className="text-[44px] leading-[1.08] font-semibold italic tracking-tight mb-[6px]">
+            {analysisData.workflow.name}
+          </h1>
+          <p className="text-[14px] text-[#86868b]">Analysis ID: {id} · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid md:grid-cols-3 gap-[16px] mb-[48px]">
-          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
-            <div className="text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">
-              Automation Score
+        {/* ── Hero KPI Cards ──────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-[12px] mb-[40px]">
+          {[
+            { label: 'Automation Score', value: `${Math.round(analysisData.automation_score)}%`, color: 'text-[#0071e3]', sub: `${automationReady} of ${totalTasks} tasks ready` },
+            { label: 'Annual Savings', value: `€${Math.round(analysisData.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: `${Math.round(analysisData.hours_saved)} hours/yr` },
+            { label: 'Quick Wins', value: `${quickWins}`, color: 'text-purple-600', sub: 'Automatable today' },
+            { label: 'Human Edge', value: `${Math.round(avgHumanEdge)}%`, color: 'text-amber-600', sub: 'Irreplaceable value' },
+          ].map(card => (
+            <div key={card.label} className="bg-white border border-[#e8e8ed] rounded-[18px] p-[24px] shadow-sm">
+              <div className="text-[11px] font-semibold text-[#86868b] uppercase tracking-widest mb-[10px]">{card.label}</div>
+              <div className={`text-[36px] font-semibold tracking-tight ${card.color} mb-[4px]`}>{card.value}</div>
+              <div className="text-[12px] text-[#86868b]">{card.sub}</div>
             </div>
-            <div className="text-[48px] font-semibold tracking-tight text-[#0071e3] mb-[4px]">
-              {Math.round(analysisData.automation_score)}%
-            </div>
-            <div className="text-[13px] text-[#86868b]">
-              {automationReady} of {totalTasks} tasks ready
-            </div>
-          </div>
-
-          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
-            <div className="text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">
-              Annual Savings
-            </div>
-            <div className="text-[48px] font-semibold tracking-tight text-green-600 mb-[4px]">
-              €{Math.round(analysisData.annual_savings).toLocaleString()}
-            </div>
-            <div className="text-[13px] text-[#86868b]">
-              {Math.round(analysisData.hours_saved)} hours per year
-            </div>
-          </div>
-
-          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
-            <div className="text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">
-              Quick Wins
-            </div>
-            <div className="text-[48px] font-semibold tracking-tight text-purple-600 mb-[4px]">
-              {analysisData.results.filter(r => r.difficulty === 'easy').length}
-            </div>
-            <div className="text-[13px] text-[#86868b]">
-              Tasks you can automate today
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Task Breakdown */}
-        <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px] mb-[32px]">
-          <h2 className="text-[28px] font-semibold italic tracking-tight mb-[32px]">Task Breakdown</h2>
+        {/* ═══════════════════════════════════════════════════════════════
+            SECTION A — TASK BREAKDOWN (all contexts)
+        ═══════════════════════════════════════════════════════════════ */}
+        <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+          <div className="flex items-center gap-[10px] mb-[8px]">
+            <BarChart3 className="h-[20px] w-[20px] text-[#0071e3]" />
+            <h2 className="text-[24px] font-semibold italic tracking-tight">Task-by-Task Breakdown</h2>
+          </div>
+          <p className="text-[14px] text-[#86868b] mb-[32px]">
+            Each task scored across repeatability, data access, error tolerance, and integration ease.
+          </p>
+
           <div className="space-y-[16px]">
             {analysisData.results.map((result, index) => {
               const taskName = result.task?.name || `Task ${index + 1}`
-              const hasSubScores = result.score_repeatability != null
-              const riskColor = result.risk_level === 'warning' ? 'bg-red-50 border-red-200 text-red-700' :
-                                result.risk_level === 'caution' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
-                                'bg-green-50 border-green-200 text-green-700'
-              const RiskIcon = result.risk_level === 'warning' ? ShieldX :
-                               result.risk_level === 'caution' ? ShieldAlert : ShieldCheck
+              const riskColor = result.risk_level === 'warning' ? 'bg-red-50 border-red-200 text-red-700' : result.risk_level === 'caution' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' : 'bg-green-50 border-green-200 text-green-700'
+              const RiskIcon = result.risk_level === 'warning' ? ShieldX : result.risk_level === 'caution' ? ShieldAlert : ShieldCheck
 
               return (
-                <div key={index} className="border border-[#d2d2d7] rounded-[12px] p-[24px] bg-white">
-                  {/* Header row */}
-                  <div className="flex justify-between items-start mb-[16px]">
-                    <h3 className="text-[19px] font-semibold italic text-[#1d1d1f]">{taskName}</h3>
-                    <span className={`px-[12px] py-[6px] rounded-full text-[13px] font-semibold ${
-                      result.ai_readiness_score >= 80 ? 'bg-green-100 text-green-700' :
-                      result.ai_readiness_score >= 60 ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {Math.round(result.ai_readiness_score)}% Ready
-                    </span>
+                <div key={index} className="border border-[#e8e8ed] rounded-[14px] p-[28px] bg-[#fafafa]">
+
+                  {/* Task header */}
+                  <div className="flex flex-wrap items-start justify-between gap-[12px] mb-[20px]">
+                    <div>
+                      <h3 className="text-[18px] font-semibold italic text-[#1d1d1f] mb-[8px]">{taskName}</h3>
+                      <div className="flex flex-wrap gap-[8px]">
+                        <CountdownBadge window={result.countdown_window} />
+                        <span className={`text-[11px] font-bold px-[10px] py-[4px] rounded-full border ${
+                          result.ai_readiness_score >= 80 ? 'bg-green-100 text-green-700 border-green-200' :
+                          result.ai_readiness_score >= 60 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                          'bg-red-100 text-red-700 border-red-200'}`}>
+                          {Math.round(result.ai_readiness_score)}% AI Ready
+                        </span>
+                        {result.human_edge_score != null && (
+                          <span className="text-[11px] font-bold px-[10px] py-[4px] rounded-full border bg-amber-50 text-amber-700 border-amber-200">
+                            🧠 {Math.round(result.human_edge_score)}% Human Edge
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  {/* F1 — Sub-scores */}
-                  {hasSubScores && (
-                    <div className="grid grid-cols-4 gap-[8px] mb-[16px]">
+                  {/* Sub-scores */}
+                  {result.score_repeatability != null && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-[8px] mb-[16px]">
                       {[
-                        {label: 'Repeatability', val: result.score_repeatability},
-                        {label: 'Data Access', val: result.score_data_availability},
-                        {label: 'Error Tolerance', val: result.score_error_tolerance},
-                        {label: 'Integration', val: result.score_integration},
-                      ].map(({label, val}) => (
-                        <div key={label} className="bg-[#f5f5f7] rounded-[8px] p-[10px] text-center">
-                          <div className="text-[18px] font-semibold text-[#1d1d1f]">{val != null ? Math.round(val) : '—'}</div>
-                          <div className="text-[10px] text-[#86868b] mt-[2px]">{label}</div>
+                        { label: 'Repeatability', val: result.score_repeatability },
+                        { label: 'Data Access', val: result.score_data_availability },
+                        { label: 'Error Tolerance', val: result.score_error_tolerance },
+                        { label: 'Integration', val: result.score_integration },
+                      ].map(({ label, val }) => (
+                        <div key={label} className="bg-white border border-[#e8e8ed] rounded-[10px] p-[12px] text-center">
+                          <div className={`text-[20px] font-bold mb-[2px] ${
+                            val == null ? 'text-[#86868b]' : val >= 70 ? 'text-green-600' : val >= 45 ? 'text-yellow-600' : 'text-red-500'}`}>
+                            {val != null ? Math.round(val) : '—'}
+                          </div>
+                          <div className="text-[10px] text-[#86868b] font-medium uppercase tracking-wide">{label}</div>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  <div className="grid md:grid-cols-3 gap-[16px] text-[14px] mb-[16px]">
-                    <div><span className="text-[#86868b]">Time Saved: </span><span className="font-medium">{Math.round(result.time_saved_percentage)}%</span></div>
-                    <div><span className="text-[#86868b]">Difficulty: </span><span className="font-medium capitalize">{result.difficulty}</span></div>
-                    <div><span className="text-[#86868b]">Hours saved/yr: </span><span className="font-medium">{Math.round(result.estimated_hours_saved)} hrs</span></div>
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-[12px] text-[13px] mb-[16px]">
+                    <div className="bg-white border border-[#e8e8ed] rounded-[8px] px-[12px] py-[8px]">
+                      <span className="text-[#86868b] block text-[10px] uppercase tracking-wide mb-[2px]">Time Saved</span>
+                      <span className="font-semibold">{Math.round(result.time_saved_percentage)}%</span>
+                    </div>
+                    <div className="bg-white border border-[#e8e8ed] rounded-[8px] px-[12px] py-[8px]">
+                      <span className="text-[#86868b] block text-[10px] uppercase tracking-wide mb-[2px]">Difficulty</span>
+                      <span className="font-semibold capitalize">{result.difficulty}</span>
+                    </div>
+                    <div className="bg-white border border-[#e8e8ed] rounded-[8px] px-[12px] py-[8px]">
+                      <span className="text-[#86868b] block text-[10px] uppercase tracking-wide mb-[2px]">Hours/yr</span>
+                      <span className="font-semibold">{Math.round(result.estimated_hours_saved)}h</span>
+                    </div>
                   </div>
 
-                  {/* F3 — Risk badge */}
+                  {/* Risk */}
                   {result.risk_flag && (
                     <div className={`flex items-start gap-[8px] px-[14px] py-[10px] rounded-[8px] border mb-[12px] text-[13px] ${riskColor}`}>
                       <RiskIcon className="w-4 h-4 mt-[1px] shrink-0" />
@@ -349,20 +251,17 @@ Visit: https://workscanai.com
                     </div>
                   )}
 
-                  {/* F2 — Priced recommendations */}
-                  <div className="p-[16px] bg-blue-50 border border-blue-200 rounded-[8px] mb-[12px]">
-                    <div className="text-[14px] font-bold text-[#0071e3] mb-[10px]">💡 Recommendation</div>
-                    {result.recommendation && (() => {
+                  {/* Recommendation */}
+                  <div className="p-[16px] bg-blue-50 border border-blue-100 rounded-[10px] mb-[12px]">
+                    <div className="text-[12px] font-bold text-[#0071e3] uppercase tracking-wide mb-[8px]">💡 Recommendation</div>
+                    {(() => {
                       const text = result.recommendation
-                      const opt1Match = text.match(/(Option\s+1\s*[—–-])/)
-                      const opt2Match = text.match(/(Option\s+2\s*[—–-])/)
-                      if (opt1Match && opt2Match && opt2Match.index) {
-                        const part1 = text.slice(opt1Match.index!, opt2Match.index).trim()
-                        const part2 = text.slice(opt2Match.index).trim()
+                      const opt2 = text.match(/(Option\s+2\s*[—–-])/i)
+                      if (opt2?.index) {
                         return (
-                          <div className="flex flex-col gap-[8px]">
-                            <div className="text-[13px] text-[#1d1d1f]">{part1}</div>
-                            <div className="text-[13px] text-[#1d1d1f] border-t border-blue-200 pt-[8px]">{part2}</div>
+                          <div className="space-y-[8px]">
+                            <p className="text-[13px] text-[#1d1d1f]">{text.slice(0, opt2.index).trim()}</p>
+                            <p className="text-[13px] text-[#1d1d1f] border-t border-blue-100 pt-[8px]">{text.slice(opt2.index).trim()}</p>
                           </div>
                         )
                       }
@@ -370,36 +269,24 @@ Visit: https://workscanai.com
                     })()}
                   </div>
 
-                  {/* F9 — Agentification roadmap phase */}
+                  {/* Agent phase */}
                   {result.agent_phase != null && (
-                    <div className={`p-[16px] rounded-[8px] border mb-[12px] ${
-                      result.agent_phase === 3 ? 'bg-purple-50 border-purple-200' :
-                      result.agent_phase === 2 ? 'bg-indigo-50 border-indigo-200' :
-                      'bg-slate-50 border-slate-200'
-                    }`}>
-                      <div className="flex items-center gap-[8px] mb-[6px]">
-                        <span className={`text-[11px] font-bold px-[8px] py-[3px] rounded-full ${
-                          result.agent_phase === 3 ? 'bg-purple-100 text-purple-700' :
-                          result.agent_phase === 2 ? 'bg-indigo-100 text-indigo-700' :
-                          'bg-slate-100 text-slate-600'
-                        }`}>
+                    <div className={`p-[14px] rounded-[10px] border mb-[12px] ${result.agent_phase === 3 ? 'bg-purple-50 border-purple-100' : result.agent_phase === 2 ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-100'}`}>
+                      <div className="flex items-center gap-[8px] mb-[4px]">
+                        <span className={`text-[10px] font-bold px-[8px] py-[3px] rounded-full ${result.agent_phase === 3 ? 'bg-purple-100 text-purple-700' : result.agent_phase === 2 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
                           PHASE {result.agent_phase}
                         </span>
-                        <span className="text-[13px] font-semibold text-[#1d1d1f]">
-                          {result.agent_label || 'Agentification Roadmap'}
-                        </span>
+                        <span className="text-[13px] font-semibold text-[#1d1d1f]">{result.agent_label}</span>
                       </div>
-                      {result.agent_milestone && (
-                        <p className="text-[13px] text-[#6e6e73]">🎯 {result.agent_milestone}</p>
-                      )}
+                      {result.agent_milestone && <p className="text-[12px] text-[#6e6e73]">🎯 {result.agent_milestone}</p>}
                     </div>
                   )}
 
-                  {/* F13 — Multi-agent orchestration */}
+                  {/* Orchestration */}
                   {result.orchestration && (
-                    <div className="p-[16px] bg-[#1d1d1f] rounded-[8px]">
-                      <div className="text-[12px] font-bold text-[#86868b] tracking-wide uppercase mb-[6px]">⚙ Orchestration Blueprint</div>
-                      <p className="text-[13px] text-[#e8e8ed] leading-relaxed font-mono">{result.orchestration}</p>
+                    <div className="p-[14px] bg-[#1d1d1f] rounded-[10px]">
+                      <div className="text-[10px] font-bold text-[#86868b] tracking-widest uppercase mb-[6px]">⚙ Orchestration Blueprint</div>
+                      <p className="text-[12px] text-[#e8e8ed] font-mono leading-relaxed">{result.orchestration}</p>
                     </div>
                   )}
                 </div>
@@ -408,370 +295,497 @@ Visit: https://workscanai.com
           </div>
         </div>
 
-        {/* F4 — Company AI Readiness Score */}
-        {analysisData.readiness_score != null && (
-          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px] mb-[32px]">
-            <div className="flex items-start justify-between mb-[24px]">
-              <div>
-                <h2 className="text-[28px] font-semibold italic tracking-tight">Company AI Readiness</h2>
-                <p className="text-[14px] text-[#86868b] mt-[4px]">How ready is your organisation to adopt AI automation</p>
-              </div>
-              <div className="text-center">
-                <div className="text-[56px] font-semibold tracking-tight text-[#0071e3]">{Math.round(analysisData.readiness_score)}%</div>
-                <div className="text-[13px] text-[#86868b]">Overall Readiness</div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-[12px]">
-              {[
-                {label: 'Data Quality', val: analysisData.readiness_data_quality, desc: 'How structured & accessible your data is'},
-                {label: 'Process Documentation', val: analysisData.readiness_process_docs, desc: 'How rule-based & repeatable your workflows are'},
-                {label: 'Tool Maturity', val: analysisData.readiness_tool_maturity, desc: 'How easily tools integrate with your stack'},
-                {label: 'Error Tolerance', val: analysisData.readiness_team_skills, desc: 'How tolerant processes are to AI mistakes'},
-              ].map(({label, val, desc}) => (
-                <div key={label} className="bg-white rounded-[12px] p-[16px] border border-[#d2d2d7]">
-                  <div className={`text-[28px] font-semibold mb-[4px] ${
-                    val == null ? 'text-[#86868b]' :
-                    val >= 70 ? 'text-green-600' :
-                    val >= 50 ? 'text-yellow-600' : 'text-red-500'
-                  }`}>{val != null ? Math.round(val) : '—'}</div>
-                  <div className="text-[13px] font-medium text-[#1d1d1f]">{label}</div>
-                  <div className="text-[11px] text-[#86868b] mt-[2px]">{desc}</div>
+        {/* ═══════════════════════════════════════════════════════════════
+            SECTION B — INDIVIDUAL: Countdown Clock + Job Survival + Career Pivot
+        ═══════════════════════════════════════════════════════════════ */}
+        {context === 'individual' && (
+          <>
+            {/* B1 — Automation Countdown Clock */}
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+              <div className="flex items-center gap-[10px] mb-[8px]">
+                <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
+                  <Clock className="h-[18px] w-[18px] text-white" />
                 </div>
-              ))}
+                <div>
+                  <h2 className="text-[22px] font-semibold italic tracking-tight">Your Automation Countdown</h2>
+                  <p className="text-[12px] text-[#86868b]">Based on Mostaque's 900-day window — when AI replaces each function</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-[2px] mt-[28px] rounded-[14px] overflow-hidden border border-[#e8e8ed]">
+                {/* Header */}
+                <div className="grid grid-cols-[1fr_140px_100px] gap-0 bg-[#f5f5f7] px-[20px] py-[12px]">
+                  <div className="text-[11px] font-bold text-[#86868b] uppercase tracking-widest">Task</div>
+                  <div className="text-[11px] font-bold text-[#86868b] uppercase tracking-widest">Risk Window</div>
+                  <div className="text-[11px] font-bold text-[#86868b] uppercase tracking-widest text-right">AI Score</div>
+                </div>
+                {analysisData.results.map((r, i) => {
+                  const windowMap: Record<string, { label: string; bar: string; bg: string }> = {
+                    'now':   { label: '⚡ Act now',     bar: 'bg-red-500',    bg: 'bg-red-50' },
+                    '12-24': { label: '🟠 12–24 mo',    bar: 'bg-orange-400', bg: '' },
+                    '24-48': { label: '🟡 24–48 mo',    bar: 'bg-yellow-400', bg: '' },
+                    '48+':   { label: '🟢 48+ months',  bar: 'bg-green-400',  bg: 'bg-green-50' },
+                  }
+                  const wm = windowMap[r.countdown_window || '24-48']
+                  return (
+                    <div key={i} className={`grid grid-cols-[1fr_140px_100px] gap-0 px-[20px] py-[14px] border-t border-[#e8e8ed] ${wm.bg}`}>
+                      <div className="text-[14px] font-medium text-[#1d1d1f]">{r.task?.name || `Task ${i+1}`}</div>
+                      <div>
+                        <span className="text-[12px] font-semibold">{wm.label}</span>
+                        <div className="w-[100px] h-[4px] bg-[#e8e8ed] rounded-full mt-[4px] overflow-hidden">
+                          <div className={`h-full rounded-full ${wm.bar}`} style={{ width: `${r.ai_readiness_score}%` }} />
+                        </div>
+                      </div>
+                      <div className="text-[14px] font-bold text-right text-[#1d1d1f]">{Math.round(r.ai_readiness_score)}%</div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="mt-[20px] p-[16px] bg-[#f5f5f7] border border-[#e8e8ed] rounded-[12px]">
+                <p className="text-[13px] text-[#6e6e73] leading-relaxed">
+                  <span className="font-semibold text-[#1d1d1f]">The 900-Day Window:</span> Emad Mostaque (founder of Stability AI) warns that within 900 days, any job done on a screen can be replaced by AI for under €1,000/year. Your tasks in the red zone are at immediate risk as agentic AI tools arrive in 2025–2026.
+                </p>
+              </div>
             </div>
-          </div>
+
+            {/* B2 — Job Survival Score */}
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+              <div className="flex items-center gap-[10px] mb-[8px]">
+                <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center">
+                  <Target className="h-[18px] w-[18px] text-white" />
+                </div>
+                <div>
+                  <h2 className="text-[22px] font-semibold italic tracking-tight">Your Human Edge</h2>
+                  <p className="text-[12px] text-[#86868b]">What makes you irreplaceable vs what AI can take over</p>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-[20px] mt-[28px]">
+                {/* Gauge comparison */}
+                <div className="bg-[#fafafa] border border-[#e8e8ed] rounded-[14px] p-[24px]">
+                  <div className="space-y-[20px]">
+                    <div>
+                      <div className="flex justify-between mb-[6px]">
+                        <span className="text-[13px] font-semibold text-red-700">AI Replacement Risk</span>
+                        <span className="text-[20px] font-bold text-red-600">{Math.round(analysisData.automation_score)}%</span>
+                      </div>
+                      <div className="h-[10px] bg-[#f0f0f5] rounded-full overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-red-400 to-red-600 transition-all" style={{ width: `${analysisData.automation_score}%` }} />
+                      </div>
+                      <p className="text-[11px] text-[#86868b] mt-[4px]">Tasks AI will handle better within 900 days</p>
+                    </div>
+                    <div>
+                      <div className="flex justify-between mb-[6px]">
+                        <span className="text-[13px] font-semibold text-amber-700">Human Irreplaceability</span>
+                        <span className="text-[20px] font-bold text-amber-600">{Math.round(avgHumanEdge)}%</span>
+                      </div>
+                      <div className="h-[10px] bg-[#f0f0f5] rounded-full overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all" style={{ width: `${avgHumanEdge}%` }} />
+                      </div>
+                      <p className="text-[11px] text-[#86868b] mt-[4px]">Creativity, empathy, ethics, relationships, judgement</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Per-task human edge */}
+                <div className="space-y-[8px]">
+                  <p className="text-[12px] font-semibold text-[#86868b] uppercase tracking-widest mb-[12px]">Human Edge per Task</p>
+                  {analysisData.results.map((r, i) => (
+                    <div key={i} className="flex items-center gap-[12px]">
+                      <div className="text-[12px] text-[#1d1d1f] flex-1 truncate">{r.task?.name || `Task ${i+1}`}</div>
+                      <div className="w-[80px] h-[6px] bg-[#f0f0f5] rounded-full overflow-hidden shrink-0">
+                        <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-600" style={{ width: `${r.human_edge_score || 50}%` }} />
+                      </div>
+                      <div className="text-[12px] font-bold text-amber-600 w-[32px] text-right shrink-0">{Math.round(r.human_edge_score || 50)}%</div>
+                    </div>
+                  ))}
+                  <div className="pt-[12px] border-t border-[#e8e8ed]">
+                    <p className="text-[12px] text-[#6e6e73]">
+                      <span className="font-semibold text-[#1d1d1f]">Insight: </span>
+                      {avgHumanEdge >= 60 ? 'Your role has strong human-essential components. Focus on amplifying these while letting AI handle the rest.' : 'Your role is highly automatable. Now is the time to pivot to higher human-edge functions.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* B3 — Safe Career Pivot */}
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+              <div className="flex items-center gap-[10px] mb-[8px]">
+                <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <ArrowRight className="h-[18px] w-[18px] text-white" />
+                </div>
+                <div>
+                  <h2 className="text-[22px] font-semibold italic tracking-tight">Your Career Pivot Plan</h2>
+                  <p className="text-[12px] text-[#86868b]">Skills to build and roles to target before AI arrives</p>
+                </div>
+              </div>
+
+              <div className="mt-[28px] grid md:grid-cols-2 gap-[20px]">
+                {/* Skills to build */}
+                <div>
+                  <p className="text-[12px] font-bold text-[#86868b] uppercase tracking-widest mb-[14px]">🔧 Skills to Develop Now</p>
+                  <div className="space-y-[10px]">
+                    {(() => {
+                      const allSkills: string[] = []
+                      analysisData.results.forEach(r => {
+                        if (r.pivot_skills) {
+                          try {
+                            const skills = JSON.parse(r.pivot_skills)
+                            if (Array.isArray(skills)) skills.forEach((s: string) => { if (!allSkills.includes(s) && allSkills.length < 6) allSkills.push(s) })
+                          } catch { }
+                        }
+                      })
+                      if (allSkills.length === 0) allSkills.push('AI prompt engineering', 'Strategic planning', 'Client relationship management', 'Data interpretation', 'Creative direction')
+                      return allSkills.slice(0, 6).map((skill, i) => (
+                        <div key={i} className="flex items-center gap-[10px] bg-blue-50 border border-blue-100 rounded-[10px] px-[14px] py-[10px]">
+                          <div className="w-[22px] h-[22px] rounded-full bg-[#0071e3] text-white text-[11px] font-bold flex items-center justify-center shrink-0">{i + 1}</div>
+                          <span className="text-[13px] font-medium text-[#1d1d1f]">{skill}</span>
+                        </div>
+                      ))
+                    })()}
+                  </div>
+                </div>
+
+                {/* Adjacent roles */}
+                <div>
+                  <p className="text-[12px] font-bold text-[#86868b] uppercase tracking-widest mb-[14px]">🎯 Adjacent Roles (Lower AI Risk)</p>
+                  <div className="space-y-[10px]">
+                    {(() => {
+                      const allRoles: Array<{ role: string; risk: string; pivot_distance: string }> = []
+                      analysisData.results.forEach(r => {
+                        if (r.pivot_roles) {
+                          try {
+                            const roles = JSON.parse(r.pivot_roles)
+                            if (Array.isArray(roles)) roles.forEach((role: any) => {
+                              if (!allRoles.find(x => x.role === role.role) && allRoles.length < 4) allRoles.push(role)
+                            })
+                          } catch { }
+                        }
+                      })
+                      if (allRoles.length === 0) return <p className="text-[13px] text-[#86868b]">Run a full analysis to get personalised role recommendations.</p>
+                      return allRoles.map((role, i) => (
+                        <div key={i} className="bg-[#fafafa] border border-[#e8e8ed] rounded-[10px] px-[14px] py-[12px]">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[14px] font-semibold text-[#1d1d1f]">{role.role}</span>
+                            <div className="flex gap-[6px]">
+                              <span className={`text-[10px] font-bold px-[8px] py-[3px] rounded-full border ${role.risk === 'low' ? 'bg-green-50 border-green-200 text-green-700' : role.risk === 'medium' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                                {role.risk} risk
+                              </span>
+                              <span className="text-[10px] font-bold px-[8px] py-[3px] rounded-full border bg-blue-50 border-blue-200 text-blue-700">
+                                {role.pivot_distance} pivot
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-[24px] p-[16px] bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-[12px]">
+                <p className="text-[13px] text-[#1d1d1f] leading-relaxed">
+                  <span className="font-semibold">90-Day Action Plan: </span>
+                  Identify the top 2 skills from the list above. Spend 1 hour/day practising with AI tools (Replit, Perplexity, Claude). Build one public project or portfolio piece. This is how you move from a replacement target to an AI-empowered operator.
+                </p>
+              </div>
+            </div>
+          </>
         )}
 
-        {/* ── B2B Company Intelligence Panel ─────────────────────────── */}
-        <div className="mb-[32px]">
-          <div className="flex items-center gap-[10px] mb-[20px]">
-            <Building2 className="h-[20px] w-[20px] text-[#0071e3]" />
-            <h2 className="text-[22px] font-semibold italic tracking-tight">Company Automation Intelligence</h2>
-            <span className="text-[11px] font-bold text-[#0071e3] bg-blue-50 border border-blue-200 px-[10px] py-[3px] rounded-full tracking-wide uppercase">For Business</span>
-          </div>
-          <p className="text-[14px] text-[#86868b] mb-[24px]">
-            Ten strategic signals extracted from your workflow — designed for leadership, operations, and strategy teams.
-          </p>
-
-          <div className="grid md:grid-cols-2 gap-[16px]">
-
-            {/* Feature 1 — Automation ROI Timeline */}
-            <div className="bg-white border border-[#d2d2d7] rounded-[18px] p-[28px]">
-              <div className="flex items-center gap-[10px] mb-[14px]">
-                <div className="w-[36px] h-[36px] rounded-[10px] bg-blue-50 border border-blue-100 flex items-center justify-center">
-                  <TrendingUp className="h-[18px] w-[18px] text-[#0071e3]" />
+        {/* ═══════════════════════════════════════════════════════════════
+            SECTION C — TEAM: Velocity Impact + Sprint Plan
+        ═══════════════════════════════════════════════════════════════ */}
+        {context === 'team' && (
+          <>
+            {/* C1 — Team Velocity Impact */}
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+              <div className="flex items-center gap-[10px] mb-[8px]">
+                <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                  <TrendingUp className="h-[18px] w-[18px] text-white" />
                 </div>
                 <div>
-                  <div className="text-[13px] font-bold text-[#1d1d1f]">F1 — ROI Timeline</div>
-                  <div className="text-[11px] text-[#86868b]">Payback period per automation wave</div>
+                  <h2 className="text-[22px] font-semibold italic tracking-tight">Team Velocity Impact</h2>
+                  <p className="text-[12px] text-[#86868b]">What automation does for your startup's speed and competitive edge</p>
                 </div>
               </div>
-              <div className="space-y-[10px]">
-                {['Quick wins (0–3 months)', 'Medium-term (3–12 months)', 'Strategic (12–36 months)'].map((phase, i) => {
-                  const phaseResults = analysisData.results.filter(r =>
-                    i === 0 ? r.difficulty === 'easy' :
-                    i === 1 ? r.difficulty === 'medium' : r.difficulty === 'hard'
-                  )
-                  const phaseSavings = phaseResults.reduce((s, r) => s + r.estimated_hours_saved, 0)
-                  const colors = ['text-green-600', 'text-yellow-600', 'text-orange-600']
-                  const bgs = ['bg-green-50 border-green-100', 'bg-yellow-50 border-yellow-100', 'bg-orange-50 border-orange-100']
-                  return (
-                    <div key={phase} className={`flex items-center justify-between rounded-[10px] border px-[14px] py-[10px] ${bgs[i]}`}>
-                      <span className="text-[13px] font-medium text-[#1d1d1f]">{phase}</span>
-                      <div className="text-right">
-                        <div className={`text-[16px] font-bold ${colors[i]}`}>{Math.round(phaseSavings)} hrs/yr</div>
-                        <div className="text-[10px] text-[#86868b]">{phaseResults.length} tasks</div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
 
-            {/* Feature 2 — Automation Countdown per Task */}
-            <div className="bg-white border border-[#d2d2d7] rounded-[18px] p-[28px]">
-              <div className="flex items-center gap-[10px] mb-[14px]">
-                <div className="w-[36px] h-[36px] rounded-[10px] bg-red-50 border border-red-100 flex items-center justify-center">
-                  <Clock className="h-[18px] w-[18px] text-red-500" />
-                </div>
-                <div>
-                  <div className="text-[13px] font-bold text-[#1d1d1f]">F2 — Risk Countdown</div>
-                  <div className="text-[11px] text-[#86868b]">When each role function is at risk</div>
-                </div>
-              </div>
-              <div className="space-y-[8px]">
-                {analysisData.results.slice(0, 4).map((r, i) => {
-                  const score = r.ai_readiness_score
-                  const window = score >= 80 ? '⚡ Now' : score >= 65 ? '🟠 12–24 mo' : score >= 45 ? '🟡 24–48 mo' : '🟢 48+ mo'
-                  const barColor = score >= 80 ? 'bg-red-400' : score >= 65 ? 'bg-orange-400' : score >= 45 ? 'bg-yellow-400' : 'bg-green-400'
-                  return (
-                    <div key={i}>
-                      <div className="flex justify-between text-[12px] mb-[3px]">
-                        <span className="text-[#1d1d1f] font-medium truncate max-w-[180px]">{r.task?.name || `Task ${i+1}`}</span>
-                        <span className="text-[#86868b] shrink-0 ml-2">{window}</span>
-                      </div>
-                      <div className="h-[5px] bg-[#f0f0f5] rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${barColor}`} style={{width: `${score}%`}} />
-                      </div>
-                    </div>
-                  )
-                })}
-                {analysisData.results.length > 4 && (
-                  <p className="text-[11px] text-[#86868b] pt-[4px]">+ {analysisData.results.length - 4} more tasks in full breakdown above</p>
-                )}
-              </div>
-            </div>
-
-            {/* Feature 3 — Competitor Gap Warning */}
-            <div className="bg-white border border-[#d2d2d7] rounded-[18px] p-[28px]">
-              <div className="flex items-center gap-[10px] mb-[14px]">
-                <div className="w-[36px] h-[36px] rounded-[10px] bg-purple-50 border border-purple-100 flex items-center justify-center">
-                  <Target className="h-[18px] w-[18px] text-purple-600" />
-                </div>
-                <div>
-                  <div className="text-[13px] font-bold text-[#1d1d1f]">F3 — Competitor Gap</div>
-                  <div className="text-[11px] text-[#86868b]">Cost of waiting 12 more months</div>
-                </div>
-              </div>
-              <div className="space-y-[12px]">
+              <div className="grid grid-cols-3 gap-[16px] mt-[28px] mb-[24px]">
                 {[
-                  { label: 'If you automate now', savings: Math.round(analysisData.annual_savings), color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
-                  { label: 'If you wait 12 months', savings: Math.round(analysisData.annual_savings * 0.35), note: '65% advantage lost', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-100' },
-                  { label: 'AI-first competitor today', savings: Math.round(analysisData.annual_savings * 1.4), note: 'Estimated edge over you', color: 'text-red-600', bg: 'bg-red-50 border-red-100' },
-                ].map(item => (
-                  <div key={item.label} className={`rounded-[10px] border px-[14px] py-[10px] ${item.bg}`}>
-                    <div className="text-[11px] text-[#86868b] mb-[2px]">{item.label}</div>
-                    <div className={`text-[20px] font-bold ${item.color}`}>€{item.savings.toLocaleString()}/yr</div>
-                    {item.note && <div className="text-[10px] text-[#86868b] mt-[1px]">{item.note}</div>}
+                  { label: 'Hours freed / yr', value: `${Math.round(analysisData.hours_saved)}h`, color: 'text-[#0071e3]', sub: 'Available for product & growth' },
+                  { label: 'FTE equivalent', value: `${(analysisData.hours_saved / 1800).toFixed(1)}`, color: 'text-emerald-600', sub: 'Roles redeployable to strategic work' },
+                  { label: 'Cost saved / yr', value: `€${Math.round(analysisData.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: 'At your team\'s hourly rate' },
+                ].map(card => (
+                  <div key={card.label} className="bg-emerald-50 border border-emerald-100 rounded-[14px] p-[20px] text-center">
+                    <div className={`text-[32px] font-bold mb-[4px] ${card.color}`}>{card.value}</div>
+                    <div className="text-[12px] font-semibold text-[#1d1d1f] mb-[2px]">{card.label}</div>
+                    <div className="text-[11px] text-[#86868b]">{card.sub}</div>
                   </div>
                 ))}
               </div>
+
+              {/* Automation wave timeline */}
+              <div className="space-y-[10px]">
+                <p className="text-[12px] font-bold text-[#86868b] uppercase tracking-widest mb-[14px]">Automation Rollout Timeline</p>
+                {[
+                  { phase: 'Phase 1 — Quick Wins (0–3 months)', filter: (r: TaskResult) => r.difficulty === 'easy', color: 'bg-green-500', bg: 'bg-green-50 border-green-100' },
+                  { phase: 'Phase 2 — Medium-term (3–12 months)', filter: (r: TaskResult) => r.difficulty === 'medium', color: 'bg-yellow-400', bg: 'bg-yellow-50 border-yellow-100' },
+                  { phase: 'Phase 3 — Strategic (12–36 months)', filter: (r: TaskResult) => r.difficulty === 'hard', color: 'bg-orange-400', bg: 'bg-orange-50 border-orange-100' },
+                ].map(({ phase, filter, color, bg }) => {
+                  const matched = analysisData.results.filter(filter)
+                  const hrs = matched.reduce((s, r) => s + r.estimated_hours_saved, 0)
+                  return (
+                    <div key={phase} className={`flex items-center justify-between rounded-[12px] border px-[18px] py-[14px] ${bg}`}>
+                      <div className="flex items-center gap-[10px]">
+                        <div className={`w-[10px] h-[10px] rounded-full ${color}`} />
+                        <span className="text-[13px] font-semibold text-[#1d1d1f]">{phase}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[16px] font-bold text-[#1d1d1f]">{Math.round(hrs)}h/yr</div>
+                        <div className="text-[11px] text-[#86868b]">{matched.length} tasks</div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
 
-            {/* Feature 4 — Quick Win Sprint Plan */}
-            <div className="bg-white border border-[#d2d2d7] rounded-[18px] p-[28px]">
-              <div className="flex items-center gap-[10px] mb-[14px]">
-                <div className="w-[36px] h-[36px] rounded-[10px] bg-green-50 border border-green-100 flex items-center justify-center">
-                  <Zap className="h-[18px] w-[18px] text-green-600" />
+            {/* C2 — 90-Day Sprint Plan */}
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+              <div className="flex items-center gap-[10px] mb-[8px]">
+                <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center">
+                  <Zap className="h-[18px] w-[18px] text-white" />
                 </div>
                 <div>
-                  <div className="text-[13px] font-bold text-[#1d1d1f]">F4 — 90-Day Sprint Plan</div>
-                  <div className="text-[11px] text-[#86868b]">Highest-impact tasks to act on first</div>
+                  <h2 className="text-[22px] font-semibold italic tracking-tight">90-Day Sprint Plan</h2>
+                  <p className="text-[12px] text-[#86868b]">Highest-ROI automations to ship in your first sprint</p>
                 </div>
               </div>
-              <div className="space-y-[8px]">
+
+              <div className="mt-[28px] space-y-[12px]">
                 {analysisData.results
                   .filter(r => r.difficulty === 'easy')
                   .sort((a, b) => b.ai_readiness_score - a.ai_readiness_score)
-                  .slice(0, 4)
+                  .slice(0, 5)
                   .map((r, i) => (
-                    <div key={i} className="flex items-start gap-[10px] bg-green-50 border border-green-100 rounded-[10px] px-[12px] py-[10px]">
-                      <span className="shrink-0 w-[20px] h-[20px] rounded-full bg-green-600 text-white text-[10px] font-bold flex items-center justify-center mt-[1px]">{i+1}</span>
-                      <div>
-                        <div className="text-[13px] font-semibold text-[#1d1d1f]">{r.task?.name || `Task ${i+1}`}</div>
-                        <div className="text-[11px] text-[#86868b]">{Math.round(r.ai_readiness_score)}% ready · {Math.round(r.estimated_hours_saved)} hrs/yr</div>
+                    <div key={i} className="flex items-start gap-[14px] bg-[#fafafa] border border-[#e8e8ed] rounded-[12px] p-[18px]">
+                      <div className="w-[28px] h-[28px] rounded-full bg-emerald-600 text-white text-[12px] font-bold flex items-center justify-center shrink-0 mt-[1px]">
+                        {i + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between gap-[8px]">
+                          <div>
+                            <div className="text-[14px] font-semibold text-[#1d1d1f]">{r.task?.name}</div>
+                            <div className="text-[12px] text-[#86868b] mt-[2px]">{Math.round(r.ai_readiness_score)}% ready · {Math.round(r.estimated_hours_saved)}h/yr · {r.difficulty}</div>
+                          </div>
+                          <CountdownBadge window={r.countdown_window} />
+                        </div>
+                        {r.orchestration && <p className="text-[12px] text-[#0071e3] mt-[6px] font-mono">→ {r.orchestration.split('—')[0]?.trim()}</p>}
                       </div>
                     </div>
                   ))}
                 {analysisData.results.filter(r => r.difficulty === 'easy').length === 0 && (
-                  <p className="text-[13px] text-[#86868b]">No easy-difficulty tasks found — check medium-term opportunities above.</p>
+                  <div className="text-center py-[20px] text-[#86868b] text-[14px]">No easy-difficulty tasks — focus on medium-term automations from Phase 2.</div>
                 )}
               </div>
             </div>
+          </>
+        )}
 
-            {/* Feature 5 — Hiring Impact Analysis */}
-            <div className="bg-white border border-[#d2d2d7] rounded-[18px] p-[28px]">
-              <div className="flex items-center gap-[10px] mb-[14px]">
-                <div className="w-[36px] h-[36px] rounded-[10px] bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                  <Users className="h-[18px] w-[18px] text-indigo-600" />
+        {/* ═══════════════════════════════════════════════════════════════
+            SECTION D — COMPANY: Competitor Gap + Board Summary + Benchmark
+        ═══════════════════════════════════════════════════════════════ */}
+        {context === 'company' && (
+          <>
+            {/* D1 — AI-First Competitor Gap */}
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+              <div className="flex items-center gap-[10px] mb-[8px]">
+                <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                  <AlertTriangle className="h-[18px] w-[18px] text-white" />
                 </div>
                 <div>
-                  <div className="text-[13px] font-bold text-[#1d1d1f]">F5 — Headcount Signal</div>
-                  <div className="text-[11px] text-[#86868b]">FTE equivalent released by automation</div>
+                  <h2 className="text-[22px] font-semibold italic tracking-tight">AI-First Competitor Gap</h2>
+                  <p className="text-[12px] text-[#86868b]">The cost of inaction — what a fully AI-first competitor gains over you</p>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-[10px]">
+
+              <div className="grid grid-cols-3 gap-[14px] mt-[28px] mb-[24px]">
                 {[
-                  { label: 'Hours freed/yr', val: `${Math.round(analysisData.hours_saved)}h`, color: 'text-[#0071e3]' },
-                  { label: 'FTE equivalent', val: `${(analysisData.hours_saved / 1800).toFixed(1)}`, color: 'text-purple-600', note: 'at 1,800 hrs/yr' },
-                  { label: 'Cost of 1 FTE', val: `€${Math.round(analysisData.annual_savings / Math.max((analysisData.hours_saved / 1800), 0.1)).toLocaleString()}`, color: 'text-green-600', note: 'saved per role' },
-                ].map(item => (
-                  <div key={item.label} className="bg-[#f5f5f7] border border-[#e8e8ed] rounded-[12px] p-[14px] text-center">
-                    <div className={`text-[22px] font-bold mb-[4px] ${item.color}`}>{item.val}</div>
-                    <div className="text-[11px] font-medium text-[#1d1d1f]">{item.label}</div>
-                    {item.note && <div className="text-[10px] text-[#86868b] mt-[1px]">{item.note}</div>}
+                  { label: 'If you automate now', value: `€${Math.round(analysisData.annual_savings).toLocaleString()}/yr`, sub: 'Your annual advantage', color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
+                  { label: 'If you wait 12 months', value: `€${Math.round(analysisData.annual_savings * 0.35).toLocaleString()}/yr`, sub: '65% of advantage lost to delayed adoption', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-100' },
+                  { label: 'AI-first competitor edge', value: `€${Math.round(analysisData.annual_savings * 1.4).toLocaleString()}/yr`, sub: 'Over you if they move first', color: 'text-red-600', bg: 'bg-red-50 border-red-100' },
+                ].map(card => (
+                  <div key={card.label} className={`rounded-[14px] border p-[20px] ${card.bg}`}>
+                    <div className={`text-[26px] font-bold mb-[4px] ${card.color}`}>{card.value}</div>
+                    <div className="text-[12px] font-semibold text-[#1d1d1f] mb-[2px]">{card.label}</div>
+                    <div className="text-[11px] text-[#86868b]">{card.sub}</div>
                   </div>
                 ))}
               </div>
-              <p className="text-[12px] text-[#86868b] mt-[14px]">
-                These hours can be redeployed to higher-value work rather than requiring headcount reduction.
+
+              <div className="p-[16px] bg-[#1d1d1f] rounded-[12px]">
+                <p className="text-[13px] text-[#e8e8ed] leading-relaxed">
+                  <span className="font-bold text-white">Strategic Warning: </span>
+                  Mostaque's analysis shows AI-first companies won't make as many mistakes and will scale without proportional headcount growth. In markets where your workflow is highly automatable, a competitor who acts in the next 90 days builds a structural cost advantage that is very difficult to reverse.
+                </p>
+              </div>
+            </div>
+
+            {/* D2 — Headcount Signal */}
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+              <div className="flex items-center gap-[10px] mb-[8px]">
+                <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                  <Users className="h-[18px] w-[18px] text-white" />
+                </div>
+                <div>
+                  <h2 className="text-[22px] font-semibold italic tracking-tight">Headcount Signal</h2>
+                  <p className="text-[12px] text-[#86868b]">FTE equivalent freed — talent to redeploy to higher-value work</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-[16px] mt-[28px]">
+                {[
+                  { label: 'Hours freed / yr', value: `${Math.round(analysisData.hours_saved)}h`, note: 'Total across all tasks', color: 'text-[#0071e3]' },
+                  { label: 'FTE equivalent', value: `${(analysisData.hours_saved / 1800).toFixed(1)}`, note: 'At 1,800 working hrs/yr', color: 'text-purple-600' },
+                  { label: 'Saved per FTE', value: `€${Math.round(analysisData.annual_savings / Math.max(analysisData.hours_saved / 1800, 0.1)).toLocaleString()}`, note: 'Annual cost per role', color: 'text-green-600' },
+                ].map(item => (
+                  <div key={item.label} className="bg-[#fafafa] border border-[#e8e8ed] rounded-[14px] p-[20px] text-center">
+                    <div className={`text-[36px] font-bold mb-[6px] ${item.color}`}>{item.value}</div>
+                    <div className="text-[13px] font-semibold text-[#1d1d1f]">{item.label}</div>
+                    <div className="text-[11px] text-[#86868b] mt-[2px]">{item.note}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[13px] text-[#6e6e73] mt-[16px] text-center">
+                Recommended: redeploy freed capacity to AI oversight, customer relationships, and strategic growth — not headcount reduction.
               </p>
             </div>
 
-            {/* Feature 6 — Effort vs Impact Matrix */}
-            <div className="bg-white border border-[#d2d2d7] rounded-[18px] p-[28px]">
-              <div className="flex items-center gap-[10px] mb-[14px]">
-                <div className="w-[36px] h-[36px] rounded-[10px] bg-amber-50 border border-amber-100 flex items-center justify-center">
-                  <BarChart3 className="h-[18px] w-[18px] text-amber-600" />
-                </div>
-                <div>
-                  <div className="text-[13px] font-bold text-[#1d1d1f]">F6 — Effort vs Impact Matrix</div>
-                  <div className="text-[11px] text-[#86868b]">Where to focus your automation budget</div>
-                </div>
-              </div>
-              <div className="space-y-[8px]">
-                {[
-                  { q: '🎯 High impact, Low effort', filter: (r: TaskResult) => r.ai_readiness_score >= 70 && r.difficulty === 'easy', color: 'bg-green-50 border-green-200 text-green-800' },
-                  { q: '📈 High impact, High effort', filter: (r: TaskResult) => r.ai_readiness_score >= 70 && r.difficulty !== 'easy', color: 'bg-blue-50 border-blue-200 text-blue-800' },
-                  { q: '🔧 Low impact, Low effort', filter: (r: TaskResult) => r.ai_readiness_score < 70 && r.difficulty === 'easy', color: 'bg-yellow-50 border-yellow-200 text-yellow-800' },
-                  { q: '⏸ Low impact, High effort', filter: (r: TaskResult) => r.ai_readiness_score < 70 && r.difficulty !== 'easy', color: 'bg-gray-50 border-gray-200 text-gray-600' },
-                ].map(({ q, filter, color }) => {
-                  const count = analysisData.results.filter(filter).length
-                  return (
-                    <div key={q} className={`flex justify-between items-center rounded-[10px] border px-[14px] py-[10px] ${color}`}>
-                      <span className="text-[12px] font-medium">{q}</span>
-                      <span className="text-[16px] font-bold">{count}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Feature 7 — Compliance & Risk Summary */}
-            <div className="bg-white border border-[#d2d2d7] rounded-[18px] p-[28px]">
-              <div className="flex items-center gap-[10px] mb-[14px]">
-                <div className="w-[36px] h-[36px] rounded-[10px] bg-red-50 border border-red-100 flex items-center justify-center">
-                  <AlertTriangle className="h-[18px] w-[18px] text-red-500" />
-                </div>
-                <div>
-                  <div className="text-[13px] font-bold text-[#1d1d1f]">F7 — Risk & Compliance Flags</div>
-                  <div className="text-[11px] text-[#86868b]">Tasks requiring human oversight</div>
-                </div>
-              </div>
-              {analysisData.results.filter(r => r.risk_flag).length === 0 ? (
-                <div className="flex items-center gap-[10px] bg-green-50 border border-green-200 rounded-[12px] px-[16px] py-[14px]">
-                  <ShieldCheck className="h-[20px] w-[20px] text-green-600 shrink-0" />
-                  <p className="text-[13px] text-green-800 font-medium">No compliance or risk flags identified in this workflow.</p>
-                </div>
-              ) : (
-                <div className="space-y-[8px]">
-                  {analysisData.results.filter(r => r.risk_flag).map((r, i) => (
-                    <div key={i} className={`flex items-start gap-[8px] rounded-[10px] border px-[12px] py-[10px] text-[12px] ${
-                      r.risk_level === 'warning' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800'
-                    }`}>
-                      {r.risk_level === 'warning' ? <ShieldX className="h-[14px] w-[14px] shrink-0 mt-[1px]" /> : <ShieldAlert className="h-[14px] w-[14px] shrink-0 mt-[1px]" />}
-                      <div>
-                        <div className="font-semibold mb-[1px]">{r.task?.name}</div>
-                        <div>{r.risk_flag}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Feature 8 — Board-Ready Executive Summary */}
-            <div className="bg-white border border-[#d2d2d7] rounded-[18px] p-[28px]">
-              <div className="flex items-center gap-[10px] mb-[14px]">
-                <div className="w-[36px] h-[36px] rounded-[10px] bg-[#1d1d1f] flex items-center justify-center">
-                  <Briefcase className="h-[18px] w-[18px] text-white" />
-                </div>
-                <div>
-                  <div className="text-[13px] font-bold text-[#1d1d1f]">F8 — Board Summary</div>
-                  <div className="text-[11px] text-[#86868b]">Ready to paste into your deck</div>
-                </div>
-              </div>
-              <div className="bg-[#1d1d1f] rounded-[12px] p-[16px] text-[#e8e8ed] font-mono text-[12px] leading-relaxed space-y-[6px]">
-                <div className="text-[#86868b] text-[10px] uppercase tracking-widest mb-[8px]">Executive Summary — {new Date().toLocaleDateString('en-GB', {month:'short', year:'numeric'})}</div>
-                <div>Workflow: <span className="text-white font-bold">{analysisData.workflow.name}</span></div>
-                <div>Automation score: <span className="text-[#0071e3] font-bold">{Math.round(analysisData.automation_score)}%</span></div>
-                <div>Annual savings potential: <span className="text-green-400 font-bold">€{Math.round(analysisData.annual_savings).toLocaleString()}</span></div>
-                <div>Hours reclaimed: <span className="text-purple-400 font-bold">{Math.round(analysisData.hours_saved)}h/yr</span></div>
-                <div>FTE equivalent: <span className="text-amber-400 font-bold">{(analysisData.hours_saved / 1800).toFixed(1)} roles</span></div>
-                <div>Quick wins available: <span className="text-white font-bold">{analysisData.results.filter(r => r.difficulty === 'easy').length} tasks</span></div>
-                <div>Recommended action: <span className="text-white font-bold">Begin 90-day sprint</span></div>
-              </div>
-            </div>
-
-            {/* Feature 9 — Industry Benchmark */}
-            <div className="bg-white border border-[#d2d2d7] rounded-[18px] p-[28px] md:col-span-2">
-              <div className="flex items-center gap-[10px] mb-[14px]">
-                <div className="w-[36px] h-[36px] rounded-[10px] bg-[#0071e3] flex items-center justify-center">
+            {/* D3 — Industry Benchmark */}
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+              <div className="flex items-center gap-[10px] mb-[8px]">
+                <div className="w-[36px] h-[36px] rounded-full bg-[#0071e3] flex items-center justify-center">
                   <Globe2 className="h-[18px] w-[18px] text-white" />
                 </div>
                 <div>
-                  <div className="text-[13px] font-bold text-[#1d1d1f]">F9 — Industry Benchmark</div>
-                  <div className="text-[11px] text-[#86868b]">How this workflow compares to sector averages</div>
+                  <h2 className="text-[22px] font-semibold italic tracking-tight">Industry Benchmark</h2>
+                  <p className="text-[12px] text-[#86868b]">Where you stand vs sector averages and AI-first leaders</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-[12px]">
+
+              <div className="grid grid-cols-4 gap-[12px] mt-[28px]">
                 {[
                   { label: 'Your score', val: `${Math.round(analysisData.automation_score)}%`, note: 'This workflow', color: 'text-[#0071e3]', bg: 'bg-blue-50 border-blue-100' },
                   { label: 'Sector average', val: '58%', note: 'Cognitive workflows', color: 'text-[#6e6e73]', bg: 'bg-[#f5f5f7] border-[#e8e8ed]' },
                   { label: 'Top 10% orgs', val: '81%', note: 'AI-first companies', color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
                   { label: 'Gap to close', val: `${Math.max(0, 81 - Math.round(analysisData.automation_score))}%`, note: 'To reach top 10%', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-100' },
                 ].map(item => (
-                  <div key={item.label} className={`rounded-[14px] border p-[16px] text-center ${item.bg}`}>
-                    <div className={`text-[28px] font-bold mb-[4px] ${item.color}`}>{item.val}</div>
+                  <div key={item.label} className={`rounded-[14px] border p-[18px] text-center ${item.bg}`}>
+                    <div className={`text-[30px] font-bold mb-[4px] ${item.color}`}>{item.val}</div>
                     <div className="text-[12px] font-semibold text-[#1d1d1f]">{item.label}</div>
                     <div className="text-[10px] text-[#86868b] mt-[2px]">{item.note}</div>
                   </div>
                 ))}
               </div>
-              <div className="mt-[16px] p-[14px] bg-[#f5f5f7] border border-[#e8e8ed] rounded-[12px]">
+
+              <div className="mt-[20px] p-[16px] bg-[#f5f5f7] border border-[#e8e8ed] rounded-[12px]">
                 <p className="text-[13px] text-[#6e6e73]">
                   <span className="font-semibold text-[#1d1d1f]">Insight: </span>
                   {Math.round(analysisData.automation_score) >= 70
-                    ? `Your workflow automation potential is above the sector average. You are positioned to gain a competitive edge by acting within the next 90 days.`
-                    : `Your workflow has significant untapped automation potential. Companies in your sector that automate first typically reduce operational costs by 30–45% within 18 months.`
-                  }
+                    ? 'Your workflow automation potential is above the sector average. You are positioned to gain a significant competitive edge by acting within the next 90 days.'
+                    : 'Your workflow has significant untapped automation potential below the sector average. Companies that automate first in your sector typically reduce operational costs by 30–45% within 18 months.'}
                 </p>
               </div>
             </div>
 
-          </div>
-        </div>
+            {/* D4 — Board Summary */}
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+              <div className="flex items-center gap-[10px] mb-[8px]">
+                <div className="w-[36px] h-[36px] rounded-full bg-[#1d1d1f] flex items-center justify-center">
+                  <Briefcase className="h-[18px] w-[18px] text-white" />
+                </div>
+                <div>
+                  <h2 className="text-[22px] font-semibold italic tracking-tight">Board-Ready Executive Summary</h2>
+                  <p className="text-[12px] text-[#86868b]">Copy directly into your strategy deck or board memo</p>
+                </div>
+              </div>
 
-        {/* Actions */}
-        <div className="flex flex-wrap gap-[16px]">
-          <button 
-            onClick={downloadAsDocx}
-            className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all"
-          >
-            <Download className="h-[18px] w-[18px]" />
-            Download as DOCX
+              <div className="mt-[28px] bg-[#1d1d1f] rounded-[14px] p-[28px] font-mono text-[13px] text-[#e8e8ed] leading-[1.8] select-all">
+                <div className="text-[10px] text-[#86868b] uppercase tracking-widest mb-[16px] border-b border-[#3a3a3c] pb-[10px]">
+                  WorkScanAI — Executive Summary · {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                </div>
+                <div><span className="text-[#86868b]">Workflow:</span> <span className="text-white font-bold">{analysisData.workflow.name}</span></div>
+                {analysisData.workflow.industry && <div><span className="text-[#86868b]">Industry:</span> <span className="text-white">{analysisData.workflow.industry}</span></div>}
+                <div><span className="text-[#86868b]">Automation potential:</span> <span className="text-[#0071e3] font-bold">{Math.round(analysisData.automation_score)}%</span> of workflow tasks</div>
+                <div><span className="text-[#86868b]">Annual savings:</span> <span className="text-green-400 font-bold">€{Math.round(analysisData.annual_savings).toLocaleString()}</span></div>
+                <div><span className="text-[#86868b]">Hours reclaimed:</span> <span className="text-purple-400 font-bold">{Math.round(analysisData.hours_saved)}h/yr</span></div>
+                <div><span className="text-[#86868b]">FTE equivalent:</span> <span className="text-amber-400 font-bold">{(analysisData.hours_saved / 1800).toFixed(1)} roles</span></div>
+                <div><span className="text-[#86868b]">Quick wins available:</span> <span className="text-white font-bold">{quickWins} tasks</span> (implementable within 90 days)</div>
+                <div><span className="text-[#86868b]">Risk flags:</span> <span className="text-white font-bold">{analysisData.results.filter(r => r.risk_level !== 'safe').length} tasks</span> require compliance review</div>
+                <div className="mt-[12px] pt-[12px] border-t border-[#3a3a3c]">
+                  <span className="text-[#86868b]">Recommendation:</span> <span className="text-white">Begin 90-day automation sprint. Prioritise quick wins. Redeploy freed capacity to strategic functions.</span>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════
+            SECTION E — AI Readiness Score (all contexts)
+        ═══════════════════════════════════════════════════════════════ */}
+        {analysisData.readiness_score != null && (
+          <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+            <div className="flex items-start justify-between mb-[24px]">
+              <div>
+                <h2 className="text-[22px] font-semibold italic tracking-tight">
+                  {context === 'individual' ? 'Your' : context === 'team' ? 'Team' : 'Organisation'} AI Readiness
+                </h2>
+                <p className="text-[13px] text-[#86868b] mt-[4px]">How ready are you to adopt and scale AI automation</p>
+              </div>
+              <div className="text-center">
+                <div className="text-[52px] font-bold tracking-tight text-[#0071e3]">{Math.round(analysisData.readiness_score)}%</div>
+                <div className="text-[12px] text-[#86868b]">Overall Readiness</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-[12px]">
+              {[
+                { label: 'Data Quality', val: analysisData.readiness_data_quality, desc: 'How structured & accessible your data is' },
+                { label: 'Process Clarity', val: analysisData.readiness_process_docs, desc: 'How rule-based & repeatable your workflows are' },
+                { label: 'Tool Maturity', val: analysisData.readiness_tool_maturity, desc: 'How easily tools integrate with your stack' },
+                { label: 'Error Tolerance', val: analysisData.readiness_team_skills, desc: 'How tolerant processes are to AI errors' },
+              ].map(({ label, val, desc }) => (
+                <div key={label} className="bg-[#fafafa] border border-[#e8e8ed] rounded-[14px] p-[16px]">
+                  <div className={`text-[28px] font-bold mb-[4px] ${val == null ? 'text-[#86868b]' : val >= 70 ? 'text-green-600' : val >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>
+                    {val != null ? Math.round(val) : '—'}
+                  </div>
+                  <div className="text-[12px] font-semibold text-[#1d1d1f]">{label}</div>
+                  <div className="text-[10px] text-[#86868b] mt-[2px]">{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════
+            ACTIONS
+        ═══════════════════════════════════════════════════════════════ */}
+        <div className="flex flex-wrap gap-[12px] pt-[8px]">
+          <button onClick={() => downloadReport('docx')} className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[24px] py-[12px] rounded-full font-semibold text-[15px] transition-all">
+            <Download className="h-[16px] w-[16px]" /> Download DOCX
           </button>
-          <button 
-            onClick={downloadAsPdf}
-            className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all"
-          >
-            <Download className="h-[18px] w-[18px]" />
-            Download as PDF
+          <button onClick={() => downloadReport('pdf')} className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[24px] py-[12px] rounded-full font-semibold text-[15px] transition-all">
+            <Download className="h-[16px] w-[16px]" /> Download PDF
           </button>
-          <button 
-            onClick={handleShare}
-            className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[28px] py-[14px] rounded-full font-medium text-[17px] text-[#1d1d1f] transition-all"
-          >
-            {copied ? (
-              <>
-                <Check className="h-[18px] w-[18px] text-green-600" />
-                <span className="text-green-600">Copied!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="h-[18px] w-[18px]" />
-                Share Results
-              </>
-            )}
+          <button onClick={handleShare} className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[24px] py-[12px] rounded-full font-medium text-[15px] text-[#1d1d1f] transition-all">
+            {copied ? <><Check className="h-[16px] w-[16px] text-green-600" /><span className="text-green-600">Copied!</span></> : <><Share2 className="h-[16px] w-[16px]" />Share Report</>}
           </button>
-          <Link
-            href={`/dashboard/results/${id}/roadmap`}
-            className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[28px] py-[14px] rounded-full font-medium text-[17px] text-[#1d1d1f] transition-all"
-          >
-            <Map className="h-[18px] w-[18px]" />
-            View Roadmap
+          <Link href={`/dashboard/results/${id}/roadmap`} className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[24px] py-[12px] rounded-full font-medium text-[15px] text-[#1d1d1f] transition-all">
+            <Map className="h-[16px] w-[16px]" /> View Roadmap
           </Link>
         </div>
+
       </div>
     </div>
   )

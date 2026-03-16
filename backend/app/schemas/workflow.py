@@ -26,8 +26,11 @@ class TaskResponse(TaskCreate):
 class WorkflowCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
-    source_text: Optional[str] = None   # raw voice transcript / doc text / manual notes
-    input_mode: Optional[str] = None    # 'manual' | 'voice' | 'document'
+    source_text: Optional[str] = None
+    input_mode: Optional[str] = None
+    analysis_context: Optional[str] = None   # 'individual' | 'team' | 'company'
+    team_size: Optional[str] = None
+    industry: Optional[str] = None
     tasks: List[TaskCreate] = Field(default_factory=list)
 
 
@@ -37,6 +40,9 @@ class WorkflowResponse(BaseModel):
     description: Optional[str]
     source_text: Optional[str] = None
     input_mode: Optional[str] = None
+    analysis_context: Optional[str] = None
+    team_size: Optional[str] = None
+    industry: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime]
     tasks: List[TaskResponse] = []
@@ -68,6 +74,11 @@ class AnalysisResultResponse(BaseModel):
     agent_milestone: Optional[str] = None
     # F13 orchestration
     orchestration: Optional[str] = None
+    # New context-aware fields
+    countdown_window: Optional[str] = None
+    human_edge_score: Optional[float] = None
+    pivot_skills: Optional[str] = None
+    pivot_roles: Optional[str] = None
     
     class Config:
         from_attributes = True
