@@ -51,24 +51,24 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section — real img so the overlay is structurally confined to the image */}
-      <section className="relative mt-[44px]">
-        {/* The image sets the natural height of the section; min-height ensures enough room on mobile */}
+      {/* Hero Section — flush against nav, no gap */}
+      <section className="relative pt-[44px]">
+        {/* Image fills full width; min-h guarantees enough room for content at all sizes */}
         <img
           src="/Banner1.jpg"
           alt=""
           aria-hidden="true"
-          className="block w-full h-auto min-h-[520px] object-cover"
+          className="block w-full h-auto min-h-[580px] object-cover"
         />
         {/* Overlay sits on top of the image only — can never escape the section */}
         <div className="absolute inset-0 bg-black/30 pointer-events-none" />
 
         {/* Content is centred over the image */}
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full max-w-[980px] mx-auto px-4 sm:px-6 py-[48px] sm:py-[90px] text-center">
+          <div className="w-full max-w-[980px] mx-auto px-4 sm:px-6 py-[32px] sm:py-[64px] text-center overflow-hidden">
 
           {/* Headline */}
-          <h1 className="text-[32px] sm:text-[44px] md:text-[56px] leading-[1.07] font-semibold italic tracking-tight text-white mb-[16px] drop-shadow-lg">
+          <h1 className="text-[28px] sm:text-[40px] md:text-[52px] leading-[1.07] font-semibold italic tracking-tight text-white mb-[16px] drop-shadow-lg px-2">
             The future of work
             <br />
             starts with knowing
@@ -101,18 +101,18 @@ export default function LandingPage() {
           </div>
 
           {/* Stats strip */}
-          <div className="grid grid-cols-3 gap-[12px] sm:gap-[48px] justify-center mt-[32px] sm:mt-[48px] max-w-[600px] mx-auto">
-            <div className="text-center">
-              <div className="text-[24px] sm:text-[36px] font-semibold tracking-tight text-white drop-shadow">&lt;5 min</div>
-              <div className="text-[11px] sm:text-[13px] text-white/60 mt-[4px]">to analyze</div>
+          <div className="grid grid-cols-3 gap-[8px] sm:gap-[48px] justify-center mt-[24px] sm:mt-[48px] w-full max-w-[560px] mx-auto px-2">
+            <div className="text-center min-w-0">
+              <div className="text-[20px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight">&lt;5 min</div>
+              <div className="text-[10px] sm:text-[13px] text-white/60 mt-[4px]">to analyze</div>
             </div>
-            <div className="text-center border-x border-white/20 px-[12px] sm:px-0">
-              <div className="text-[24px] sm:text-[36px] font-semibold tracking-tight text-white drop-shadow">0–100%</div>
-              <div className="text-[11px] sm:text-[13px] text-white/60 mt-[4px]">automation score</div>
+            <div className="text-center border-x border-white/20 px-[8px] sm:px-0 min-w-0">
+              <div className="text-[20px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight">0–100%</div>
+              <div className="text-[10px] sm:text-[13px] text-white/60 mt-[4px]">automation score</div>
             </div>
-            <div className="text-center">
-              <div className="text-[24px] sm:text-[36px] font-semibold tracking-tight text-white drop-shadow">€28K+</div>
-              <div className="text-[11px] sm:text-[13px] text-white/60 mt-[4px]">avg. savings</div>
+            <div className="text-center min-w-0">
+              <div className="text-[20px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight">€28K+</div>
+              <div className="text-[10px] sm:text-[13px] text-white/60 mt-[4px]">avg. savings</div>
             </div>
           </div>
 
