@@ -24,7 +24,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen text-[#1d1d1f]">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#d2d2d7]">
         <div className="max-w-[980px] mx-auto px-4 sm:px-6">
@@ -51,9 +51,9 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section — image is absolute, section height driven by inner padding */}
-      <section className="relative min-h-[580px] mt-[44px]">
-        {/* Image covers the full section — position absolute, z-0 */}
+      {/* Hero Section — sits flush under the fixed nav, no gap */}
+      <section className="relative min-h-[580px]" style={{marginTop: '44px', marginBottom: 0}}>
+        {/* Image covers the full section */}
         <img
           src="/Banner1.jpg"
           alt=""
