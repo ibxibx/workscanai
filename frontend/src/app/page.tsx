@@ -51,21 +51,21 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section — flush against nav, no gap */}
-      <section className="relative pt-[44px]">
-        {/* Image fills full width; min-h guarantees enough room for content at all sizes */}
+      {/* Hero Section — image is absolute, section height driven by inner padding */}
+      <section className="relative min-h-[580px] mt-[44px]">
+        {/* Image covers the full section — position absolute, z-0 */}
         <img
           src="/Banner1.jpg"
           alt=""
           aria-hidden="true"
-          className="block w-full h-auto min-h-[580px] object-cover"
+          className="absolute inset-0 w-full h-full object-cover object-center z-0"
         />
-        {/* Overlay sits on top of the image only — can never escape the section */}
-        <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-black/30 pointer-events-none z-10" />
 
-        {/* Content is centred over the image */}
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full max-w-[980px] mx-auto px-4 sm:px-6 py-[32px] sm:py-[64px] text-center overflow-hidden">
+        {/* Content sits above image */}
+        <div className="relative z-20 flex items-center min-h-[580px]">
+          <div className="w-full max-w-[980px] mx-auto px-4 sm:px-6 py-[48px] sm:py-[64px] text-center overflow-hidden">
 
           {/* Headline */}
           <h1 className="text-[28px] sm:text-[40px] md:text-[52px] leading-[1.07] font-semibold italic tracking-tight text-white mb-[16px] drop-shadow-lg px-2">
@@ -117,7 +117,7 @@ export default function LandingPage() {
           </div>
 
           </div>{/* end inner max-w div */}
-        </div>{/* end absolute inset-0 flex div */}
+        </div>{/* end relative z-20 flex div */}
       </section>
 
       {/* Features */}
