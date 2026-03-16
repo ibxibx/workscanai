@@ -7,6 +7,8 @@ import { saveMyWorkflowId } from '@/app/dashboard/page'
 import { useAuth } from '@/lib/auth'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+export type AnalysisContext = 'individual' | 'team' | 'company'
+
 interface Task {
   name: string
   description: string
@@ -70,6 +72,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     time_per_task: 30, category: 'general', complexity: 'medium'
   }])
   const [inputMode, setInputMode] = useState<'manual' | 'voice' | 'document'>('manual')
+  const [analysisContext, setAnalysisContext] = useState<AnalysisContext>('individual')
+  const [teamSize, setTeamSize] = useState<string>('')
+  const [industry, setIndustry] = useState<string>('')
   const [isRecording, setIsRecording] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)      // 0-100 simulated %
@@ -377,6 +382,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           name: workflowName, description: workflowDescription,
           source_text: effectiveSourceText || undefined,
           input_mode: inputMode,
+          analysis_context: analysisContext,
+          team_size: teamSize || undefined,
+          industry: industry || undefined,
           tasks: tasks.filter(t => t.name.trim()).map(t => ({
             name: t.name, description: t.description || t.name,
             frequency: t.frequency, time_per_task: t.time_per_task,
@@ -841,6 +849,85 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         )}
 
 
+        {/* ── Analysis Context Selector ─────────────────────────────── */}
+        <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
+          <h2 className="text-[17px] font-semibold text-[#1d1d1f] mb-[6px]">Who is this analysis for?</h2>
+          <p className="text-[13px] text-[#86868b] mb-[20px]">
+            WorkScanAI adapts its scoring, framing, and recommendations based on whether you're analysing tasks for yourself, a team, or a company.
+          </p>
+          <div className="grid grid-cols-3 gap-[10px] mb-[20px]">
+            {([
+              { value: 'individual', emoji: '👤', label: 'Solo / Individual', desc: 'Your own tasks or role' },
+              { value: 'team',       emoji: '👥', label: 'Team / Startup',    desc: '2–50 people' },
+              { value: 'company',    emoji: '🏢', label: 'Company / Dept.',   desc: '50+ people or a full department' },
+            ] as const).map(({ value, emoji, label, desc }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setAnalysisContext(value)}
+                className={`flex flex-col items-center text-center px-[12px] py-[16px] rounded-[14px] border-2 transition-all ${
+                  analysisContext === value
+                    ? 'border-[#0071e3] bg-blue-50 text-[#0071e3]'
+                    : 'border-[#d2d2d7] bg-white text-[#1d1d1f] hover:border-[#0071e3]/40'
+                }`}
+              >
+                <span className="text-[26px] mb-[6px]">{emoji}</span>
+                <span className="text-[13px] font-semibold leading-tight">{label}</span>
+                <span className="text-[11px] text-[#86868b] mt-[3px] leading-tight">{desc}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Extra fields for team/company */}
+          {(analysisContext === 'team' || analysisContext === 'company') && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-[14px] pt-[4px]">
+              <div>
+                <label className={labelClass}>Team / Company Size</label>
+                <div className="relative">
+                  <select
+                    value={teamSize}
+                    onChange={e => setTeamSize(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">Select size…</option>
+                    <option value="2-10">2–10 people</option>
+                    <option value="11-50">11–50 people</option>
+                    <option value="51-200">51–200 people</option>
+                    <option value="201-1000">201–1,000 people</option>
+                    <option value="1000+">1,000+ people</option>
+                  </select>
+                  <ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none" />
+                </div>
+              </div>
+              <div>
+                <label className={labelClass}>Industry / Department</label>
+                <div className="relative">
+                  <select
+                    value={industry}
+                    onChange={e => setIndustry(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">Select industry…</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="sales">Sales</option>
+                    <option value="finance">Finance & Accounting</option>
+                    <option value="hr">HR & Recruiting</option>
+                    <option value="operations">Operations & Logistics</option>
+                    <option value="legal">Legal & Compliance</option>
+                    <option value="engineering">Engineering & Product</option>
+                    <option value="customer_support">Customer Support</option>
+                    <option value="consulting">Consulting & Advisory</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="education">Education</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Workflow Details */}
         <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
           <h2 className="text-[21px] font-semibold text-[#1d1d1f] mb-[28px]">Workflow Details</h2>
@@ -953,7 +1040,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         <div className="flex flex-col items-end gap-[10px] pt-[8px]">
           {taskCount > 0 && (
             <p className="text-[13px] text-[#86868b]">
-              Analyzing {taskCount} task{taskCount !== 1 ? 's' : ''} — estimated {taskCount * 3}–{taskCount * 6}s
+              Analysing {taskCount} task{taskCount !== 1 ? 's' : ''} for{' '}
+              {analysisContext === 'individual' ? 'your role' : analysisContext === 'team' ? 'your team' : 'your company'}
+              {' '}— estimated {taskCount * 3}–{taskCount * 6}s
             </p>
           )}
           <button
