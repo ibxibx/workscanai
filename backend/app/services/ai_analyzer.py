@@ -69,7 +69,7 @@ Rules: vary scores meaningfully; COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2; warning only
         try:
             message = self.client.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=500,
+                max_tokens=900,
                 messages=[{"role": "user", "content": prompt}]
             )
             return self._parse_response(message.content[0].text)
@@ -125,14 +125,21 @@ Rules: vary scores meaningfully; COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2; warning only
                 result['human_edge_score'] = self._float(val)
             elif key == 'PIVOT_SKILLS':
                 try:
-                    result['pivot_skills'] = json.dumps(json.loads(val))
-                except:
-                    result['pivot_skills'] = val
+                    parsed = json.loads(val)
+                    # Normalise: accept both ["skill"] and [{"skill":"...","why":"..."}]
+                    normalised = [
+                        s if isinstance(s, str) else s.get('skill', str(s))
+                        for s in parsed
+                    ] if isinstance(parsed, list) else []
+                    result['pivot_skills'] = json.dumps(normalised)
+                except Exception:
+                    result['pivot_skills'] = None  # discard truncated/invalid JSON
             elif key == 'PIVOT_ROLES':
                 try:
-                    result['pivot_roles'] = json.dumps(json.loads(val))
-                except:
-                    result['pivot_roles'] = val
+                    parsed = json.loads(val)
+                    result['pivot_roles'] = json.dumps(parsed) if isinstance(parsed, list) else None
+                except Exception:
+                    result['pivot_roles'] = None  # discard truncated/invalid JSON
 
         if 'ai_readiness_score' not in result:
             subs = [
