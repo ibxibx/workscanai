@@ -434,7 +434,11 @@ export default function ResultsPage() {
                         if (r.pivot_skills) {
                           try {
                             const skills = JSON.parse(r.pivot_skills)
-                            if (Array.isArray(skills)) skills.forEach((s: string) => { if (!allSkills.includes(s) && allSkills.length < 6) allSkills.push(s) })
+                            if (Array.isArray(skills)) skills.forEach((s: unknown) => {
+                              // Handle both plain strings and {skill, why} objects
+                              const label = typeof s === 'string' ? s : (s as any)?.skill ?? String(s)
+                              if (label && !allSkills.includes(label) && allSkills.length < 6) allSkills.push(label)
+                            })
                           } catch { }
                         }
                       })
