@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import { Sparkles, Clock, Plus, TrendingUp, DollarSign, Zap, Download, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useAuth } from '@/lib/auth'
 
-// ── Local storage key for tracking this browser's workflow IDs ────────────────
+// ── Local storage key — kept as a fallback cache for speed ───────────────────
 const MY_WORKFLOWS_KEY = 'workscan_my_workflow_ids'
 
 export function saveMyWorkflowId(id: number) {
@@ -17,7 +18,7 @@ export function saveMyWorkflowId(id: number) {
   } catch {}
 }
 
-function getMyWorkflowIds(): number[] {
+function getLocalWorkflowIds(): number[] {
   try {
     return JSON.parse(localStorage.getItem(MY_WORKFLOWS_KEY) || '[]')
   } catch { return [] }
@@ -35,26 +36,46 @@ interface WorkflowSummary {
 }
 
 export default function DashboardPage() {
+  const { email, isLoaded } = useAuth()
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [downloadingCombined, setDownloadingCombined] = useState<'docx' | 'pdf' | null>(null)
 
   useEffect(() => {
+    if (!isLoaded) return  // wait for auth to hydrate from localStorage
+
     const fetchWorkflows = async () => {
       try {
-        // Only fetch workflows submitted from this browser
-        const myIds = getMyWorkflowIds()
+        let ids: number[] = []
 
-        if (myIds.length === 0) {
+        if (email) {
+          // ── Primary: fetch all workflows from the account via email ──────
+          const accountRes = await fetch('/api/workflows', {
+            headers: { 'x-user-email': email },
+          })
+          if (accountRes.ok) {
+            const accountWorkflows: Array<{ id: number }> = await accountRes.json()
+            ids = accountWorkflows.map(w => w.id)
+            // Sync back to localStorage so it stays up to date
+            ids.forEach(id => saveMyWorkflowId(id))
+          }
+        }
+
+        // ── Fallback / merge: also include any IDs in localStorage ─────────
+        // (covers analyses submitted before sign-in on this device)
+        const localIds = getLocalWorkflowIds()
+        const mergedIds = Array.from(new Set([...ids, ...localIds]))
+
+        if (mergedIds.length === 0) {
           setWorkflows([])
           setLoading(false)
           return
         }
 
-        // Fetch each of this user's workflows individually by ID
+        // Enrich each ID with analysis data
         const enriched: WorkflowSummary[] = (
           await Promise.all(
-            myIds.map(async (id) => {
+            mergedIds.map(async (id) => {
               try {
                 const aRes = await fetch(`/api/results/${id}`)
                 if (aRes.ok) {
@@ -70,7 +91,6 @@ export default function DashboardPage() {
                     task_count: aData.workflow?.tasks?.length ?? 0,
                   }
                 }
-                // Analysis not ready yet — try workflow endpoint
                 const wfRes = await fetch(`/api/workflows/${id}`)
                 if (wfRes.ok) {
                   const wf = await wfRes.json()
@@ -91,7 +111,6 @@ export default function DashboardPage() {
           )
         ).filter(Boolean) as WorkflowSummary[]
 
-        // Sort newest first
         enriched.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         setWorkflows(enriched)
       } catch (err) {
@@ -100,8 +119,9 @@ export default function DashboardPage() {
         setLoading(false)
       }
     }
+
     fetchWorkflows()
-  }, [])
+  }, [email, isLoaded])
 
   const analyzed = workflows.filter(w => w.automation_score !== null)
   const totalHours = analyzed.reduce((sum, w) => sum + (w.hours_saved ?? 0), 0)
@@ -167,6 +187,19 @@ export default function DashboardPage() {
             Your workflow analyses and automation insights.
           </p>
         </div>
+
+        {/* Sign-in banner — shown when not logged in */}
+        {isLoaded && !email && (
+          <div className="bg-amber-50 border border-amber-200 rounded-[18px] p-[24px] mb-[32px] flex items-center justify-between gap-[16px]">
+            <div>
+              <div className="text-[14px] font-semibold text-amber-800 mb-[2px]">Sign in to see all your analyses</div>
+              <div className="text-[13px] text-amber-700">Analyses are tied to your account — sign in to access them on any device.</div>
+            </div>
+            <Link href="/auth" className="shrink-0 inline-flex items-center gap-[8px] bg-amber-600 hover:bg-amber-700 text-white px-[20px] py-[10px] rounded-full text-[14px] font-semibold transition-all">
+              Sign in
+            </Link>
+          </div>
+        )}
 
         {/* New Analysis CTA */}
         <Link href="/#analyze" className="block group mb-[32px]">
@@ -330,15 +363,27 @@ export default function DashboardPage() {
               </div>
               <h3 className="text-[19px] font-semibold italic mb-[8px]">No analyses yet</h3>
               <p className="text-[15px] text-[#6e6e73] mb-[24px] max-w-[400px] mx-auto">
-                Create your first workflow analysis to unlock automation insights and ROI calculations.
+                {email
+                  ? 'Create your first workflow analysis to unlock automation insights and ROI calculations.'
+                  : 'Sign in to see all your analyses across devices, or create a new one below.'}
               </p>
-              <Link
-                href="/#analyze"
-                className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[24px] py-[12px] rounded-full text-[15px] font-medium transition-all"
-              >
-                <Plus className="h-[16px] w-[16px]" />
-                Create analysis
-              </Link>
+              <div className="flex flex-wrap justify-center gap-[12px]">
+                <Link
+                  href="/#analyze"
+                  className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[24px] py-[12px] rounded-full text-[15px] font-medium transition-all"
+                >
+                  <Plus className="h-[16px] w-[16px]" />
+                  Create analysis
+                </Link>
+                {!email && (
+                  <Link
+                    href="/auth"
+                    className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] text-[#1d1d1f] px-[24px] py-[12px] rounded-full text-[15px] font-medium transition-all"
+                  >
+                    Sign in
+                  </Link>
+                )}
+              </div>
             </div>
           ) : (
             <div className="space-y-[16px]">
