@@ -19,12 +19,25 @@ try:
             "ALTER TABLE analysis_results ADD COLUMN agent_label VARCHAR(100)",
             "ALTER TABLE analysis_results ADD COLUMN agent_milestone TEXT",
             "ALTER TABLE analysis_results ADD COLUMN orchestration TEXT",
+            "ALTER TABLE workflows ADD COLUMN share_code VARCHAR(16)",
         ]:
             try:
                 conn.execute(text(ddl))
                 conn.commit()
             except Exception:
                 pass  # column already exists
+        # Backfill share_code for existing rows that have none
+        try:
+            from app.models.workflow import Workflow as _WF, _gen_share_code
+            with engine.connect() as _conn:
+                from sqlalchemy import text as _t
+                rows = _conn.execute(_t("SELECT id FROM workflows WHERE share_code IS NULL")).fetchall()
+                for row in rows:
+                    code = _gen_share_code()
+                    _conn.execute(_t("UPDATE workflows SET share_code=:c WHERE id=:i"), {"c": code, "i": row[0]})
+                _conn.commit()
+        except Exception as _e:
+            print(f"Warning: share_code backfill failed: {_e}")
 except Exception as e:
     print(f"Warning: Could not create DB tables at startup: {e}")
 

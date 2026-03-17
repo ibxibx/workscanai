@@ -67,7 +67,8 @@ export default function ResultsPage() {
   const [copied, setCopied] = useState(false)
 
   const handleShare = useCallback(async () => {
-    const shareUrl = `${window.location.origin}/report/${id}`
+    const shareCode = analysisData?.workflow?.share_code || id
+    const shareUrl = `${window.location.origin}/report/${shareCode}`
     try {
       if (navigator.share) {
         await navigator.share({ title: analysisData ? `WorkScanAI — ${analysisData.workflow.name}` : 'WorkScanAI Analysis', text: 'Check out this automation analysis from WorkScanAI', url: shareUrl })
