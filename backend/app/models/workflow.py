@@ -4,6 +4,12 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Tex
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
+import secrets
+
+
+def _gen_share_code() -> str:
+    """Generate a 6-char alphanumeric share code (e.g. '4m5gd9')."""
+    return secrets.token_hex(3)   # 3 bytes → 6 hex chars
 
 
 class User(Base):
@@ -32,6 +38,7 @@ class Workflow(Base):
     __tablename__ = "workflows"
     
     id = Column(Integer, primary_key=True, index=True)
+    share_code = Column(String(16), unique=True, nullable=True, index=True)  # e.g. '4m5gd9'
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     source_text = Column(Text, nullable=True)

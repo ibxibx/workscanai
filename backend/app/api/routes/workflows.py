@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.core.database import get_db
 from app.core.security import check_rate_limit, verify_recaptcha
-from app.models.workflow import Workflow, Task, Analysis, AnalysisResult, User
+from app.models.workflow import Workflow, Task, Analysis, AnalysisResult, User, _gen_share_code
 from app.schemas.workflow import (
     WorkflowCreate, WorkflowResponse,
     AnalyzeRequest, AnalysisResponse, AnalysisResultResponse
@@ -55,6 +55,7 @@ def create_workflow(
 
     # Create workflow
     workflow = Workflow(
+        share_code=_gen_share_code(),
         name=workflow_data.name,
         description=workflow_data.description,
         source_text=workflow_data.source_text,
@@ -245,3 +246,33 @@ def get_analysis_results(workflow_id: int, db: Session = Depends(get_db)):
         _ = r.task
     
     return analysis
+
+
+# ── Public share-code endpoints (no auth required) ────────────────────────────
+
+@router.get("/share/{share_code}", response_model=AnalysisResponse)
+def get_analysis_by_share_code(share_code: str, db: Session = Depends(get_db)):
+    """Fetch a workflow's analysis by its human-readable share code. Public — no auth."""
+    workflow = db.query(Workflow).filter(Workflow.share_code == share_code).first()
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    analysis = db.query(Analysis).filter(Analysis.workflow_id == workflow.id).first()
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not yet available for this report")
+
+    _ = analysis.workflow
+    _ = analysis.results
+    for r in analysis.results:
+        _ = r.task
+
+    return analysis
+
+
+@router.get("/share/{share_code}/workflow", response_model=WorkflowResponse)
+def get_workflow_by_share_code(share_code: str, db: Session = Depends(get_db)):
+    """Fetch workflow metadata by share code. Public — no auth."""
+    workflow = db.query(Workflow).filter(Workflow.share_code == share_code).first()
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return workflow

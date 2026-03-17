@@ -36,6 +36,7 @@ class WorkflowCreate(BaseModel):
 
 class WorkflowResponse(BaseModel):
     id: int
+    share_code: Optional[str] = None
     name: str
     description: Optional[str]
     source_text: Optional[str] = None
