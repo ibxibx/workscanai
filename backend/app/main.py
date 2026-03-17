@@ -20,6 +20,28 @@ try:
             "ALTER TABLE analysis_results ADD COLUMN agent_milestone TEXT",
             "ALTER TABLE analysis_results ADD COLUMN orchestration TEXT",
             "ALTER TABLE workflows ADD COLUMN share_code VARCHAR(16)",
+            "ALTER TABLE workflows ADD COLUMN user_email VARCHAR(255)",
+            # older columns that may be missing from pre-migration DBs
+            "ALTER TABLE workflows ADD COLUMN source_text TEXT",
+            "ALTER TABLE workflows ADD COLUMN input_mode VARCHAR(50)",
+            "ALTER TABLE workflows ADD COLUMN analysis_context VARCHAR(50)",
+            "ALTER TABLE workflows ADD COLUMN team_size VARCHAR(50)",
+            "ALTER TABLE workflows ADD COLUMN industry VARCHAR(100)",
+            "ALTER TABLE analysis_results ADD COLUMN score_repeatability REAL",
+            "ALTER TABLE analysis_results ADD COLUMN score_data_availability REAL",
+            "ALTER TABLE analysis_results ADD COLUMN score_error_tolerance REAL",
+            "ALTER TABLE analysis_results ADD COLUMN score_integration REAL",
+            "ALTER TABLE analysis_results ADD COLUMN risk_level VARCHAR(20)",
+            "ALTER TABLE analysis_results ADD COLUMN risk_flag TEXT",
+            "ALTER TABLE analysis_results ADD COLUMN countdown_window VARCHAR(20)",
+            "ALTER TABLE analysis_results ADD COLUMN human_edge_score REAL",
+            "ALTER TABLE analysis_results ADD COLUMN pivot_skills TEXT",
+            "ALTER TABLE analysis_results ADD COLUMN pivot_roles TEXT",
+            "ALTER TABLE analyses ADD COLUMN readiness_score REAL",
+            "ALTER TABLE analyses ADD COLUMN readiness_data_quality REAL",
+            "ALTER TABLE analyses ADD COLUMN readiness_process_docs REAL",
+            "ALTER TABLE analyses ADD COLUMN readiness_tool_maturity REAL",
+            "ALTER TABLE analyses ADD COLUMN readiness_team_skills REAL",
         ]:
             try:
                 conn.execute(text(ddl))
@@ -70,4 +92,4 @@ app.include_router(reports.router, prefix="/api", tags=["reports"])
 app.include_router(auth.router, prefix="/api", tags=["auth"])
 
 # Vercel serverless handler
-handler = Mangum(app)
+handler = Mangum(app, lifespan="off")
