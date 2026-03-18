@@ -137,8 +137,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [sourceText, setSourceText] = useState('')
   const [linkedinUrl, setLinkedinUrl] = useState('')
   const [linkedinType, setLinkedinType] = useState<'personal' | 'company'>('personal')
+  const [linkedinPastedText, setLinkedinPastedText] = useState('')
   const [linkedinStatus, setLinkedinStatus] = useState<'idle' | 'fetching' | 'done' | 'error'>('idle')
-  const [linkedinProfile, setLinkedinProfile] = useState<{ name: string; title_or_tagline: string; profile_type: string } | null>(null)
+  const [linkedinProfile, setLinkedinProfile] = useState<{ name: string; title_or_tagline: string; profile_type: string; linkedin_url: string } | null>(null)
   const [linkedinError, setLinkedinError] = useState('')
   const [isExtractingTasks, setIsExtractingTasks] = useState(false)
   const [extractStatus, setExtractStatus] = useState<'idle' | 'extracting' | 'done'>('idle')
@@ -287,23 +288,21 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       const r = await fetch('/api/extract-linkedin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, profile_type: linkedinType }),
+        body: JSON.stringify({ url, profile_type: linkedinType, pasted_text: linkedinPastedText || undefined }),
       })
       if (!r.ok) {
         const d = await r.json()
         throw new Error(d.detail || 'Could not extract LinkedIn data')
       }
       const d = await r.json()
-      setLinkedinProfile({ name: d.name, title_or_tagline: d.title_or_tagline, profile_type: d.profile_type })
+      setLinkedinProfile({ name: d.name, title_or_tagline: d.title_or_tagline, profile_type: d.profile_type, linkedin_url: d.linkedin_url })
       setSourceText(d.text)
-      // Auto-populate workflow name from LinkedIn name
       if (d.name && !workflowName) setWorkflowName(d.name + ' — Workflow Analysis')
       setLinkedinStatus('done')
-      // Now run task extraction on the rich profile text
       await extractTasksFromText(d.text)
     } catch (e: any) {
       setLinkedinStatus('error')
-      setLinkedinError(e.message || 'Failed to extract LinkedIn data. Try pasting the profile text manually.')
+      setLinkedinError(e.message || 'Failed to extract. Check the URL and try again.')
     }
   }
 
@@ -555,6 +554,23 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                 </div>
               )}
 
+              {/* Optional: paste profile text for richer analysis */}
+              <details className="group">
+                <summary className="cursor-pointer text-[13px] text-[#0077B5] hover:underline list-none flex items-center gap-[6px] select-none">
+                  <span className="group-open:rotate-90 inline-block transition-transform">▶</span>
+                  Paste profile text for richer results <span className="text-[#86868b] font-normal">(optional)</span>
+                </summary>
+                <div className="mt-[10px]">
+                  <textarea
+                    value={linkedinPastedText}
+                    onChange={e=>setLinkedinPastedText(e.target.value)}
+                    placeholder={'Open your LinkedIn profile → select all text (Ctrl+A) → paste here.\nThis gives WorkScanAI your actual experience, skills and job descriptions.'}
+                    rows={5}
+                    className="w-full px-[14px] py-[10px] bg-white border border-[#d2d2d7] rounded-[10px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0077B5]/40 focus:border-[#0077B5] transition-all resize-none"
+                  />
+                </div>
+              </details>
+
               {/* Extract button */}
               {linkedinStatus!=='done'&&(
                 <button type="button" onClick={extractFromLinkedIn}
@@ -567,7 +583,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
               )}
 
               {linkedinStatus==='done'&&(
-                <button type="button" onClick={()=>{setLinkedinStatus('idle');setLinkedinProfile(null);setLinkedinUrl('');setLinkedinError('')}}
+                <button type="button" onClick={()=>{setLinkedinStatus('idle');setLinkedinProfile(null);setLinkedinUrl('');setLinkedinPastedText('');setLinkedinError('')}}
                   className="w-full flex items-center justify-center gap-[8px] border border-[#d2d2d7] bg-white hover:bg-[#f5f5f7] text-[#6e6e73] py-[12px] rounded-[12px] font-medium text-[14px] transition-all">
                   <RefreshCw className="h-[14px] w-[14px]"/>Try a different profile
                 </button>
