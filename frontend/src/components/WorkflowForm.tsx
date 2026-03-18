@@ -136,7 +136,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [transcript, setTranscript] = useState('')
   const [sourceText, setSourceText] = useState('')
   const [linkedinUrl, setLinkedinUrl] = useState('')
-  const [linkedinType, setLinkedinType] = useState<'personal' | 'company'>('personal')
+
   const [linkedinPastedText, setLinkedinPastedText] = useState('')
   const [linkedinStatus, setLinkedinStatus] = useState<'idle' | 'fetching' | 'done' | 'error'>('idle')
   const [linkedinProfile, setLinkedinProfile] = useState<{ name: string; title_or_tagline: string; profile_type: string; linkedin_url: string } | null>(null)
@@ -288,7 +288,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       const r = await fetch('/api/extract-linkedin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, profile_type: linkedinType, pasted_text: linkedinPastedText || undefined }),
+        body: JSON.stringify({ url, pasted_text: linkedinPastedText || undefined }),
       })
       if (!r.ok) {
         const d = await r.json()
@@ -506,20 +506,6 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
               <p className="text-[15px] text-[#6e6e73] max-w-[480px] mx-auto">Paste a LinkedIn personal or company page URL — WorkScanAI will extract the role, responsibilities, and daily activities to generate a full automation analysis.</p>
             </div>
 
-            {/* Personal / Company toggle */}
-            <div className="flex justify-center mb-[24px]">
-              <div className="inline-flex bg-white border border-[#d2d2d7] rounded-full p-[4px] gap-[4px]">
-                <button type="button" onClick={()=>{setLinkedinType('personal');setLinkedinStatus('idle');setLinkedinProfile(null);setLinkedinError('')}}
-                  className={`flex items-center gap-[7px] px-[20px] py-[9px] rounded-full font-semibold text-[14px] transition-all ${linkedinType==='personal'?'bg-[#0077B5] text-white shadow-md':'text-[#6e6e73] hover:text-[#1d1d1f]'}`}>
-                  <User className="h-[14px] w-[14px]"/>Personal Profile
-                </button>
-                <button type="button" onClick={()=>{setLinkedinType('company');setLinkedinStatus('idle');setLinkedinProfile(null);setLinkedinError('')}}
-                  className={`flex items-center gap-[7px] px-[20px] py-[9px] rounded-full font-semibold text-[14px] transition-all ${linkedinType==='company'?'bg-[#0077B5] text-white shadow-md':'text-[#6e6e73] hover:text-[#1d1d1f]'}`}>
-                  <Building2 className="h-[14px] w-[14px]"/>Company Page
-                </button>
-              </div>
-            </div>
-
             {/* URL input */}
             <div className="max-w-[560px] mx-auto space-y-[14px]">
               <div className="relative">
@@ -529,7 +515,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                   value={linkedinUrl}
                   onChange={e=>{setLinkedinUrl(e.target.value);setLinkedinError('');setLinkedinStatus('idle');setLinkedinProfile(null)}}
                   onKeyDown={e=>e.key==='Enter'&&(e.preventDefault(),extractFromLinkedIn())}
-                  placeholder={linkedinType==='personal'?'linkedin.com/in/yourname  or  /in/yourname':'linkedin.com/company/name  or  /company/name'}
+                  placeholder="linkedin.com/in/name  ·  /in/name  ·  linkedin.com/company/name  ·  /company/name"
                   className="w-full pl-[42px] pr-[14px] py-[13px] bg-white border border-[#d2d2d7] rounded-[12px] text-[15px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0077B5]/40 focus:border-[#0077B5] transition-all"
                 />
               </div>
@@ -601,10 +587,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
               )}
 
               <p className="text-[12px] text-[#86868b] text-center leading-relaxed">
-                {linkedinType==='personal'
-                  ?'WorkScanAI reads public profile data to infer your role\'s key responsibilities and tasks.'
-                  :'WorkScanAI reads the company page to infer typical departmental workflows and daily operations.'}
-                {' '}Profile must be publicly visible.
+                Personal profiles (<code className="bg-[#e8e8ed] px-[4px] rounded">/in/</code>) and company pages (<code className="bg-[#e8e8ed] px-[4px] rounded">/company/</code>) are auto-detected from the URL.
+                Profile must be publicly visible.
               </p>
             </div>
           </div>
