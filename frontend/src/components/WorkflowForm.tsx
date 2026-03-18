@@ -391,7 +391,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         if (d.workflow_name) setWorkflowName(d.workflow_name)
         if (d.workflow_description) setWorkflowDescription(d.workflow_description)
         setExtractStatus('done')
-        setTimeout(() => { setIsExtractingTasks(false); setExtractStatus('idle') }, 2000)
+        setTimeout(() => {
+          setIsExtractingTasks(false)
+          setExtractStatus('idle')
+          document.getElementById('context-selector')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 2000)
       } else { setIsExtractingTasks(false); setExtractStatus('idle') }
     } catch { setIsExtractingTasks(false); setExtractStatus('idle') }
   }
@@ -906,8 +910,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
           <h2 className="text-[21px] font-semibold text-[#1d1d1f] mb-[6px]">Workflow Details</h2>
           {taskCount > 0 && (
-            <p className="text-[13px] text-[#86868b] mb-[28px]">
-              Analysing {taskCount} task{taskCount !== 1 ? 's' : ''} for your role — estimated {taskCount * 3}–{taskCount * 6}s
+            <p className="text-[15px] font-bold text-[#1d1d1f] mb-[28px]">
+              Analysing{' '}
+              <span className="text-[#0071e3]">{taskCount}</span>{' '}
+              task{taskCount !== 1 ? 's' : ''} for your role — estimated{' '}
+              <span className="text-[#0071e3]">{taskCount * 3}–{taskCount * 6}s</span>
             </p>
           )}
           <div className="space-y-[20px]">
