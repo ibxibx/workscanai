@@ -427,7 +427,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault()
     if (!workflowName.trim()) { onError('Please provide a workflow name'); return }
-    if (!tasks.some(t=>t.name.trim())) { onError(inputMode==='linkedin'?'Please extract a LinkedIn profile first to generate tasks.':'Please add at least one task'); return }
+    if (!tasks.some(t=>t.name.trim())) { onError('Please add at least one task'); return }
     if (!analysisContext) {
       setContextError(true)
       document.getElementById('context-selector')?.scrollIntoView({ behavior:'smooth', block:'center' })
@@ -551,7 +551,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           ]).map(({mode,icon:Icon,label,sublabel}) => (
             <button key={mode} type="button" onClick={()=>setInputMode(mode)}
               className={`flex-1 flex items-center justify-center gap-[10px] px-[16px] py-[14px] rounded-[14px] font-semibold transition-all ${inputMode===mode?'bg-white text-[#1d1d1f] shadow-md':'text-white/60 hover:text-white hover:bg-white/10'}`}>
-              <Icon className={`h-[18px] w-[18px] shrink-0 ${mode==='linkedin'&&inputMode===mode?'text-[#0077B5]':''}`}/>
+              <Icon className="h-[18px] w-[18px] shrink-0"/>
               <div className="text-left hidden sm:block">
                 <div className="text-[15px] leading-tight">{label}</div>
                 <div className={`text-[11px] font-normal leading-tight mt-[1px] ${inputMode===mode?'text-[#6e6e73]':'text-white/40'}`}>{sublabel}</div>
@@ -561,8 +561,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           ))}
         </div>
 
-        {/* LinkedIn panel */}
-        {inputMode==='linkedin'&&(
+        {/* LinkedIn panel — removed (inputMode no longer includes 'linkedin') */}
+        {false&&(
           <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
             <div className="text-center mb-[32px]">
               <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-[#0077B5]/10 border border-[#0077B5]/30 mb-[16px]">
@@ -653,15 +653,15 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
               )}
 
               {/* Success */}
-              {linkedinStatus==='done'&&linkedinProfile&&(
+              {linkedinStatus==='done'&&linkedinProfile!=null&&(
                 <div className="space-y-[12px]">
                   <div className="bg-white border border-green-200 rounded-[16px] px-[20px] py-[16px] flex items-center gap-[14px]">
                     <div className="shrink-0 w-[44px] h-[44px] rounded-full bg-[#0077B5] flex items-center justify-center">
-                      {linkedinProfile.profile_type==='company'?<Building2 className="h-[20px] w-[20px] text-white"/>:<User className="h-[20px] w-[20px] text-white"/>}
+                      {linkedinProfile?.profile_type==='company'?<Building2 className="h-[20px] w-[20px] text-white"/>:<User className="h-[20px] w-[20px] text-white"/>}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[15px] font-semibold text-[#1d1d1f] truncate">{linkedinProfile.name}</p>
-                      {linkedinProfile.title_or_tagline&&<p className="text-[12px] text-[#6e6e73] mt-[2px] line-clamp-2">{linkedinProfile.title_or_tagline}</p>}
+                      <p className="text-[15px] font-semibold text-[#1d1d1f] truncate">{linkedinProfile?.name}</p>
+                      {linkedinProfile?.title_or_tagline&&<p className="text-[12px] text-[#6e6e73] mt-[2px] line-clamp-2">{linkedinProfile?.title_or_tagline}</p>}
                     </div>
                     <CheckCircle2 className="h-[22px] w-[22px] text-green-500 shrink-0"/>
                   </div>
@@ -848,7 +848,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         </div>
 
         {/* Tasks */}
-        {(inputMode==='manual'||inputMode==='voice'||(inputMode==='linkedin'&&tasks.some(t=>t.name.trim())))&&(
+        {(inputMode==='manual'||inputMode==='voice')&&(
           <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
             <div className="flex items-center justify-between mb-[28px]">
               <h2 className="text-[21px] font-semibold text-[#1d1d1f]">Tasks</h2>
