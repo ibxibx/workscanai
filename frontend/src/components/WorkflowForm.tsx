@@ -136,11 +136,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [transcript, setTranscript] = useState('')
   const [sourceText, setSourceText] = useState('')
   const [linkedinUrl, setLinkedinUrl] = useState('')
-
   const [linkedinPastedText, setLinkedinPastedText] = useState('')
-  const [linkedinStatus, setLinkedinStatus] = useState<'idle' | 'fetching' | 'done' | 'error'>('idle')
+  const [linkedinStatus, setLinkedinStatus] = useState<'idle' | 'fetching' | 'done' | 'error' | 'waiting_popup'>('idle')
   const [linkedinProfile, setLinkedinProfile] = useState<{ name: string; title_or_tagline: string; profile_type: string; linkedin_url: string } | null>(null)
   const [linkedinError, setLinkedinError] = useState('')
+  const linkedinPopupRef = useRef<Window | null>(null)
   const [isExtractingTasks, setIsExtractingTasks] = useState(false)
   const [extractStatus, setExtractStatus] = useState<'idle' | 'extracting' | 'done'>('idle')
   const [activeStep, setActiveStep] = useState<number>(-1)
@@ -171,6 +171,54 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   useEffect(() => {
     if (authStep === 'code') setTimeout(() => codeInputRef.current?.focus(), 100)
   }, [authStep])
+
+  // Listen for postMessage from the linkedin-receiver popup
+  useEffect(() => {
+    const handleLinkedInMessage = async (event: MessageEvent) => {
+      if (event.data?.type !== 'workscanai_linkedin_data') return
+      const d = event.data
+      // Close popup if still open
+      try { linkedinPopupRef.current?.close() } catch {}
+      linkedinPopupRef.current = null
+
+      // Build rich pasted text from what the bookmarklet extracted
+      const parts: string[] = []
+      if (d.headline) parts.push(`Headline: ${d.headline}`)
+      if (d.about) parts.push(`\nAbout:\n${d.about}`)
+      if (d.experience) parts.push(`\nExperience:\n${d.experience}`)
+      if (d.skills) parts.push(`\nSkills: ${d.skills}`)
+      const richText = parts.join('\n').trim()
+
+      setLinkedinPastedText(richText)
+      setLinkedinUrl(d.url || '')
+      setLinkedinStatus('fetching')
+      setLinkedinError('')
+
+      try {
+        const r = await fetch('/api/extract-linkedin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: d.url || 'https://www.linkedin.com', pasted_text: richText }),
+        })
+        if (!r.ok) { const e = await r.json(); throw new Error(e.detail || 'Extraction failed') }
+        const res = await r.json()
+        setLinkedinProfile({ name: res.name || d.name, title_or_tagline: d.headline || '', profile_type: res.profile_type, linkedin_url: d.url })
+        setSourceText(res.text)
+        if ((res.name || d.name) && !workflowName) setWorkflowName((res.name || d.name) + ' — Workflow Analysis')
+        if (res.profile_type === 'company') setAnalysisContext('company')
+        else setAnalysisContext('individual')
+        setContextError(false)
+        setLinkedinStatus('done')
+        await extractTasksFromText(res.text)
+      } catch (e: any) {
+        setLinkedinStatus('error')
+        setLinkedinError(e.message || 'Extraction failed')
+      }
+    }
+    window.addEventListener('message', handleLinkedInMessage)
+    return () => window.removeEventListener('message', handleLinkedInMessage)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflowName])
 
   const advanceTo = (step: number) => {
     setActiveStep(step)
@@ -264,6 +312,25 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       setTimeout(() => { setIsUploading(false); setUploadProgress(0); setUploadStage('') }, 900)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  const openLinkedInPopup = () => {
+    setLinkedinStatus('waiting_popup')
+    setLinkedinError('')
+    setLinkedinProfile(null)
+    const popup = window.open(
+      'https://workscanai.vercel.app/linkedin-receiver',
+      'workscanai_receiver',
+      'width=420,height=320,scrollbars=no,resizable=no'
+    )
+    linkedinPopupRef.current = popup
+    // If popup gets closed without data, reset
+    const checker = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(checker)
+        setLinkedinStatus(s => s === 'waiting_popup' ? 'idle' : s)
+      }
+    }, 500)
   }
 
   const extractFromLinkedIn = async () => {
@@ -498,115 +565,134 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         {/* LinkedIn panel */}
         {inputMode==='linkedin'&&(
           <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
-            <div className="text-center mb-[28px]">
+            <div className="text-center mb-[32px]">
               <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-[#0077B5]/10 border border-[#0077B5]/30 mb-[16px]">
                 <Linkedin className="h-[32px] w-[32px] text-[#0077B5]"/>
               </div>
-              <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">LinkedIn Profile Analysis</h3>
-              <p className="text-[15px] text-[#6e6e73] max-w-[480px] mx-auto">Paste your LinkedIn URL and — for an accurate analysis — add your headline or a few lines from your profile.</p>
+              <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Import from LinkedIn</h3>
+              <p className="text-[15px] text-[#6e6e73] max-w-[460px] mx-auto">
+                Install the one-click bookmarklet. Then visit any LinkedIn profile and click it — WorkScanAI automatically reads the headline, current role, and responsibilities.
+              </p>
             </div>
 
-            {/* URL input */}
-            <div className="max-w-[560px] mx-auto space-y-[14px]">
-              <div className="relative">
-                <Linkedin className="absolute left-[14px] top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-[#0077B5]"/>
-                <input
-                  type="url"
-                  value={linkedinUrl}
-                  onChange={e=>{setLinkedinUrl(e.target.value);setLinkedinError('');setLinkedinStatus('idle');setLinkedinProfile(null)}}
-                  onKeyDown={e=>e.key==='Enter'&&(e.preventDefault(),extractFromLinkedIn())}
-                  placeholder="linkedin.com/in/name  ·  /in/name  ·  linkedin.com/company/name  ·  /company/name"
-                  className="w-full pl-[42px] pr-[14px] py-[13px] bg-white border border-[#d2d2d7] rounded-[12px] text-[15px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0077B5]/40 focus:border-[#0077B5] transition-all"
-                />
-              </div>
+            <div className="max-w-[560px] mx-auto space-y-[16px]">
 
-              {linkedinError&&(
-                <div className="flex items-start gap-[10px] bg-red-50 border border-red-200 rounded-[12px] px-[16px] py-[12px]">
-                  <span className="text-red-500 text-[15px] mt-[1px]">⚠</span>
-                  <div>
-                    <p className="text-[14px] font-medium text-red-700">{linkedinError}</p>
-                    <p className="text-[12px] text-red-500 mt-[4px]">You can also switch to <strong>Manual Entry</strong> and paste the profile text directly.</p>
+              {/* Step 1 — Install bookmarklet */}
+              {linkedinStatus==='idle'&&(
+                <div className="bg-white border border-[#d2d2d7] rounded-[16px] p-[24px]">
+                  <div className="flex items-center gap-[10px] mb-[16px]">
+                    <div className="w-[24px] h-[24px] rounded-full bg-[#0077B5] flex items-center justify-center text-white text-[12px] font-bold shrink-0">1</div>
+                    <p className="text-[14px] font-semibold text-[#1d1d1f]">Install the bookmarklet <span className="text-[#86868b] font-normal">(one time only)</span></p>
                   </div>
-                </div>
-              )}
-
-              {/* Profile card — shown after successful extraction */}
-              {linkedinStatus==='done'&&linkedinProfile&&(
-                <div className="bg-white border border-[#0077B5]/30 rounded-[14px] px-[20px] py-[16px] flex items-center gap-[14px]">
-                  <div className="shrink-0 w-[44px] h-[44px] rounded-full bg-[#0077B5] flex items-center justify-center">
-                    {linkedinProfile.profile_type==='company'?<Building2 className="h-[20px] w-[20px] text-white"/>:<User className="h-[20px] w-[20px] text-white"/>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-semibold text-[#1d1d1f] truncate">{linkedinProfile.name}</p>
-                    {linkedinProfile.title_or_tagline&&<p className="text-[12px] text-[#6e6e73] truncate mt-[2px]">{linkedinProfile.title_or_tagline}</p>}
-                  </div>
-                  <CheckCircle2 className="h-[20px] w-[20px] text-green-500 shrink-0"/>
-                </div>
-              )}
-
-              {/* Profile text — prominent with helper */}
-              <div>
-                <div className="flex items-center justify-between mb-[6px]">
-                  <label className="text-[13px] font-semibold text-[#1d1d1f]">
-                    Your headline &amp; current position description
-                    <span className="ml-[6px] text-[11px] font-normal text-[#0077B5] bg-[#0077B5]/10 px-[8px] py-[2px] rounded-full">Needed for accurate results</span>
-                  </label>
-                  {linkedinUrl.trim() && (
+                  <p className="text-[13px] text-[#6e6e73] mb-[16px] leading-relaxed">
+                    Show your bookmarks bar (<kbd className="bg-[#f5f5f7] border border-[#d2d2d7] px-[6px] py-[2px] rounded text-[11px]">Ctrl+Shift+B</kbd> / <kbd className="bg-[#f5f5f7] border border-[#d2d2d7] px-[6px] py-[2px] rounded text-[11px]">⌘+Shift+B</kbd>), then drag this button to it:
+                  </p>
+                  <div className="flex items-center gap-[12px]">
+                    {/* The actual draggable bookmarklet link */}
                     <a
-                      href={(() => {
-                        let u = linkedinUrl.trim().replace(/^\/+/, '')
-                        if (/^(in|company|school)\//.test(u)) return 'https://www.linkedin.com/' + u
-                        if (/^(www\.)?linkedin\.com/i.test(u)) return 'https://' + u
-                        if (!u.startsWith('http')) return 'https://' + u
-                        return u
-                      })()}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-[5px] text-[12px] text-[#0077B5] hover:underline shrink-0"
+                      href={`javascript:(function(){if(!window.location.hostname.includes('linkedin.com')){alert('Please go to a LinkedIn profile first, then click this bookmark.');return;}var text=document.body.innerText;var url=window.location.href;var isCompany=url.includes('/company/')||url.includes('/school/');var name=((document.querySelector('h1')||{}).innerText||'').trim();var headline='';var divs=document.querySelectorAll('div');for(var i=0;i<divs.length;i++){var d=divs[i];if(typeof d.className==='string'&&d.className.includes('text-body-medium')){var t=(d.innerText||'').trim();if(t.length>20&&t.length<500){headline=t;break;}}}function sec(label,ends){var marker=label+'\\n'+label+'\\n';var idx=text.indexOf(marker);if(idx===-1){marker='\\n'+label+'\\n';idx=text.indexOf(marker);}if(idx===-1)return'';var start=idx+marker.length;var end=start+2500;for(var j=0;j<ends.length;j++){var m2=ends[j]+'\\n'+ends[j]+'\\n';var ei=text.indexOf(m2,start+50);if(ei>start&&ei<end)end=ei;}return text.slice(start,end).trim().slice(0,1800);}var about=sec('About',['Experience','Skills','Education','Certifications']);var experience=sec('Experience',['Skills','Education','Certifications','Recommendations']);var skills=sec('Skills',['Education','Certifications','Recommendations','Interests']);var payload=JSON.stringify({type:'workscanai_linkedin_data',name:name,headline:headline.slice(0,300),about:about.slice(0,800),experience:experience.slice(0,1500),skills:skills.slice(0,400),url:url,profile_type:isCompany?'company':'personal'});var receiverUrl='https://workscanai.vercel.app/linkedin-receiver';var popup=window.open(receiverUrl,'workscanai_receiver','width=420,height=320,scrollbars=no');if(!popup){window.open(receiverUrl+'%23'+encodeURIComponent(payload),'workscanai_receiver','width=420,height=320');return;}var attempts=0;var iv=setInterval(function(){attempts++;try{popup.postMessage(JSON.parse(payload),'*');clearInterval(iv);}catch(e){if(attempts>30)clearInterval(iv);}},200);})();`}
+                      onClick={e => e.preventDefault()}
+                      draggable
+                      className="inline-flex items-center gap-[8px] bg-[#0077B5] hover:bg-[#006097] text-white px-[18px] py-[10px] rounded-[10px] text-[14px] font-semibold cursor-grab active:cursor-grabbing select-none transition-colors"
+                      title="Drag this to your bookmarks bar"
                     >
-                      <Linkedin className="h-[12px] w-[12px]"/>Open profile ↗
+                      <Linkedin className="h-[15px] w-[15px]"/>
+                      WorkScanAI — Import LinkedIn
                     </a>
+                    <span className="text-[12px] text-[#86868b]">← drag to bookmarks bar</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2 — Open receiver then go to LinkedIn */}
+              {linkedinStatus==='idle'&&(
+                <div className="bg-white border border-[#d2d2d7] rounded-[16px] p-[24px]">
+                  <div className="flex items-center gap-[10px] mb-[12px]">
+                    <div className="w-[24px] h-[24px] rounded-full bg-[#0077B5] flex items-center justify-center text-white text-[12px] font-bold shrink-0">2</div>
+                    <p className="text-[14px] font-semibold text-[#1d1d1f]">Click to start import</p>
+                  </div>
+                  <p className="text-[13px] text-[#6e6e73] mb-[16px] leading-relaxed">
+                    Click the button below, then go to any LinkedIn profile and click your new bookmark. WorkScanAI will receive the profile data automatically.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openLinkedInPopup}
+                    className="w-full flex items-center justify-center gap-[10px] bg-[#0077B5] hover:bg-[#006097] text-white py-[13px] rounded-[12px] font-semibold text-[15px] transition-all"
+                  >
+                    <Linkedin className="h-[18px] w-[18px]"/>
+                    Open import window
+                  </button>
+                </div>
+              )}
+
+              {/* Waiting for popup */}
+              {linkedinStatus==='waiting_popup'&&(
+                <div className="bg-white border border-[#0077B5]/30 rounded-[16px] p-[28px] text-center">
+                  <div className="flex items-center justify-center gap-[10px] mb-[12px]">
+                    <div className="w-[10px] h-[10px] bg-[#0077B5] rounded-full animate-pulse"/>
+                    <p className="text-[15px] font-semibold text-[#1d1d1f]">Import window is open</p>
+                  </div>
+                  <p className="text-[13px] text-[#6e6e73] mb-[16px] leading-relaxed">
+                    Now go to your LinkedIn profile and click the <strong>WorkScanAI — Import LinkedIn</strong> bookmark in your bookmarks bar.
+                  </p>
+                  <div className="bg-[#f5f5f7] rounded-[10px] p-[12px] text-left text-[12px] text-[#6e6e73] space-y-[4px]">
+                    <p>1. Navigate to <strong>linkedin.com/in/yourname</strong></p>
+                    <p>2. Click <strong>WorkScanAI — Import LinkedIn</strong> in your bookmarks bar</p>
+                    <p>3. This page will update automatically ✓</p>
+                  </div>
+                  <button type="button" onClick={()=>{linkedinPopupRef.current?.close();setLinkedinStatus('idle')}} className="mt-[16px] text-[13px] text-[#86868b] hover:text-[#1d1d1f] transition-colors">Cancel</button>
+                </div>
+              )}
+
+              {/* Fetching/processing */}
+              {linkedinStatus==='fetching'&&(
+                <div className="bg-white border border-[#d2d2d7] rounded-[16px] p-[28px] text-center">
+                  <Loader2 className="h-[32px] w-[32px] text-[#0077B5] animate-spin mx-auto mb-[12px]"/>
+                  <p className="text-[15px] font-semibold text-[#1d1d1f] mb-[6px]">Analysing profile…</p>
+                  <p className="text-[13px] text-[#6e6e73]">Building task list from your LinkedIn data</p>
+                </div>
+              )}
+
+              {/* Success */}
+              {linkedinStatus==='done'&&linkedinProfile&&(
+                <div className="space-y-[12px]">
+                  <div className="bg-white border border-green-200 rounded-[16px] px-[20px] py-[16px] flex items-center gap-[14px]">
+                    <div className="shrink-0 w-[44px] h-[44px] rounded-full bg-[#0077B5] flex items-center justify-center">
+                      {linkedinProfile.profile_type==='company'?<Building2 className="h-[20px] w-[20px] text-white"/>:<User className="h-[20px] w-[20px] text-white"/>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[15px] font-semibold text-[#1d1d1f] truncate">{linkedinProfile.name}</p>
+                      {linkedinProfile.title_or_tagline&&<p className="text-[12px] text-[#6e6e73] mt-[2px] line-clamp-2">{linkedinProfile.title_or_tagline}</p>}
+                    </div>
+                    <CheckCircle2 className="h-[22px] w-[22px] text-green-500 shrink-0"/>
+                  </div>
+                  {isExtractingTasks&&(
+                    <div className={`flex items-center gap-[10px] px-[16px] py-[10px] rounded-full text-[13px] font-medium ${extractStatus==='done'?'bg-green-50 border border-green-200 text-green-700':'bg-blue-50 border border-blue-200 text-[#0071e3]'}`}>
+                      {extractStatus==='done'?<><CheckCircle2 className="h-[15px] w-[15px]"/>Tasks populated — scroll down to review</>:<><Loader2 className="animate-spin h-[15px] w-[15px]"/>Generating tasks from profile…</>}
+                    </div>
                   )}
-                </div>
-                <textarea
-                  value={linkedinPastedText}
-                  onChange={e=>setLinkedinPastedText(e.target.value)}
-                  placeholder={'1. Click "Open profile ↗" above (or open linkedin.com/in/yourname)\n2. Copy your headline + current job description\n3. Paste here\n\nExample headline: "Full Stack Engineer | AI Engineer | JavaScript, TypeScript, Python, React"\nExample position: "Building AI-powered tools, architecting agent workflows, writing APIs, leading sprint planning..."'}
-                  rows={6}
-                  className="w-full px-[14px] py-[12px] bg-white border border-[#d2d2d7] rounded-[12px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0077B5]/40 focus:border-[#0077B5] transition-all resize-none leading-relaxed"
-                />
-                <p className="text-[11px] text-[#86868b] mt-[6px]">
-                  Paste your <strong>headline</strong> + <strong>current position description</strong> for task accuracy. The URL slug alone contains no role information.
-                </p>
-              </div>
-
-              {/* Extract button */}
-              {linkedinStatus!=='done'&&(
-                <button type="button" onClick={extractFromLinkedIn}
-                  disabled={linkedinStatus==='fetching'||!linkedinUrl.trim()}
-                  className="w-full flex items-center justify-center gap-[10px] bg-[#0077B5] hover:bg-[#006097] disabled:opacity-50 disabled:cursor-not-allowed text-white py-[14px] rounded-[12px] font-semibold text-[16px] transition-all">
-                  {linkedinStatus==='fetching'
-                    ?<><Loader2 className="animate-spin h-[18px] w-[18px]"/>Extracting from LinkedIn…</>
-                    :<><Linkedin className="h-[18px] w-[18px]"/>Extract & Analyse</>}
-                </button>
-              )}
-
-              {linkedinStatus==='done'&&(
-                <button type="button" onClick={()=>{setLinkedinStatus('idle');setLinkedinProfile(null);setLinkedinUrl('');setLinkedinPastedText('');setLinkedinError('')}}
-                  className="w-full flex items-center justify-center gap-[8px] border border-[#d2d2d7] bg-white hover:bg-[#f5f5f7] text-[#6e6e73] py-[12px] rounded-[12px] font-medium text-[14px] transition-all">
-                  <RefreshCw className="h-[14px] w-[14px]"/>Try a different profile
-                </button>
-              )}
-
-              {/* Extract status */}
-              {linkedinStatus==='done'&&isExtractingTasks&&(
-                <div className={`inline-flex items-center gap-[10px] px-[16px] py-[10px] rounded-full text-[14px] font-medium transition-all ${extractStatus==='done'?'bg-green-50 border border-green-200 text-green-700':'bg-blue-50 border border-blue-200 text-[#0071e3]'}`}>
-                  {extractStatus==='done'?<><CheckCircle2 className="h-[16px] w-[16px]"/>Tasks populated — scroll down to review</>:<><Loader2 className="animate-spin h-[16px] w-[16px]"/>Building task list from profile…</>}
+                  <button type="button" onClick={()=>{setLinkedinStatus('idle');setLinkedinProfile(null);setLinkedinUrl('');setLinkedinPastedText('');setLinkedinError('')}} className="w-full flex items-center justify-center gap-[8px] border border-[#d2d2d7] bg-white hover:bg-[#f5f5f7] text-[#6e6e73] py-[10px] rounded-[12px] font-medium text-[13px] transition-all">
+                    <RefreshCw className="h-[13px] w-[13px]"/>Import a different profile
+                  </button>
                 </div>
               )}
 
-              <p className="text-[12px] text-[#86868b] text-center leading-relaxed">
-                Personal profiles (<code className="bg-[#e8e8ed] px-[4px] rounded">/in/</code>) and company pages (<code className="bg-[#e8e8ed] px-[4px] rounded">/company/</code>) are auto-detected from the URL.
+              {/* Error */}
+              {linkedinStatus==='error'&&(
+                <div className="space-y-[12px]">
+                  <div className="flex items-start gap-[10px] bg-red-50 border border-red-200 rounded-[12px] px-[16px] py-[12px]">
+                    <span className="text-red-500 mt-[1px]">⚠</span>
+                    <div>
+                      <p className="text-[14px] font-medium text-red-700">{linkedinError}</p>
+                      <p className="text-[12px] text-red-500 mt-[4px]">Try again, or use Manual Entry / Document Upload instead.</p>
+                    </div>
+                  </div>
+                  <button type="button" onClick={()=>{setLinkedinStatus('idle');setLinkedinError('')}} className="w-full flex items-center justify-center gap-[8px] border border-[#d2d2d7] bg-white hover:bg-[#f5f5f7] text-[#6e6e73] py-[10px] rounded-[12px] font-medium text-[13px] transition-all"><RefreshCw className="h-[13px] w-[13px]"/>Try again</button>
+                </div>
+              )}
+
+              <p className="text-[11px] text-[#86868b] text-center leading-relaxed pt-[4px]">
+                The bookmarklet runs entirely in your browser — no LinkedIn credentials are sent to WorkScanAI. Works on any public profile you can view.
               </p>
             </div>
           </div>
