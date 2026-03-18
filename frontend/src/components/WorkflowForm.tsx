@@ -298,6 +298,10 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       setLinkedinProfile({ name: d.name, title_or_tagline: d.title_or_tagline, profile_type: d.profile_type, linkedin_url: d.linkedin_url })
       setSourceText(d.text)
       if (d.name && !workflowName) setWorkflowName(d.name + ' — Workflow Analysis')
+      // Auto-select the matching analysis context
+      if (d.profile_type === 'company') setAnalysisContext('company')
+      else setAnalysisContext('individual')
+      setContextError(false)
       setLinkedinStatus('done')
       await extractTasksFromText(d.text)
     } catch (e: any) {
