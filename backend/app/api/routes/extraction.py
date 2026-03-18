@@ -233,7 +233,6 @@ def extract_text_from_file(file_path: str, filename: str) -> str:
 
 class LinkedInRequest(BaseModel):
     url: str
-    profile_type: Optional[str] = None   # 'personal' or 'company'
     pasted_text: Optional[str] = None    # optional: user-pasted profile text for richer analysis
 
 
@@ -309,7 +308,7 @@ async def extract_linkedin_profile(request: LinkedInRequest):
             detail="Please provide a LinkedIn URL — e.g. linkedin.com/in/yourname or /company/yourcompany"
         )
 
-    profile_type = request.profile_type or _detect_linkedin_type(normalised_url)
+    profile_type = _detect_linkedin_type(normalised_url)
     slug = _extract_slug(normalised_url)
     pasted = (request.pasted_text or '').strip()
 
