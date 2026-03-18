@@ -34,17 +34,24 @@ def _to_args(params) -> list:
     return [_val(v) for v in params]
 
 
-def _from_val(decltype: str, value: Any) -> Any:
-    if value is None:
+def _from_cell(cell: Any) -> Any:
+    """Convert a Turso response cell dict to a Python value."""
+    if cell is None:
         return None
-    dt = (decltype or "").lower()
-    if dt in ("integer", "int", "bigint"):
-        try: return int(value)
-        except: return value
-    if dt in ("real", "float", "double", "numeric"):
-        try: return float(value)
-        except: return value
-    return value
+    if isinstance(cell, dict):
+        t = cell.get("type", "text")
+        v = cell.get("value")
+        if t == "null" or v is None:
+            return None
+        if t == "integer":
+            try: return int(v)
+            except: return v
+        if t in ("real", "float"):
+            try: return float(v)
+            except: return v
+        return v  # text / blob
+    # Primitive (shouldn't happen but be safe)
+    return cell
 
 
 class Cursor:
@@ -81,8 +88,7 @@ class Cursor:
                 (c["name"], None, None, None, None, None, None) for c in cols
             ]
             self._rows = [
-                tuple(_from_val(cols[i].get("decltype", ""), v)
-                      for i, v in enumerate(row))
+                tuple(_from_cell(cell) for cell in row)
                 for row in rows
             ]
         else:
