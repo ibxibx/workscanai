@@ -17,8 +17,10 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     DEBUG: bool = True
     
-    # Database — defaults to /tmp/workscan.db so Vercel serverless works out of the box
+    # Database — defaults to local SQLite; set TURSO_DATABASE_URL + TURSO_AUTH_TOKEN for persistent cloud DB
     DATABASE_URL: str = "sqlite:////tmp/workscan.db"
+    TURSO_DATABASE_URL: str = ""   # e.g. libsql://your-db.turso.io
+    TURSO_AUTH_TOKEN: str = ""
     
     # AI/LLM
     ANTHROPIC_API_KEY: str = ""
