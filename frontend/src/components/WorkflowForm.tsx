@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown,
-         CheckCircle2, Circle, Mail, ArrowRight, X, RefreshCw } from 'lucide-react'
+         CheckCircle2, Circle, Mail, ArrowRight, X, RefreshCw, Linkedin, Building2, User } from 'lucide-react'
 import { saveMyWorkflowId } from '@/app/dashboard/page'
 import { useAuth } from '@/lib/auth'
 
@@ -123,7 +123,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     name: '', description: '', frequency: 'weekly',
     time_per_task: 30, category: 'general', complexity: 'medium'
   }])
-  const [inputMode, setInputMode] = useState<'manual' | 'voice' | 'document'>('manual')
+  const [inputMode, setInputMode] = useState<'manual' | 'voice' | 'document' | 'linkedin'>('manual')
   const [analysisContext, setAnalysisContext] = useState<AnalysisContext | null>(null)
   const [contextError, setContextError] = useState(false)
   const [teamSize, setTeamSize] = useState<string>('')
@@ -135,6 +135,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [hourlyRate, setHourlyRate] = useState(50)
   const [transcript, setTranscript] = useState('')
   const [sourceText, setSourceText] = useState('')
+  const [linkedinUrl, setLinkedinUrl] = useState('')
+  const [linkedinType, setLinkedinType] = useState<'personal' | 'company'>('personal')
+  const [linkedinStatus, setLinkedinStatus] = useState<'idle' | 'fetching' | 'done' | 'error'>('idle')
+  const [linkedinProfile, setLinkedinProfile] = useState<{ name: string; title_or_tagline: string; profile_type: string } | null>(null)
+  const [linkedinError, setLinkedinError] = useState('')
   const [isExtractingTasks, setIsExtractingTasks] = useState(false)
   const [extractStatus, setExtractStatus] = useState<'idle' | 'extracting' | 'done'>('idle')
   const [activeStep, setActiveStep] = useState<number>(-1)
@@ -260,8 +265,36 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     }
   }
 
-  const extractTasksFromText = async (text: string) => {
-    setIsExtractingTasks(true); setExtractStatus('extracting')
+  const extractFromLinkedIn = async () => {
+    const url = linkedinUrl.trim()
+    if (!url) { setLinkedinError('Please paste a LinkedIn URL first.'); return }
+    if (!url.includes('linkedin.com')) { setLinkedinError('URL must be a linkedin.com link.'); return }
+    setLinkedinStatus('fetching'); setLinkedinError(''); setLinkedinProfile(null)
+    try {
+      const r = await fetch('/api/extract-linkedin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, profile_type: linkedinType }),
+      })
+      if (!r.ok) {
+        const d = await r.json()
+        throw new Error(d.detail || 'Could not extract LinkedIn data')
+      }
+      const d = await r.json()
+      setLinkedinProfile({ name: d.name, title_or_tagline: d.title_or_tagline, profile_type: d.profile_type })
+      setSourceText(d.text)
+      // Auto-populate workflow name from LinkedIn name
+      if (d.name && !workflowName) setWorkflowName(d.name + ' — Workflow Analysis')
+      setLinkedinStatus('done')
+      // Now run task extraction on the rich profile text
+      await extractTasksFromText(d.text)
+    } catch (e: any) {
+      setLinkedinStatus('error')
+      setLinkedinError(e.message || 'Failed to extract LinkedIn data. Try pasting the profile text manually.')
+    }
+  }
+
+  const extractTasksFromText = async (text: string) => {    setIsExtractingTasks(true); setExtractStatus('extracting')
     try {
       const r = await fetch('/api/parse-tasks', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text}) })
       if (!r.ok) throw new Error()
@@ -311,7 +344,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault()
     if (!workflowName.trim()) { onError('Please provide a workflow name'); return }
-    if (!tasks.some(t=>t.name.trim())) { onError('Please add at least one task'); return }
+    if (!tasks.some(t=>t.name.trim())) { onError(inputMode==='linkedin'?'Please extract a LinkedIn profile first to generate tasks.':'Please add at least one task'); return }
     if (!analysisContext) {
       setContextError(true)
       document.getElementById('context-selector')?.scrollIntoView({ behavior:'smooth', block:'center' })
@@ -429,21 +462,120 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         {/* Input Mode — dark bold tabs */}
         <div className="bg-[#1d1d1f] border border-[#3a3a3c] rounded-[20px] p-[8px] flex flex-wrap gap-[6px] shadow-lg">
           {([
-            { mode:'manual' as const,   icon:FileText, label:'Manual Entry',    sublabel:'Type tasks directly' },
-            { mode:'voice' as const,    icon:Mic,      label:'Voice Input',     sublabel:'Speak your workflow' },
-            { mode:'document' as const, icon:Upload,   label:'Upload Document', sublabel:'PDF, Word, Excel…' },
+            { mode:'linkedin' as const,  icon:Linkedin, label:'LinkedIn Profile', sublabel:'Person or Company page' },
+            { mode:'manual' as const,    icon:FileText, label:'Manual Entry',     sublabel:'Type tasks directly' },
+            { mode:'voice' as const,     icon:Mic,      label:'Voice Input',      sublabel:'Speak your workflow' },
+            { mode:'document' as const,  icon:Upload,   label:'Upload Document',  sublabel:'PDF, Word, Excel…' },
           ]).map(({mode,icon:Icon,label,sublabel}) => (
             <button key={mode} type="button" onClick={()=>setInputMode(mode)}
-              className={`flex-1 flex items-center justify-center gap-[10px] px-[20px] py-[14px] rounded-[14px] font-semibold transition-all ${inputMode===mode?'bg-white text-[#1d1d1f] shadow-md':'text-white/60 hover:text-white hover:bg-white/10'}`}>
-              <Icon className="h-[18px] w-[18px] shrink-0"/>
+              className={`flex-1 flex items-center justify-center gap-[10px] px-[16px] py-[14px] rounded-[14px] font-semibold transition-all ${inputMode===mode?'bg-white text-[#1d1d1f] shadow-md':'text-white/60 hover:text-white hover:bg-white/10'}`}>
+              <Icon className={`h-[18px] w-[18px] shrink-0 ${mode==='linkedin'&&inputMode===mode?'text-[#0077B5]':''}`}/>
               <div className="text-left hidden sm:block">
                 <div className="text-[15px] leading-tight">{label}</div>
                 <div className={`text-[11px] font-normal leading-tight mt-[1px] ${inputMode===mode?'text-[#6e6e73]':'text-white/40'}`}>{sublabel}</div>
               </div>
-              <span className="sm:hidden text-[15px]">{label}</span>
+              <span className="sm:hidden text-[14px]">{label}</span>
             </button>
           ))}
         </div>
+
+        {/* LinkedIn panel */}
+        {inputMode==='linkedin'&&(
+          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
+            <div className="text-center mb-[28px]">
+              <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-[#0077B5]/10 border border-[#0077B5]/30 mb-[16px]">
+                <Linkedin className="h-[32px] w-[32px] text-[#0077B5]"/>
+              </div>
+              <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">LinkedIn Profile Analysis</h3>
+              <p className="text-[15px] text-[#6e6e73] max-w-[480px] mx-auto">Paste a LinkedIn personal or company page URL — WorkScanAI will extract the role, responsibilities, and daily activities to generate a full automation analysis.</p>
+            </div>
+
+            {/* Personal / Company toggle */}
+            <div className="flex justify-center mb-[24px]">
+              <div className="inline-flex bg-white border border-[#d2d2d7] rounded-full p-[4px] gap-[4px]">
+                <button type="button" onClick={()=>{setLinkedinType('personal');setLinkedinStatus('idle');setLinkedinProfile(null);setLinkedinError('')}}
+                  className={`flex items-center gap-[7px] px-[20px] py-[9px] rounded-full font-semibold text-[14px] transition-all ${linkedinType==='personal'?'bg-[#0077B5] text-white shadow-md':'text-[#6e6e73] hover:text-[#1d1d1f]'}`}>
+                  <User className="h-[14px] w-[14px]"/>Personal Profile
+                </button>
+                <button type="button" onClick={()=>{setLinkedinType('company');setLinkedinStatus('idle');setLinkedinProfile(null);setLinkedinError('')}}
+                  className={`flex items-center gap-[7px] px-[20px] py-[9px] rounded-full font-semibold text-[14px] transition-all ${linkedinType==='company'?'bg-[#0077B5] text-white shadow-md':'text-[#6e6e73] hover:text-[#1d1d1f]'}`}>
+                  <Building2 className="h-[14px] w-[14px]"/>Company Page
+                </button>
+              </div>
+            </div>
+
+            {/* URL input */}
+            <div className="max-w-[560px] mx-auto space-y-[14px]">
+              <div className="relative">
+                <Linkedin className="absolute left-[14px] top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-[#0077B5]"/>
+                <input
+                  type="url"
+                  value={linkedinUrl}
+                  onChange={e=>{setLinkedinUrl(e.target.value);setLinkedinError('');setLinkedinStatus('idle');setLinkedinProfile(null)}}
+                  onKeyDown={e=>e.key==='Enter'&&(e.preventDefault(),extractFromLinkedIn())}
+                  placeholder={linkedinType==='personal'?'https://linkedin.com/in/yourname':'https://linkedin.com/company/yourcompany'}
+                  className="w-full pl-[42px] pr-[14px] py-[13px] bg-white border border-[#d2d2d7] rounded-[12px] text-[15px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0077B5]/40 focus:border-[#0077B5] transition-all"
+                />
+              </div>
+
+              {linkedinError&&(
+                <div className="flex items-start gap-[10px] bg-red-50 border border-red-200 rounded-[12px] px-[16px] py-[12px]">
+                  <span className="text-red-500 text-[15px] mt-[1px]">⚠</span>
+                  <div>
+                    <p className="text-[14px] font-medium text-red-700">{linkedinError}</p>
+                    <p className="text-[12px] text-red-500 mt-[4px]">You can also switch to <strong>Manual Entry</strong> and paste the profile text directly.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Profile card — shown after successful extraction */}
+              {linkedinStatus==='done'&&linkedinProfile&&(
+                <div className="bg-white border border-[#0077B5]/30 rounded-[14px] px-[20px] py-[16px] flex items-center gap-[14px]">
+                  <div className="shrink-0 w-[44px] h-[44px] rounded-full bg-[#0077B5] flex items-center justify-center">
+                    {linkedinProfile.profile_type==='company'?<Building2 className="h-[20px] w-[20px] text-white"/>:<User className="h-[20px] w-[20px] text-white"/>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[15px] font-semibold text-[#1d1d1f] truncate">{linkedinProfile.name}</p>
+                    {linkedinProfile.title_or_tagline&&<p className="text-[12px] text-[#6e6e73] truncate mt-[2px]">{linkedinProfile.title_or_tagline}</p>}
+                  </div>
+                  <CheckCircle2 className="h-[20px] w-[20px] text-green-500 shrink-0"/>
+                </div>
+              )}
+
+              {/* Extract button */}
+              {linkedinStatus!=='done'&&(
+                <button type="button" onClick={extractFromLinkedIn}
+                  disabled={linkedinStatus==='fetching'||!linkedinUrl.trim()}
+                  className="w-full flex items-center justify-center gap-[10px] bg-[#0077B5] hover:bg-[#006097] disabled:opacity-50 disabled:cursor-not-allowed text-white py-[14px] rounded-[12px] font-semibold text-[16px] transition-all">
+                  {linkedinStatus==='fetching'
+                    ?<><Loader2 className="animate-spin h-[18px] w-[18px]"/>Extracting from LinkedIn…</>
+                    :<><Linkedin className="h-[18px] w-[18px]"/>Extract & Analyse</>}
+                </button>
+              )}
+
+              {linkedinStatus==='done'&&(
+                <button type="button" onClick={()=>{setLinkedinStatus('idle');setLinkedinProfile(null);setLinkedinUrl('');setLinkedinError('')}}
+                  className="w-full flex items-center justify-center gap-[8px] border border-[#d2d2d7] bg-white hover:bg-[#f5f5f7] text-[#6e6e73] py-[12px] rounded-[12px] font-medium text-[14px] transition-all">
+                  <RefreshCw className="h-[14px] w-[14px]"/>Try a different profile
+                </button>
+              )}
+
+              {/* Extract status */}
+              {linkedinStatus==='done'&&isExtractingTasks&&(
+                <div className={`inline-flex items-center gap-[10px] px-[16px] py-[10px] rounded-full text-[14px] font-medium transition-all ${extractStatus==='done'?'bg-green-50 border border-green-200 text-green-700':'bg-blue-50 border border-blue-200 text-[#0071e3]'}`}>
+                  {extractStatus==='done'?<><CheckCircle2 className="h-[16px] w-[16px]"/>Tasks populated — scroll down to review</>:<><Loader2 className="animate-spin h-[16px] w-[16px]"/>Building task list from profile…</>}
+                </div>
+              )}
+
+              <p className="text-[12px] text-[#86868b] text-center leading-relaxed">
+                {linkedinType==='personal'
+                  ?'WorkScanAI reads public profile data to infer your role\'s key responsibilities and tasks.'
+                  :'WorkScanAI reads the company page to infer typical departmental workflows and daily operations.'}
+                {' '}Profile must be publicly visible.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Voice panel */}
         {inputMode==='voice'&&(
@@ -596,7 +728,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         </div>
 
         {/* Tasks */}
-        {(inputMode==='manual'||inputMode==='voice')&&(
+        {(inputMode==='manual'||inputMode==='voice'||(inputMode==='linkedin'&&tasks.some(t=>t.name.trim())))&&(
           <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
             <div className="flex items-center justify-between mb-[28px]">
               <h2 className="text-[21px] font-semibold text-[#1d1d1f]">Tasks</h2>
