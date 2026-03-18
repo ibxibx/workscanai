@@ -30,13 +30,20 @@ async function handler(
       body: body ? Buffer.from(body) : undefined,
     })
 
-    const text = await upstream.text()
-    return new NextResponse(text, {
+    // Always use arrayBuffer — text() corrupts binary files (docx, pdf)
+    const buffer = await upstream.arrayBuffer()
+
+    const responseHeaders: Record<string, string> = {
+      'content-type': upstream.headers.get('content-type') || 'application/json',
+      'access-control-allow-origin': '*',
+    }
+    // Forward Content-Disposition so browsers trigger file download
+    const disposition = upstream.headers.get('content-disposition')
+    if (disposition) responseHeaders['content-disposition'] = disposition
+
+    return new NextResponse(buffer, {
       status: upstream.status,
-      headers: {
-        'content-type': upstream.headers.get('content-type') || 'application/json',
-        'access-control-allow-origin': '*',
-      },
+      headers: responseHeaders,
     })
   } catch (err) {
     console.error('[API proxy error]', err)
