@@ -266,9 +266,22 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   }
 
   const extractFromLinkedIn = async () => {
-    const url = linkedinUrl.trim()
+    let url = linkedinUrl.trim().replace(/^\/+/, '')
     if (!url) { setLinkedinError('Please paste a LinkedIn URL first.'); return }
-    if (!url.includes('linkedin.com')) { setLinkedinError('URL must be a linkedin.com link.'); return }
+
+    // Normalise partial inputs before sending to backend:
+    //   /in/foo  or  in/foo  → https://www.linkedin.com/in/foo
+    //   /company/foo         → https://www.linkedin.com/company/foo
+    //   linkedin.com/...     → https://www.linkedin.com/...
+    if (/^(in|company|school)\//.test(url) || url.startsWith('/in/') || url.startsWith('/company/')) {
+      url = 'https://www.linkedin.com/' + url.replace(/^\//, '')
+    } else if (/^(www\.)?linkedin\.com/i.test(url)) {
+      url = 'https://' + url
+    } else if (!url.startsWith('http')) {
+      url = 'https://' + url
+    }
+
+    if (!url.includes('linkedin.com')) { setLinkedinError('URL must be a linkedin.com link — e.g. linkedin.com/in/yourname'); return }
     setLinkedinStatus('fetching'); setLinkedinError(''); setLinkedinProfile(null)
     try {
       const r = await fetch('/api/extract-linkedin', {
@@ -513,7 +526,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                   value={linkedinUrl}
                   onChange={e=>{setLinkedinUrl(e.target.value);setLinkedinError('');setLinkedinStatus('idle');setLinkedinProfile(null)}}
                   onKeyDown={e=>e.key==='Enter'&&(e.preventDefault(),extractFromLinkedIn())}
-                  placeholder={linkedinType==='personal'?'https://linkedin.com/in/yourname':'https://linkedin.com/company/yourcompany'}
+                  placeholder={linkedinType==='personal'?'linkedin.com/in/yourname  or  /in/yourname':'linkedin.com/company/name  or  /company/name'}
                   className="w-full pl-[42px] pr-[14px] py-[13px] bg-white border border-[#d2d2d7] rounded-[12px] text-[15px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0077B5]/40 focus:border-[#0077B5] transition-all"
                 />
               </div>
