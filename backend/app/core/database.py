@@ -1,68 +1,48 @@
-# Database connection and session management
-import os
+"""
+Database setup — local SQLite for dev, Turso cloud SQLite for production.
+
+Set TURSO_DATABASE_URL + TURSO_AUTH_TOKEN in Render env vars to activate
+persistent cloud storage (free tier, no expiry, survives all redeploys).
+Falls back to local SQLite when those vars are absent.
+"""
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import StaticPool
 from app.core.config import settings
 
+Base = declarative_base()
 
-def _get_db_url(url: str) -> str:
-    """Normalize DB URL: ensure psycopg2 driver, strip pgbouncer param.
-    Uses string ops only — avoids Python 3.14 urlparse bracket validation bug.
-    """
-    # Strip ?pgbouncer=true or &pgbouncer=true (psycopg2 doesn't support it)
-    url = url.replace('?pgbouncer=true', '').replace('&pgbouncer=true', '')
-    url = url.replace('?pgbouncer=false', '').replace('&pgbouncer=false', '')
-    # Strip trailing ? left after removal
-    if url.endswith('?'):
-        url = url[:-1]
-    # Add sslmode=require and gssencmode=disable if not present (forces IPv4-compatible SSL)
-    connector = '&' if '?' in url else '?'
-    if 'sslmode' not in url:
-        url += connector + 'sslmode=require'
-        connector = '&'
-    if 'gssencmode' not in url:
-        url += connector + 'gssencmode=disable'
-    # Ensure correct driver prefix
-    if url.startswith('postgresql://'):
-        return url.replace('postgresql://', 'postgresql+psycopg2://', 1)
-    if url.startswith('postgres://'):
-        return url.replace('postgres://', 'postgresql+psycopg2://', 1)
-    return url
+_use_turso = bool(settings.TURSO_DATABASE_URL and settings.TURSO_AUTH_TOKEN)
 
+if _use_turso:
+    from app.core import turso_dbapi
 
-_db_url = _get_db_url(settings.DATABASE_URL)
-_is_postgres = "postgresql" in _db_url or "postgres" in _db_url
+    _url   = settings.TURSO_DATABASE_URL
+    _token = settings.TURSO_AUTH_TOKEN
 
-# For serverless (Vercel + pgbouncer), use NullPool to avoid connection pool
-# conflicts. pgbouncer manages the pool externally in transaction mode.
-if _is_postgres:
+    # Use SQLite dialect (generates SQLite-compatible SQL) but override the
+    # physical connection with our Turso HTTP shim via the creator= parameter.
     engine = create_engine(
-        _db_url,
-        poolclass=NullPool,
+        "sqlite+pysqlite://",        # dialect only — never actually opens a file
+        creator=lambda: turso_dbapi.connect(_url, _token),
+        poolclass=StaticPool,        # reuse one connection (Turso is stateless HTTP)
+        connect_args={},
         echo=settings.DEBUG,
-        connect_args={
-            "gssencmode": "disable",
-            "sslmode": "require",
-        },
     )
+    print("[turso] Persistent cloud database active:", _url)
+
 else:
-    # SQLite for local dev
     engine = create_engine(
-        _db_url,
+        settings.DATABASE_URL,
         connect_args={"check_same_thread": False},
         echo=settings.DEBUG,
     )
+    print("[sqlite] Local database:", settings.DATABASE_URL)
 
-# Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base class for models
-Base = declarative_base()
 
-
-# Dependency to get database session
 def get_db():
     db = SessionLocal()
     try:
