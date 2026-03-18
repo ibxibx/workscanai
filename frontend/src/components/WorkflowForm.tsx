@@ -123,7 +123,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     name: '', description: '', frequency: 'weekly',
     time_per_task: 30, category: 'general', complexity: 'medium'
   }])
-  const [inputMode, setInputMode] = useState<'manual' | 'voice' | 'document' | 'linkedin'>('manual')
+  const [inputMode, setInputMode] = useState<'manual' | 'voice' | 'document'>('manual')
   const [analysisContext, setAnalysisContext] = useState<AnalysisContext | null>(null)
   const [contextError, setContextError] = useState(false)
   const [teamSize, setTeamSize] = useState<string>('')
@@ -545,10 +545,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         {/* Input Mode — dark bold tabs */}
         <div className="bg-[#1d1d1f] border border-[#3a3a3c] rounded-[20px] p-[8px] flex flex-wrap gap-[6px] shadow-lg">
           {([
-            { mode:'linkedin' as const,  icon:Linkedin, label:'LinkedIn Profile', sublabel:'Person or Company page' },
             { mode:'manual' as const,    icon:FileText, label:'Manual Entry',     sublabel:'Type tasks directly' },
             { mode:'voice' as const,     icon:Mic,      label:'Voice Input',      sublabel:'Speak your workflow' },
-            { mode:'document' as const,  icon:Upload,   label:'Upload Document',  sublabel:'PDF, Word, Excel…' },
+            { mode:'document' as const,  icon:Upload,   label:'Upload Document',  sublabel:'PDF, Word, CV, Excel…' },
           ]).map(({mode,icon:Icon,label,sublabel}) => (
             <button key={mode} type="button" onClick={()=>setInputMode(mode)}
               className={`flex-1 flex items-center justify-center gap-[10px] px-[16px] py-[14px] rounded-[14px] font-semibold transition-all ${inputMode===mode?'bg-white text-[#1d1d1f] shadow-md':'text-white/60 hover:text-white hover:bg-white/10'}`}>
@@ -886,7 +885,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         <div className="flex flex-col items-end gap-[10px] pt-[8px]">
           {taskCount>0&&<p className="text-[13px] text-[#86868b]">Analysing {taskCount} task{taskCount!==1?'s':''} for {analysisContext==='individual'?'your role':analysisContext==='team'?'your team':analysisContext==='company'?'your company':'…'} — estimated {taskCount*3}–{taskCount*6}s</p>}
           <button type="submit" disabled={isAnalyzing||isUploading||isExtractingTasks} className="inline-flex items-center gap-[10px] bg-[#0071e3] hover:bg-[#0077ed] disabled:bg-[#86868b] disabled:cursor-not-allowed text-white px-[36px] py-[16px] rounded-full font-semibold text-[17px] transition-all">
-            {isAnalyzing?<><Loader2 className="animate-spin h-[18px] w-[18px]"/>Running Analysis…</>:isExtractingTasks?<><Loader2 className="animate-spin h-[18px] w-[18px]"/>Extracting tasks…</>:'Analyze Workflow →'}
+            {isAnalyzing?<><Loader2 className="animate-spin h-[18px] w-[18px]"/>Running Analysis…</>:isExtractingTasks?<><Loader2 className="animate-spin h-[18px] w-[18px]"/>Extracting tasks…</>:'Analyse Workflow/s →'}
           </button>
           {!sessionEmail&&!isAnalyzing&&<p className="text-[13px] text-[#86868b]">You'll be asked to sign in — your input won't be lost.</p>}
         </div>
