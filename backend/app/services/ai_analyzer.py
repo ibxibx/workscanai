@@ -61,15 +61,15 @@ AGENT_MILESTONE: [one concrete milestone]
 ORCHESTRATION: [automation pipeline if score>=70, else human-assist description]
 COUNTDOWN_WINDOW: [now/12-24/24-48/48+]
 HUMAN_EDGE_SCORE: [0-100]
-PIVOT_SKILLS: [JSON array of 3 skills]
-PIVOT_ROLES: [{{"role":"X","risk":"low/medium","pivot_distance":"easy/medium/hard"}},{{"role":"Y","risk":"...","pivot_distance":"..."}}]
+PIVOT_SKILLS: ["skill1","skill2","skill3","skill4","skill5","skill6"]
+PIVOT_ROLES: [{{"role":"X","risk":"low","pivot_distance":"easy","automation_score_pct":38}},{{"role":"Y","risk":"low","pivot_distance":"medium","automation_score_pct":42}},{{"role":"Z","risk":"medium","pivot_distance":"medium","automation_score_pct":55}},{{"role":"W","risk":"medium","pivot_distance":"hard","automation_score_pct":61}}]
 
-Rules: vary scores meaningfully; COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2; warning only for PII/financial/legal/medical; now=score>=75 AND tools exist today."""
+Rules: vary scores meaningfully; COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2; warning only for PII/financial/legal/medical; now=score>=75 AND tools exist today. PIVOT_SKILLS must be specific and actionable for THIS exact role/industry (not generic). PIVOT_ROLES automation_score_pct must be realistic estimates of how automatable that role is today (e.g. data entry clerk=82, therapist=12, prompt engineer=35, accountant=68)."""
 
         try:
             message = self.client.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=900,
+                max_tokens=1100,
                 messages=[{"role": "user", "content": prompt}]
             )
             return self._parse_response(message.content[0].text)
@@ -193,8 +193,8 @@ Rules: vary scores meaningfully; COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2; warning only
             'orchestration': 'Human oversight required — AI assists with drafting only.',
             'countdown_window': '24-48',
             'human_edge_score': 50.0,
-            'pivot_skills': '["AI prompt engineering", "Strategic thinking", "Relationship management"]',
-            'pivot_roles': '[{"role": "AI Operations Manager", "risk": "low", "pivot_distance": "easy"}, {"role": "Strategy Consultant", "risk": "medium", "pivot_distance": "medium"}]',
+            'pivot_skills': '["AI prompt engineering","Strategic thinking","Relationship management","Data interpretation","Creative direction","Change management"]',
+            'pivot_roles': '[{"role":"AI Operations Manager","risk":"low","pivot_distance":"easy","automation_score_pct":38},{"role":"Strategy Consultant","risk":"low","pivot_distance":"medium","automation_score_pct":42},{"role":"UX Researcher","risk":"low","pivot_distance":"medium","automation_score_pct":35},{"role":"Product Manager","risk":"medium","pivot_distance":"medium","automation_score_pct":52}]',
         }
 
     def calculate_roi(self, tasks_analysis: List[Dict], hourly_rate: float) -> Dict:

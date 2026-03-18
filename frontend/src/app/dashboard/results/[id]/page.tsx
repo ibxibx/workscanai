@@ -31,6 +31,7 @@ interface AnalysisData {
   workflow: {
     id: number; name: string; description: string
     tasks: WorkflowTask[]
+    share_code?: string
     analysis_context?: string
     team_size?: string; industry?: string
   }
@@ -435,15 +436,15 @@ export default function ResultsPage() {
                           try {
                             const skills = JSON.parse(r.pivot_skills)
                             if (Array.isArray(skills)) skills.forEach((s: unknown) => {
-                              // Handle both plain strings and {skill, why} objects
                               const label = typeof s === 'string' ? s : (s as any)?.skill ?? String(s)
-                              if (label && !allSkills.includes(label) && allSkills.length < 6) allSkills.push(label)
+                              if (label && !allSkills.includes(label) && allSkills.length < 12) allSkills.push(label)
                             })
                           } catch { }
                         }
                       })
-                      if (allSkills.length === 0) allSkills.push('AI prompt engineering', 'Strategic planning', 'Client relationship management', 'Data interpretation', 'Creative direction')
-                      return allSkills.slice(0, 6).map((skill, i) => (
+                      if (allSkills.length === 0) allSkills.push('AI prompt engineering', 'Strategic planning', 'Client relationship management', 'Data interpretation', 'Creative direction', 'Change management')
+                      const unique = [...new Set(allSkills)].slice(0, 6)
+                      return unique.map((skill, i) => (
                         <div key={i} className="flex items-center gap-[10px] bg-blue-50 border border-blue-100 rounded-[10px] px-[14px] py-[10px]">
                           <div className="w-[22px] h-[22px] rounded-full bg-[#0071e3] text-white text-[11px] font-bold flex items-center justify-center shrink-0">{i + 1}</div>
                           <span className="text-[13px] font-medium text-[#1d1d1f]">{skill}</span>
@@ -458,33 +459,48 @@ export default function ResultsPage() {
                   <p className="text-[12px] font-bold text-[#86868b] uppercase tracking-widest mb-[14px]">🎯 Adjacent Roles (Lower AI Risk)</p>
                   <div className="space-y-[10px]">
                     {(() => {
-                      const allRoles: Array<{ role: string; risk: string; pivot_distance: string }> = []
+                      const seen = new Set<string>()
+                      const allRoles: Array<{ role: string; risk: string; pivot_distance: string; automation_score_pct?: number }> = []
                       analysisData.results.forEach(r => {
                         if (r.pivot_roles) {
                           try {
                             const roles = JSON.parse(r.pivot_roles)
                             if (Array.isArray(roles)) roles.forEach((role: any) => {
-                              if (!allRoles.find(x => x.role === role.role) && allRoles.length < 4) allRoles.push(role)
+                              if (role.role && !seen.has(role.role) && allRoles.length < 8) {
+                                seen.add(role.role)
+                                allRoles.push(role)
+                              }
                             })
                           } catch { }
                         }
                       })
-                      if (allRoles.length === 0) return <p className="text-[13px] text-[#86868b]">Run a full analysis to get personalised role recommendations.</p>
-                      return allRoles.map((role, i) => (
-                        <div key={i} className="bg-[#fafafa] border border-[#e8e8ed] rounded-[10px] px-[14px] py-[12px]">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[14px] font-semibold text-[#1d1d1f]">{role.role}</span>
-                            <div className="flex gap-[6px]">
-                              <span className={`text-[10px] font-bold px-[8px] py-[3px] rounded-full border ${role.risk === 'low' ? 'bg-green-50 border-green-200 text-green-700' : role.risk === 'medium' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
-                                {role.risk} risk
-                              </span>
-                              <span className="text-[10px] font-bold px-[8px] py-[3px] rounded-full border bg-blue-50 border-blue-200 text-blue-700">
-                                {role.pivot_distance} pivot
-                              </span>
+                      const displayRoles = allRoles.slice(0, 4)
+                      if (displayRoles.length === 0) return <p className="text-[13px] text-[#86868b]">Run a full analysis to get personalised role recommendations.</p>
+                      return displayRoles.map((role, i) => {
+                        const score = role.automation_score_pct
+                        const scoreColor = score == null ? 'text-[#86868b]' : score <= 40 ? 'text-green-600' : score <= 65 ? 'text-yellow-600' : 'text-red-500'
+                        const scoreBg = score == null ? 'bg-[#f5f5f7] border-[#e8e8ed]' : score <= 40 ? 'bg-green-50 border-green-200' : score <= 65 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'
+                        return (
+                          <div key={i} className="bg-[#fafafa] border border-[#e8e8ed] rounded-[10px] px-[14px] py-[12px]">
+                            <div className="flex items-center justify-between gap-[8px]">
+                              <span className="text-[14px] font-semibold text-[#1d1d1f]">{role.role}</span>
+                              <div className="flex items-center gap-[6px] shrink-0">
+                                {score != null && (
+                                  <span className={`text-[11px] font-bold px-[8px] py-[3px] rounded-full border ${scoreBg} ${scoreColor}`}>
+                                    {score}% auto risk
+                                  </span>
+                                )}
+                                <span className={`text-[10px] font-bold px-[8px] py-[3px] rounded-full border ${role.risk === 'low' ? 'bg-green-50 border-green-200 text-green-700' : role.risk === 'medium' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                                  {role.risk} risk
+                                </span>
+                                <span className="text-[10px] font-bold px-[8px] py-[3px] rounded-full border bg-blue-50 border-blue-200 text-blue-700">
+                                  {role.pivot_distance} pivot
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))
+                        )
+                      })
                     })()}
                   </div>
                 </div>
