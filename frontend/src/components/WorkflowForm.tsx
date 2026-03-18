@@ -497,21 +497,23 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                     }}
                     onKeyDown={e => {
                       if (e.key === 'Backspace') {
-                        if (authCode[i]) {
-                          // Clear current
-                          const arr = authCode.split('')
+                        e.preventDefault()
+                        const arr = authCode.split('')
+                        if (arr[i]) {
+                          // Current box has a digit — clear it and stay here
                           arr[i] = ''
                           setAuthCode(arr.join(''))
                         } else if (i > 0) {
-                          // Move to previous and clear it
-                          const arr = authCode.split('')
+                          // Current box empty — clear previous and move focus left
                           arr[i - 1] = ''
                           setAuthCode(arr.join(''))
                           codeInputRefs[i - 1].current?.focus()
                         }
                       } else if (e.key === 'ArrowLeft' && i > 0) {
+                        e.preventDefault()
                         codeInputRefs[i - 1].current?.focus()
                       } else if (e.key === 'ArrowRight' && i < 3) {
+                        e.preventDefault()
                         codeInputRefs[i + 1].current?.focus()
                       } else if (e.key === 'Enter' && authCode.length === 4) {
                         verifyAuthCode()
