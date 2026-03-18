@@ -320,38 +320,48 @@ async def extract_linkedin_profile(request: LinkedInRequest):
 
     if profile_type == 'personal':
         if pasted:
-            context_block = f"LinkedIn profile URL: {normalised_url}\n\nProfile text provided by user:\n{pasted[:4000]}"
-            prompt = f"""You are a senior McKinsey consultant specialising in AI workflow automation.
+            context_block = f"LinkedIn profile URL: {normalised_url}\n\nProfile text provided by user:\n{pasted[:5000]}"
+            prompt = f"""You are a senior McKinsey consultant specialising in AI workflow automation analysis.
 
-Analyse this LinkedIn personal profile and produce a detailed professional context for an AI automation-readiness analysis.
+Analyse this LinkedIn personal profile and extract a precise professional context for an AI automation-readiness analysis.
 
 {context_block}
 
-Instructions:
-- Use the provided profile text as the authoritative source — extract the actual job title, current employer, skills, and responsibilities stated.
-- Do NOT invent or guess anything not present in the text.
-- Describe the person's daily responsibilities, key recurring tasks, tools used, decision-making scope, and collaboration patterns.
-- Write 3–5 substantial paragraphs as a professional profile narrative.
-- End with a bullet list titled "Key tasks likely to appear in this role's workflow:" — be specific and technical, matching the actual role.
+EXTRACTION RULES — follow strictly:
+1. CURRENT/LATEST POSITION FIRST: Find the most recent job title and employer (look for "Present" or the first experience entry). Extract its full description — every bullet point, every responsibility listed.
+2. HEADLINE: Extract the exact LinkedIn headline (the line with | separating specialisations, technologies, roles).
+3. ABOUT: Extract key sentences from the About section describing what the person actually does day-to-day.
+4. SKILLS & TECHNOLOGIES: List all specific tools, languages, frameworks, platforms mentioned.
+5. DO NOT SUMMARISE OR PARAPHRASE — preserve the actual words used for job titles, technologies, and responsibilities.
 
-Be precise — this drives a McKinsey-style automation analysis."""
+OUTPUT FORMAT (plain text, not JSON):
+**Current Role:** [exact title] at [employer]
+**Headline:** [full LinkedIn headline]
+**About:** [relevant sentences]
+**Latest Position Description:** [full description of current/most recent role — every bullet, every detail]
+**Technologies & Tools:** [complete list]
+**Key Responsibilities (inferred + stated):** [detailed bullet list of actual daily tasks]
+
+Then write 2–3 paragraphs synthesising the above into a workflow narrative focused on what this person does daily and weekly.
+
+This is the primary input for generating tasks — be exhaustive and precise."""
         else:
-            # Slug-only: be honest about uncertainty, ask for technical specifics
             context_block = f"LinkedIn profile URL: {normalised_url}\nProfile slug / username: {slug}"
             prompt = f"""You are a senior McKinsey consultant specialising in AI workflow automation.
 
-You have only a LinkedIn profile URL slug to work with — no profile text was provided.
+You have only a LinkedIn profile URL slug — no profile text was provided.
 The slug is: "{slug}"
 
-IMPORTANT RULES:
-- The slug "{slug}" appears to be a personal name or nickname — it contains NO information about job title, industry, or role.
-- Do NOT guess or fabricate a role. Do NOT default to generic "business operations" or "marketing" tasks.
-- Instead, produce a GENERIC technical professional profile covering a broad range of possible roles, explicitly noting that the analysis is based on limited information.
-- Cover 3–4 common professional role types (technical, creative, managerial, operational) with equal weight.
-- Clearly note at the start: "Note: No profile details were provided. This is a general analysis — for accurate results, paste your LinkedIn headline and experience text using the optional field."
-- End with a bullet list: "Tasks that could appear in this profile's workflow (generic — update with your actual role for accurate results):"
+IMPORTANT: The slug "{slug}" is a personal name/nickname with NO role information.
+Do NOT guess or fabricate a specific role.
 
-Do not pretend you know this person's role."""
+Instead:
+- Note clearly that no profile details were provided
+- Produce a brief generic professional profile covering technical, creative, and operational roles equally
+- Instruct the user explicitly to paste their LinkedIn headline + current position description for an accurate analysis
+- End with: "⚠️ For accurate task generation, please paste your LinkedIn headline and current job description in the text field above."
+
+Keep it short — 2 paragraphs maximum."""
 
     else:
         context_block = f"LinkedIn company page URL: {normalised_url}\nCompany slug: {slug}"

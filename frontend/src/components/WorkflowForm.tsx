@@ -544,21 +544,39 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                 </div>
               )}
 
-              {/* Profile text — prominent, always visible */}
+              {/* Profile text — prominent with helper */}
               <div>
-                <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-[6px]">
-                  Your headline &amp; role description
-                  <span className="ml-[6px] text-[11px] font-normal text-[#0077B5] bg-[#0077B5]/8 px-[8px] py-[2px] rounded-full">Recommended for accurate results</span>
-                </label>
+                <div className="flex items-center justify-between mb-[6px]">
+                  <label className="text-[13px] font-semibold text-[#1d1d1f]">
+                    Your headline &amp; current position description
+                    <span className="ml-[6px] text-[11px] font-normal text-[#0077B5] bg-[#0077B5]/10 px-[8px] py-[2px] rounded-full">Needed for accurate results</span>
+                  </label>
+                  {linkedinUrl.trim() && (
+                    <a
+                      href={(() => {
+                        let u = linkedinUrl.trim().replace(/^\/+/, '')
+                        if (/^(in|company|school)\//.test(u)) return 'https://www.linkedin.com/' + u
+                        if (/^(www\.)?linkedin\.com/i.test(u)) return 'https://' + u
+                        if (!u.startsWith('http')) return 'https://' + u
+                        return u
+                      })()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-[5px] text-[12px] text-[#0077B5] hover:underline shrink-0"
+                    >
+                      <Linkedin className="h-[12px] w-[12px]"/>Open profile ↗
+                    </a>
+                  )}
+                </div>
                 <textarea
                   value={linkedinPastedText}
                   onChange={e=>setLinkedinPastedText(e.target.value)}
-                  placeholder={'Paste your LinkedIn headline and/or About section here.\n\nExample: "Full Stack Engineer | AI Engineer | Co-organizer of Global AI Events | JavaScript, TypeScript, Python, React, Node.js"\n\nWithout this, the analysis can only make generic guesses from your URL.'}
-                  rows={5}
+                  placeholder={'1. Click "Open profile ↗" above (or open linkedin.com/in/yourname)\n2. Copy your headline + current job description\n3. Paste here\n\nExample headline: "Full Stack Engineer | AI Engineer | JavaScript, TypeScript, Python, React"\nExample position: "Building AI-powered tools, architecting agent workflows, writing APIs, leading sprint planning..."'}
+                  rows={6}
                   className="w-full px-[14px] py-[12px] bg-white border border-[#d2d2d7] rounded-[12px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0077B5]/40 focus:border-[#0077B5] transition-all resize-none leading-relaxed"
                 />
                 <p className="text-[11px] text-[#86868b] mt-[6px]">
-                  Open your LinkedIn profile → copy your headline + About text → paste above. The URL alone doesn't tell us your actual role.
+                  Paste your <strong>headline</strong> + <strong>current position description</strong> for task accuracy. The URL slug alone contains no role information.
                 </p>
               </div>
 
