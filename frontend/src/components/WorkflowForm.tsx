@@ -503,7 +503,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                 <Linkedin className="h-[32px] w-[32px] text-[#0077B5]"/>
               </div>
               <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">LinkedIn Profile Analysis</h3>
-              <p className="text-[15px] text-[#6e6e73] max-w-[480px] mx-auto">Paste a LinkedIn personal or company page URL — WorkScanAI will extract the role, responsibilities, and daily activities to generate a full automation analysis.</p>
+              <p className="text-[15px] text-[#6e6e73] max-w-[480px] mx-auto">Paste your LinkedIn URL and — for an accurate analysis — add your headline or a few lines from your profile.</p>
             </div>
 
             {/* URL input */}
@@ -544,22 +544,23 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                 </div>
               )}
 
-              {/* Optional: paste profile text for richer analysis */}
-              <details className="group">
-                <summary className="cursor-pointer text-[13px] text-[#0077B5] hover:underline list-none flex items-center gap-[6px] select-none">
-                  <span className="group-open:rotate-90 inline-block transition-transform">▶</span>
-                  Paste profile text for richer results <span className="text-[#86868b] font-normal">(optional)</span>
-                </summary>
-                <div className="mt-[10px]">
-                  <textarea
-                    value={linkedinPastedText}
-                    onChange={e=>setLinkedinPastedText(e.target.value)}
-                    placeholder={'Open your LinkedIn profile → select all text (Ctrl+A) → paste here.\nThis gives WorkScanAI your actual experience, skills and job descriptions.'}
-                    rows={5}
-                    className="w-full px-[14px] py-[10px] bg-white border border-[#d2d2d7] rounded-[10px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0077B5]/40 focus:border-[#0077B5] transition-all resize-none"
-                  />
-                </div>
-              </details>
+              {/* Profile text — prominent, always visible */}
+              <div>
+                <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-[6px]">
+                  Your headline &amp; role description
+                  <span className="ml-[6px] text-[11px] font-normal text-[#0077B5] bg-[#0077B5]/8 px-[8px] py-[2px] rounded-full">Recommended for accurate results</span>
+                </label>
+                <textarea
+                  value={linkedinPastedText}
+                  onChange={e=>setLinkedinPastedText(e.target.value)}
+                  placeholder={'Paste your LinkedIn headline and/or About section here.\n\nExample: "Full Stack Engineer | AI Engineer | Co-organizer of Global AI Events | JavaScript, TypeScript, Python, React, Node.js"\n\nWithout this, the analysis can only make generic guesses from your URL.'}
+                  rows={5}
+                  className="w-full px-[14px] py-[12px] bg-white border border-[#d2d2d7] rounded-[12px] text-[14px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0077B5]/40 focus:border-[#0077B5] transition-all resize-none leading-relaxed"
+                />
+                <p className="text-[11px] text-[#86868b] mt-[6px]">
+                  Open your LinkedIn profile → copy your headline + About text → paste above. The URL alone doesn't tell us your actual role.
+                </p>
+              </div>
 
               {/* Extract button */}
               {linkedinStatus!=='done'&&(
@@ -588,7 +589,6 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
               <p className="text-[12px] text-[#86868b] text-center leading-relaxed">
                 Personal profiles (<code className="bg-[#e8e8ed] px-[4px] rounded">/in/</code>) and company pages (<code className="bg-[#e8e8ed] px-[4px] rounded">/company/</code>) are auto-detected from the URL.
-                Profile must be publicly visible.
               </p>
             </div>
           </div>
