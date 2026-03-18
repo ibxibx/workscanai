@@ -157,7 +157,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const pendingSubmitRef = useRef(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<any>(null)
-  const codeInputRef = useRef<HTMLInputElement>(null)
+  const codeRef0 = useRef<HTMLInputElement>(null)
+  const codeRef1 = useRef<HTMLInputElement>(null)
+  const codeRef2 = useRef<HTMLInputElement>(null)
+  const codeRef3 = useRef<HTMLInputElement>(null)
+  const codeInputRefs = [codeRef0, codeRef1, codeRef2, codeRef3]
 
   useEffect(() => { loadRecaptchaScript() }, [])
   useEffect(() => {
@@ -169,7 +173,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionEmail, authLoaded])
   useEffect(() => {
-    if (authStep === 'code') setTimeout(() => codeInputRef.current?.focus(), 100)
+    if (authStep === 'code') setTimeout(() => codeInputRefs[0].current?.focus(), 100)
   }, [authStep])
 
   // Listen for postMessage from the linkedin-receiver popup
@@ -470,9 +474,72 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
             <p className="text-[12px] text-[#86868b] text-center">No password needed · Free tier: 5 analyses / 24 h</p>
           </>}
           {authStep==='code'&&<>
-            <div><label className="block text-[13px] font-medium text-[#1d1d1f] mb-[8px]">Enter 4-digit code</label>
-            <input ref={codeInputRef} type="text" inputMode="numeric" maxLength={4} value={authCode} onChange={e=>{const v=e.target.value.replace(/\D/g,'');setAuthCode(v);setAuthError('')}} onKeyDown={e=>e.key==='Enter'&&authCode.length===4&&verifyAuthCode()} placeholder="0000" className="w-full text-center text-[40px] font-bold tracking-[18px] py-[16px] bg-white border border-[#d2d2d7] rounded-[12px] text-[#1d1d1f] placeholder-[#d2d2d7] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] transition-all"/>
-            <p className="text-[12px] text-[#86868b] mt-[8px] text-center">Check your inbox — code expires in 15 minutes</p></div>
+            <div>
+              <label className="block text-[13px] font-medium text-[#1d1d1f] mb-[12px]">Enter 4-digit code</label>
+              <div className="flex gap-[10px] justify-center">
+                {[0,1,2,3].map(i => (
+                  <input
+                    key={i}
+                    ref={codeInputRefs[i]}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={authCode[i] || ''}
+                    onChange={e => {
+                      // Handle normal typing
+                      const digit = e.target.value.replace(/\D/g, '').slice(-1)
+                      const arr = authCode.split('')
+                      arr[i] = digit
+                      const next = arr.join('').slice(0, 4)
+                      setAuthCode(next)
+                      setAuthError('')
+                      if (digit && i < 3) codeInputRefs[i + 1].current?.focus()
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Backspace') {
+                        if (authCode[i]) {
+                          // Clear current
+                          const arr = authCode.split('')
+                          arr[i] = ''
+                          setAuthCode(arr.join(''))
+                        } else if (i > 0) {
+                          // Move to previous and clear it
+                          const arr = authCode.split('')
+                          arr[i - 1] = ''
+                          setAuthCode(arr.join(''))
+                          codeInputRefs[i - 1].current?.focus()
+                        }
+                      } else if (e.key === 'ArrowLeft' && i > 0) {
+                        codeInputRefs[i - 1].current?.focus()
+                      } else if (e.key === 'ArrowRight' && i < 3) {
+                        codeInputRefs[i + 1].current?.focus()
+                      } else if (e.key === 'Enter' && authCode.length === 4) {
+                        verifyAuthCode()
+                      }
+                    }}
+                    onPaste={e => {
+                      // Paste support — grab up to 4 digits from clipboard
+                      e.preventDefault()
+                      const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4)
+                      if (pasted) {
+                        setAuthCode(pasted)
+                        setAuthError('')
+                        // Focus last filled box or box 3
+                        const focusIdx = Math.min(pasted.length, 3)
+                        setTimeout(() => codeInputRefs[focusIdx].current?.focus(), 0)
+                        // Auto-submit if all 4 digits pasted
+                        if (pasted.length === 4) setTimeout(() => verifyAuthCode(), 100)
+                      }
+                    }}
+                    onFocus={e => e.target.select()}
+                    className={`w-[64px] h-[72px] text-center text-[32px] font-bold bg-white border-2 rounded-[14px] text-[#1d1d1f] focus:outline-none transition-all cursor-text
+                      ${authCode[i] ? 'border-[#0071e3] bg-blue-50/30' : 'border-[#d2d2d7]'}
+                      focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20`}
+                  />
+                ))}
+              </div>
+              <p className="text-[12px] text-[#86868b] mt-[12px] text-center">Check your inbox — code expires in 15 minutes</p>
+            </div>
             {authError&&<p className="text-[13px] text-red-500 text-center">{authError}</p>}
             <button onClick={verifyAuthCode} disabled={authLoading||authCode.length!==4} className="w-full flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-50 disabled:cursor-not-allowed text-white py-[13px] rounded-[12px] text-[15px] font-semibold transition-all">
               {authLoading?<><Loader2 className="animate-spin w-[16px] h-[16px]"/>Verifying…</>:<><CheckCircle2 className="w-[16px] h-[16px]"/>Verify &amp; Analyze</>}
