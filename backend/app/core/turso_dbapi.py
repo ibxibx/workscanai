@@ -152,6 +152,11 @@ class Connection:
     def rollback(self): pass
     def close(self): self._client.close()
 
+    # SQLAlchemy pysqlite dialect calls these on the raw connection
+    def create_function(self, name, nargs, func, **kwargs): pass
+    def create_aggregate(self, name, nargs, aggregate_class): pass
+    def set_authorizer(self, authorizer_callback): pass
+
     def __enter__(self): return self
     def __exit__(self, *a): self.close()
 
