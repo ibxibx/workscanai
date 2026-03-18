@@ -319,26 +319,39 @@ async def extract_linkedin_profile(request: LinkedInRequest):
     client = Anthropic(api_key=api_key)
 
     if profile_type == 'personal':
-        context_block = f"LinkedIn profile URL: {normalised_url}\nProfile slug / username: {slug}"
         if pasted:
-            context_block += f"\n\nProfile text pasted by user:\n{pasted[:4000]}"
-        prompt = f"""You are a senior McKinsey consultant specialising in AI workflow automation.
+            context_block = f"LinkedIn profile URL: {normalised_url}\n\nProfile text provided by user:\n{pasted[:4000]}"
+            prompt = f"""You are a senior McKinsey consultant specialising in AI workflow automation.
 
-Given the following LinkedIn personal profile information, produce a detailed professional context 
-that will be used to generate an AI automation-readiness analysis of this person's role.
+Analyse this LinkedIn personal profile and produce a detailed professional context for an AI automation-readiness analysis.
 
 {context_block}
 
 Instructions:
-- Infer the person's likely job title, seniority level, and industry from the slug and any pasted text.
-- If the slug looks like a name (e.g. "john-smith-marketing"), extract that signal.
-- Describe their probable daily responsibilities, key tasks, tools used, and decision-making scope.
-- If pasted text is provided, use it as the primary source and enrich with inferences.
+- Use the provided profile text as the authoritative source — extract the actual job title, current employer, skills, and responsibilities stated.
+- Do NOT invent or guess anything not present in the text.
+- Describe the person's daily responsibilities, key recurring tasks, tools used, decision-making scope, and collaboration patterns.
 - Write 3–5 substantial paragraphs as a professional profile narrative.
-- Do NOT make up specific company names or metrics not inferable from the input.
-- End with a bullet list: "Key tasks likely to appear in this role's workflow:"
+- End with a bullet list titled "Key tasks likely to appear in this role's workflow:" — be specific and technical, matching the actual role.
 
-Be specific and realistic — this drives a McKinsey-style automation analysis."""
+Be precise — this drives a McKinsey-style automation analysis."""
+        else:
+            # Slug-only: be honest about uncertainty, ask for technical specifics
+            context_block = f"LinkedIn profile URL: {normalised_url}\nProfile slug / username: {slug}"
+            prompt = f"""You are a senior McKinsey consultant specialising in AI workflow automation.
+
+You have only a LinkedIn profile URL slug to work with — no profile text was provided.
+The slug is: "{slug}"
+
+IMPORTANT RULES:
+- The slug "{slug}" appears to be a personal name or nickname — it contains NO information about job title, industry, or role.
+- Do NOT guess or fabricate a role. Do NOT default to generic "business operations" or "marketing" tasks.
+- Instead, produce a GENERIC technical professional profile covering a broad range of possible roles, explicitly noting that the analysis is based on limited information.
+- Cover 3–4 common professional role types (technical, creative, managerial, operational) with equal weight.
+- Clearly note at the start: "Note: No profile details were provided. This is a general analysis — for accurate results, paste your LinkedIn headline and experience text using the optional field."
+- End with a bullet list: "Tasks that could appear in this profile's workflow (generic — update with your actual role for accurate results):"
+
+Do not pretend you know this person's role."""
 
     else:
         context_block = f"LinkedIn company page URL: {normalised_url}\nCompany slug: {slug}"
