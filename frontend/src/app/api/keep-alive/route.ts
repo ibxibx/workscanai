@@ -1,30 +1,34 @@
 import { NextResponse } from 'next/server';
 
+// Pings the Render backend to prevent free-tier spin-down (sleeps after ~15 min idle).
+// Cron schedule: every 5 days at 09:00 UTC (see vercel.json).
+// Previously pointed at Supabase — updated after migration to SQLite on Render.
 export async function GET() {
+  const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
+
+  if (!backendUrl) {
+    console.error('[keep-alive] API_URL env var not set');
+    return NextResponse.json({ ok: false, error: 'API_URL not configured' }, { status: 500 });
+  }
+
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({ ok: false, error: 'Missing Supabase env vars' }, { status: 500 });
-    }
-
-    // Lightweight ping via REST — no SDK needed
-    const res = await fetch(`${supabaseUrl}/rest/v1/workflows?select=id&limit=1`, {
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-      },
+    const start = Date.now();
+    const res = await fetch(`${backendUrl}/health`, {
+      method: 'GET',
+      headers: { 'x-keep-alive': '1' },
+      signal: AbortSignal.timeout(10_000),
     });
 
+    const ms = Date.now() - start;
+
     if (!res.ok) {
-      const err = await res.text();
-      console.error('[keep-alive] Supabase ping failed:', err);
-      return NextResponse.json({ ok: false, error: err }, { status: 500 });
+      const body = await res.text();
+      console.error(`[keep-alive] Render ping failed: HTTP ${res.status} — ${body}`);
+      return NextResponse.json({ ok: false, status: res.status, ms }, { status: 500 });
     }
 
-    console.log('[keep-alive] Supabase ping OK at', new Date().toISOString());
-    return NextResponse.json({ ok: true, timestamp: new Date().toISOString() });
+    console.log(`[keep-alive] Render ping OK in ${ms}ms at`, new Date().toISOString());
+    return NextResponse.json({ ok: true, ms, timestamp: new Date().toISOString() });
   } catch (err) {
     console.error('[keep-alive] Unexpected error:', err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
