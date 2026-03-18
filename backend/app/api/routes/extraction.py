@@ -338,11 +338,20 @@ async def extract_linkedin_profile(request: LinkedInRequest):
     Uses server-side fetch + Claude Haiku for text extraction and structuring.
     No external services — uses Anthropic API already integrated.
     """
-    url = request.url.strip()
+    url = request.url.strip().lstrip('/')
 
-    # Basic URL validation
-    if not url.startswith('http'):
+    # Normalise partial inputs:
+    #   /in/foo  → https://www.linkedin.com/in/foo
+    #   /company/foo → https://www.linkedin.com/company/foo
+    #   linkedin.com/... → https://www.linkedin.com/...
+    #   www.linkedin.com/... → https://www.linkedin.com/...
+    if url.startswith('/in/') or url.startswith('/company/') or url.startswith('/school/'):
+        url = 'https://www.linkedin.com' + url
+    elif url.lower().startswith('linkedin.com') or url.lower().startswith('www.linkedin.com'):
         url = 'https://' + url
+    elif not url.startswith('http'):
+        url = 'https://' + url
+
     if 'linkedin.com' not in url.lower():
         raise HTTPException(status_code=400, detail="Please provide a valid LinkedIn URL (linkedin.com/in/... or linkedin.com/company/...)")
 
