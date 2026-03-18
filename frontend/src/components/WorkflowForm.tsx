@@ -904,7 +904,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
         {/* Workflow Details */}
         <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
-          <h2 className="text-[21px] font-semibold text-[#1d1d1f] mb-[28px]">Workflow Details</h2>
+          <h2 className="text-[21px] font-semibold text-[#1d1d1f] mb-[6px]">Workflow Details</h2>
+          {taskCount > 0 && (
+            <p className="text-[13px] text-[#86868b] mb-[28px]">
+              Analysing {taskCount} task{taskCount !== 1 ? 's' : ''} for your role — estimated {taskCount * 3}–{taskCount * 6}s
+            </p>
+          )}
           <div className="space-y-[20px]">
             <div><label className={labelClass}>Workflow Name <span className="text-red-500">*</span></label>
               <input type="text" value={workflowName} onChange={e=>setWorkflowName(e.target.value)} placeholder="e.g., Marketing Team Workflow" className={inputClass} required/></div>
