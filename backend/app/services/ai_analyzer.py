@@ -1,9 +1,9 @@
-"""
-AI service for workflow analysis — BATCHED: all tasks in ONE Claude call.
+"""AI service for workflow analysis - BATCHED: all tasks in ONE Claude call.
 Context-aware for Individual / Team / Company.
 """
 import os
 import json
+import re
 from anthropic import Anthropic
 from typing import List, Dict
 
@@ -15,10 +15,12 @@ class AIAnalyzer:
             raise ValueError("ANTHROPIC_API_KEY not found in environment")
         self.client = Anthropic(api_key=api_key)
 
-    # ── PUBLIC API ─────────────────────────────────────────────────────────────
+    # ------------------------------------------------------------------
+    # PUBLIC API
+    # ------------------------------------------------------------------
 
     def analyze_tasks_batch(self, tasks: List[Dict]) -> List[Dict]:
-        """Analyze ALL tasks in a single Claude API call. Returns list of result dicts."""
+        """Analyze ALL tasks in a single Claude API call."""
         if not tasks:
             return []
 
@@ -26,12 +28,11 @@ class AIAnalyzer:
         industry = tasks[0].get('industry', '') or 'General'
 
         context_instruction = {
-            'individual': "CONTEXT: Personal career analysis — frame as career/survival moves.",
-            'team': "CONTEXT: Team/startup analysis — frame as team productivity & velocity.",
-            'company': "CONTEXT: Company/department analysis — frame as strategic ROI decisions.",
+            'individual': "CONTEXT: Personal career analysis - frame as career/survival moves.",
+            'team':       "CONTEXT: Team/startup analysis - frame as team productivity & velocity.",
+            'company':    "CONTEXT: Company/department analysis - frame as strategic ROI decisions.",
         }.get(context, '')
 
-        # Build numbered task list for the prompt
         task_lines = []
         for i, t in enumerate(tasks, 1):
             task_lines.append(
@@ -43,35 +44,33 @@ class AIAnalyzer:
         tasks_block = "\n".join(task_lines)
         n = len(tasks)
 
-
-        prompt = f"""You are an AI automation analyst. Analyze ALL {n} tasks below in ONE response.
-{context_instruction}
-
-{tasks_block}
-
-For EACH task output a block using EXACTLY this format (repeat {n} times):
-
----TASK_[N]---
-SCORE_REPEATABILITY: [0-100]
-SCORE_DATA: [0-100]
-SCORE_ERROR: [0-100]
-SCORE_INTEGRATION: [0-100]
-COMPOSITE_SCORE: [R*0.3+D*0.3+E*0.2+I*0.2]
-TIME_SAVED: [0-100]
-DIFFICULTY: [easy/medium/hard]
-RISK_LEVEL: [safe/caution/warning]
-RISK_FLAG: [one sentence]
-RECOMMENDATION: Option 1 — [Tool+price]: [what it does, setup Xh, payback Yw.] Option 2 — [Tool+price]: [what it does.]
-AGENT_PHASE: [1/2/3]
-AGENT_LABEL: [Phase 1: Human-in-Loop / Phase 2: Supervised / Phase 3: Full Delegation]
-AGENT_MILESTONE: [one concrete milestone]
-ORCHESTRATION: [pipeline if score>=70, else human-assist]
-COUNTDOWN_WINDOW: [now/12-24/24-48/48+]
-HUMAN_EDGE_SCORE: [0-100]
-PIVOT_SKILLS: ["skill1","skill2","skill3","skill4","skill5","skill6"]
-PIVOT_ROLES: [{{"role":"X","risk":"low","pivot_distance":"easy","automation_score_pct":38}},{{"role":"Y","risk":"low","pivot_distance":"medium","automation_score_pct":42}},{{"role":"Z","risk":"medium","pivot_distance":"medium","automation_score_pct":55}},{{"role":"W","risk":"medium","pivot_distance":"hard","automation_score_pct":61}}]
-
-Rules: vary scores meaningfully. COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2. warning only for PII/financial/legal/medical. now=score>=75 AND tools exist today."""
+        prompt = (
+            f"You are an AI automation analyst. Analyze ALL {n} tasks below in ONE response.\n"
+            f"{context_instruction}\n\n"
+            f"{tasks_block}\n\n"
+            f"For EACH task output a block using EXACTLY this format (repeat {n} times):\n\n"
+            f"---TASK_[N]---\n"
+            f"SCORE_REPEATABILITY: [0-100]\n"
+            f"SCORE_DATA: [0-100]\n"
+            f"SCORE_ERROR: [0-100]\n"
+            f"SCORE_INTEGRATION: [0-100]\n"
+            f"COMPOSITE_SCORE: [R*0.3+D*0.3+E*0.2+I*0.2]\n"
+            f"TIME_SAVED: [0-100]\n"
+            f"DIFFICULTY: [easy/medium/hard]\n"
+            f"RISK_LEVEL: [safe/caution/warning]\n"
+            f"RISK_FLAG: [one sentence]\n"
+            f"RECOMMENDATION: Option 1 - [Tool+price]: [what it does, setup Xh, payback Yw.] Option 2 - [Tool+price]: [what it does.]\n"
+            f"AGENT_PHASE: [1/2/3]\n"
+            f"AGENT_LABEL: [Phase 1: Human-in-Loop / Phase 2: Supervised / Phase 3: Full Delegation]\n"
+            f"AGENT_MILESTONE: [one concrete milestone]\n"
+            f"ORCHESTRATION: [pipeline if score>=70, else human-assist]\n"
+            f"COUNTDOWN_WINDOW: [now/12-24/24-48/48+]\n"
+            f"HUMAN_EDGE_SCORE: [0-100]\n"
+            f'PIVOT_SKILLS: ["skill1","skill2","skill3","skill4","skill5","skill6"]\n'
+            f'PIVOT_ROLES: [{{"role":"X","risk":"low","pivot_distance":"easy","automation_score_pct":38}},{{"role":"Y","risk":"low","pivot_distance":"medium","automation_score_pct":42}}]\n\n'
+            f"Rules: vary scores meaningfully. COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2. "
+            f"warning only for PII/financial/legal/medical. now=score>=75 AND tools exist today."
+        )
 
         try:
             message = self.client.messages.create(
@@ -86,20 +85,19 @@ Rules: vary scores meaningfully. COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2. warning only
             return [self._defaults() for _ in tasks]
 
     def analyze_task(self, task: Dict) -> Dict:
-        """Single-task wrapper — delegates to batch for consistency."""
+        """Single-task shim - delegates to batch."""
         results = self.analyze_tasks_batch([task])
         return results[0] if results else self._defaults()
 
 
-    # ── PARSING ────────────────────────────────────────────────────────────────
+    # ------------------------------------------------------------------
+    # PARSING
+    # ------------------------------------------------------------------
 
     def _parse_batch_response(self, text: str, expected: int) -> List[Dict]:
-        """Split response into per-task blocks and parse each one."""
-        import re
+        """Split Claude response into per-task blocks and parse each."""
         blocks = re.split(r'---TASK_\d+---', text)
-        # Drop empty leading element
         blocks = [b.strip() for b in blocks if b.strip()]
-
         results = []
         for i in range(expected):
             block = blocks[i] if i < len(blocks) else ''
@@ -107,7 +105,7 @@ Rules: vary scores meaningfully. COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2. warning only
         return results
 
     def _parse_block(self, text: str) -> Dict:
-        """Parse a single task result block into a dict."""
+        """Parse a single task result block into a result dict."""
         result = {}
         for line in text.strip().split('\n'):
             line = line.strip()
@@ -131,10 +129,10 @@ Rules: vary scores meaningfully. COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2. warning only
                 result['time_saved_percentage'] = self._float(val)
             elif key == 'DIFFICULTY':
                 d = val.lower()
-                result['difficulty'] = d if d in ['easy', 'medium', 'hard'] else 'medium'
+                result['difficulty'] = d if d in ['easy','medium','hard'] else 'medium'
             elif key == 'RISK_LEVEL':
                 r = val.lower()
-                result['risk_level'] = r if r in ['safe', 'caution', 'warning'] else 'safe'
+                result['risk_level'] = r if r in ['safe','caution','warning'] else 'safe'
             elif key == 'RISK_FLAG':
                 result['risk_flag'] = val
             elif key == 'RECOMMENDATION':
@@ -181,7 +179,11 @@ Rules: vary scores meaningfully. COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2. warning only
 
         if 'countdown_window' not in result:
             score = result.get('ai_readiness_score', 50)
-            result['countdown_window'] = 'now' if score >= 75 else '12-24' if score >= 55 else '24-48' if score >= 35 else '48+'
+            result['countdown_window'] = (
+                'now' if score >= 75 else
+                '12-24' if score >= 55 else
+                '24-48' if score >= 35 else '48+'
+            )
 
         if 'human_edge_score' not in result:
             result['human_edge_score'] = round(100 - result.get('ai_readiness_score', 50) * 0.7, 1)
@@ -191,7 +193,9 @@ Rules: vary scores meaningfully. COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2. warning only
         return result
 
 
-    # ── HELPERS ────────────────────────────────────────────────────────────────
+    # ------------------------------------------------------------------
+    # HELPERS
+    # ------------------------------------------------------------------
 
     def _float(self, val: str) -> float:
         try:
@@ -215,19 +219,21 @@ Rules: vary scores meaningfully. COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2. warning only
             'time_saved_percentage': 25.0,
             'difficulty': 'medium',
             'risk_level': 'safe',
-            'risk_flag': '✅ Safe to automate fully.',
+            'risk_flag': 'Safe to automate fully.',
             'recommendation': 'Review task manually for automation opportunities.',
             'agent_phase': 1,
             'agent_label': 'Phase 1: Human-in-Loop AI Draft',
             'agent_milestone': 'Pilot AI drafts on 20% of volume; measure error rate before scaling.',
-            'orchestration': 'Human oversight required — AI assists with drafting only.',
+            'orchestration': 'Human oversight required - AI assists with drafting only.',
             'countdown_window': '24-48',
             'human_edge_score': 50.0,
             'pivot_skills': '["AI prompt engineering","Strategic thinking","Relationship management","Data interpretation","Creative direction","Change management"]',
             'pivot_roles': '[{"role":"AI Operations Manager","risk":"low","pivot_distance":"easy","automation_score_pct":38},{"role":"Strategy Consultant","risk":"low","pivot_distance":"medium","automation_score_pct":42},{"role":"UX Researcher","risk":"low","pivot_distance":"medium","automation_score_pct":35},{"role":"Product Manager","risk":"medium","pivot_distance":"medium","automation_score_pct":52}]',
         }
 
-    # ── ROI CALCULATION ────────────────────────────────────────────────────────
+    # ------------------------------------------------------------------
+    # ROI CALCULATION
+    # ------------------------------------------------------------------
 
     def calculate_roi(self, tasks_analysis: List[Dict], hourly_rate: float) -> Dict:
         total_score = 0
