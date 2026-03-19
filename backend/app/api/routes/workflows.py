@@ -136,8 +136,11 @@ async def analyze_workflow(
     #     )
     pass  # rate limit off during testing
 
-    # 3. IP-based rate limit (existing)
-    check_rate_limit(http_request)
+    # 3. IP-based rate limit
+    # ── TESTING MODE: IP rate limit disabled ───────────────────────────
+    # To re-enable: uncomment the line below
+    # check_rate_limit(http_request)
+    pass  # IP rate limit off during testing
 
     # 4. reCAPTCHA — skip silently if token absent
     if request.recaptcha_token:
