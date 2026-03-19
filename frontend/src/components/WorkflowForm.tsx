@@ -408,6 +408,13 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
   const runAnalysis = async (userEmail: string) => {
     onError(''); setStepError(null)
+
+    // /api/analyze can take 30–90s for large workflows.
+    // Vercel Hobby serverless functions hard-kill at 10s, causing 504.
+    // Fix: call the Render backend DIRECTLY from the browser for /api/analyze only.
+    // All other calls stay proxied through /api/* as normal.
+    const BACKEND_DIRECT = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://workscanai.onrender.com').replace(/\/$/, '')
+
     const effectiveSourceText = sourceText.trim() || (inputMode==='manual' && workflowDescription.trim() ? workflowDescription.trim() : '')
     try {
       advanceTo(0)
@@ -422,7 +429,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       advanceTo(1)
       const recaptchaToken = await getRecaptchaToken('analyze_workflow')
       advanceTo(2)
-      const analysisRes = await fetch('/api/analyze', {
+      // ⚡ Direct-to-Render: bypasses Vercel's 10s serverless timeout entirely
+      const analysisRes = await fetch(`${BACKEND_DIRECT}/api/analyze`, {
         method:'POST', headers:{'Content-Type':'application/json','x-user-email':userEmail},
         body: JSON.stringify({ workflow_id:workflow.id, hourly_rate:hourlyRate, recaptcha_token:recaptchaToken })
       })
