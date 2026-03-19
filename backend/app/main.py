@@ -78,15 +78,30 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 # CORS settings
-_cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+# Always include the Vercel production origin so direct browser-to-Render calls
+# (used to bypass Vercel's 10s serverless timeout) work from any context.
+_cors_origins_str = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000"
+)
 _cors_origins = [o.strip() for o in _cors_origins_str.split(",") if o.strip()]
+
+# Ensure production origin is always present regardless of env var
+_production_origins = [
+    "https://workscanai.vercel.app",
+    "https://workscanai-app.vercel.app",
+]
+for _o in _production_origins:
+    if _o not in _cors_origins:
+        _cors_origins.append(_o)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["content-disposition"],
 )
 
 @app.get("/")
@@ -96,6 +111,11 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(rest_of_path: str):
+    """Explicit OPTIONS handler — ensures CORS preflight never hits a 405."""
+    return JSONResponse(content={}, status_code=200)
 
 # Include routers
 app.include_router(workflows.router, prefix="/api", tags=["workflows"])
