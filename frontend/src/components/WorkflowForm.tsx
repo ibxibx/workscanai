@@ -303,8 +303,10 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       if (stage) setUploadStage(stage.label)
     }, 350)
     try {
+      // extract-tasks uses AI (Claude Vision for images) and can be slow — call Render directly
+      const BACKEND = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://workscanai.onrender.com').replace(/\/$/, '')
       const fd = new FormData(); fd.append('file', file)
-      const r = await fetch('/api/extract-tasks', { method:'POST', body:fd })
+      const r = await fetch(`${BACKEND}/api/extract-tasks`, { method:'POST', body:fd })
       if (!r.ok) throw new Error('upload')
       const d = await r.json(); setSourceText(d.text||''); setUploadProgress(93); setUploadStage('Extracting tasks with AI…')
       try { await extractTasksFromText(d.text) } catch { }
@@ -381,9 +383,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     }
   }
 
-  const extractTasksFromText = async (text: string) => {    setIsExtractingTasks(true); setExtractStatus('extracting')
+  const extractTasksFromText = async (text: string) => {
+    setIsExtractingTasks(true); setExtractStatus('extracting')
+    // parse-tasks uses Claude Sonnet and can take 15–30s — call Render directly
+    const BACKEND = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://workscanai.onrender.com').replace(/\/$/, '')
     try {
-      const r = await fetch('/api/parse-tasks', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text}) })
+      const r = await fetch(`${BACKEND}/api/parse-tasks`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text}) })
       if (!r.ok) throw new Error()
       const d = await r.json()
       if (d.tasks?.length > 0) {
