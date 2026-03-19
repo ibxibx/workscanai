@@ -54,10 +54,12 @@ export default function DashboardPage() {
             headers: { 'x-user-email': email },
           })
           if (accountRes.ok) {
-            const accountWorkflows: Array<{ id: number }> = await accountRes.json()
-            ids = accountWorkflows.map(w => w.id)
-            // Sync back to localStorage so it stays up to date
-            ids.forEach(id => saveMyWorkflowId(id))
+            try {
+              const accountWorkflows: Array<{ id: number }> = await accountRes.json()
+              ids = accountWorkflows.map(w => w.id)
+              // Sync back to localStorage so it stays up to date
+              ids.forEach(id => saveMyWorkflowId(id))
+            } catch { /* non-JSON response — skip */ }
           }
         }
 
@@ -202,7 +204,7 @@ export default function DashboardPage() {
 
         {/* New Analysis CTA */}
         <Link href="/#analyze" className="block group mb-[32px]">
-          <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-[18px] p-[40px] hover:border-blue-300 hover:shadow-sm transition-all">
+          <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-[18px] p-[40px] hover-lift hover-glow transition-all">
             <div className="relative z-10 flex items-center justify-between">
               <div>
                 <div className="inline-flex items-center gap-[8px] mb-[12px]">
@@ -227,7 +229,7 @@ export default function DashboardPage() {
 
         {/* Stats Grid */}
         <div className="grid md:grid-cols-3 gap-[16px] mb-[48px]">
-          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
+          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px] hover-lift hover-stat cursor-default">
             <div className="flex items-center gap-[8px] mb-[12px]">
               <TrendingUp className="h-[16px] w-[16px] text-[#86868b]" />
               <div className="text-[12px] font-semibold text-[#86868b] tracking-wide uppercase">
@@ -237,7 +239,7 @@ export default function DashboardPage() {
             {loading ? (
               <div className="h-[48px] w-[60px] bg-[#e8e8ed] rounded-[8px] animate-pulse mb-[4px]" />
             ) : (
-              <div className="text-[40px] font-semibold tracking-tight mb-[4px]">{analyzed.length}</div>
+              <div className="stat-number text-[40px] font-semibold tracking-tight mb-[4px]">{analyzed.length}</div>
             )}
             <div className="text-[13px] text-[#86868b]">
               {workflows.length - analyzed.length > 0
@@ -246,7 +248,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
+          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px] hover-lift hover-stat cursor-default">
             <div className="flex items-center gap-[8px] mb-[12px]">
               <Clock className="h-[16px] w-[16px] text-[#86868b]" />
               <div className="text-[12px] font-semibold text-[#86868b] tracking-wide uppercase">
@@ -256,7 +258,7 @@ export default function DashboardPage() {
             {loading ? (
               <div className="h-[48px] w-[80px] bg-[#e8e8ed] rounded-[8px] animate-pulse mb-[4px]" />
             ) : (
-              <div className="text-[40px] font-semibold tracking-tight mb-[4px]">
+              <div className="stat-number text-[40px] font-semibold tracking-tight mb-[4px]">
                 <span className="text-green-600">{Math.round(totalHours)}</span>
                 <span className="text-[24px] text-[#86868b]"> hrs</span>
               </div>
@@ -264,7 +266,7 @@ export default function DashboardPage() {
             <div className="text-[13px] text-[#86868b]">Annual hours saved across workflows</div>
           </div>
 
-          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
+          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px] hover-lift hover-stat cursor-default">
             <div className="flex items-center gap-[8px] mb-[12px]">
               <Zap className="h-[16px] w-[16px] text-[#86868b]" />
               <div className="text-[12px] font-semibold text-[#86868b] tracking-wide uppercase">
@@ -274,7 +276,7 @@ export default function DashboardPage() {
             {loading ? (
               <div className="h-[48px] w-[80px] bg-[#e8e8ed] rounded-[8px] animate-pulse mb-[4px]" />
             ) : (
-              <div className="text-[40px] font-semibold tracking-tight mb-[4px]">
+              <div className="stat-number text-[40px] font-semibold tracking-tight mb-[4px]">
                 {avgScore !== null ? (
                   <span className={getScoreColor(avgScore)}>{avgScore}%</span>
                 ) : (
@@ -392,7 +394,7 @@ export default function DashboardPage() {
                   href={wf.automation_score !== null ? `/dashboard/results/${wf.id}` : '#'}
                   className={`block group ${wf.automation_score !== null ? 'cursor-pointer' : 'cursor-default'}`}
                 >
-                  <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px] hover:border-[#b8b8bd] hover:bg-[#ebebef] transition-all">
+                  <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px] hover-lift hover-glow transition-all">
                     <div className="flex items-start justify-between gap-[16px]">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-[12px] mb-[8px]">

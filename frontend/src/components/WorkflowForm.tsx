@@ -240,7 +240,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     setAuthLoading(true); setAuthError('')
     try {
       const res = await fetch('/api/auth/request', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:authEmail.trim()}) })
-      if (!res.ok) { const d = await res.json(); throw new Error(d.detail || 'Failed to send code') }
+      if (!res.ok) { const d = await safeJson(res); throw new Error(d.detail || 'Failed to send code') }
       setAuthStep('code')
     } catch (e: any) { setAuthError(e.message || 'Something went wrong.') }
     finally { setAuthLoading(false) }
@@ -251,7 +251,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     setAuthLoading(true); setAuthError('')
     try {
       const res = await fetch('/api/auth/verify-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:authEmail.trim(),code:authCode.trim()}) })
-      const d = await res.json()
+      const d = await safeJson(res)
       if (!res.ok) throw new Error(d.detail || 'Invalid code')
       localStorage.setItem('wsai_email', d.email)
       window.dispatchEvent(new StorageEvent('storage', { key:'wsai_email', newValue:d.email }))
@@ -400,6 +400,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     } catch { setIsExtractingTasks(false); setExtractStatus('idle') }
   }
 
+  // Safe JSON parser — never throws on non-JSON responses (e.g. "Internal Server Error")
+  const safeJson = async (res: Response): Promise<any> => {
+    const text = await res.text()
+    try { return JSON.parse(text) } catch { return { detail: text || `HTTP ${res.status}` } }
+  }
+
   const runAnalysis = async (userEmail: string) => {
     onError(''); setStepError(null)
     const effectiveSourceText = sourceText.trim() || (inputMode==='manual' && workflowDescription.trim() ? workflowDescription.trim() : '')
@@ -411,8 +417,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           tasks: tasks.filter(t=>t.name.trim()).map(t=>({ name:t.name, description:t.description||t.name, frequency:t.frequency, time_per_task:t.time_per_task, category:t.category, complexity:t.complexity }))
         })
       })
-      if (!wfRes.ok) { const err=await wfRes.json(); throw new Error(err.detail||'Failed to create workflow') }
-      const workflow = await wfRes.json(); saveMyWorkflowId(workflow.id)
+      if (!wfRes.ok) { const err=await safeJson(wfRes); throw new Error(err.detail||'Failed to create workflow') }
+      const workflow = await safeJson(wfRes); saveMyWorkflowId(workflow.id)
       advanceTo(1)
       const recaptchaToken = await getRecaptchaToken('analyze_workflow')
       advanceTo(2)
@@ -421,10 +427,10 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         body: JSON.stringify({ workflow_id:workflow.id, hourly_rate:hourlyRate, recaptcha_token:recaptchaToken })
       })
       if (!analysisRes.ok) {
-        const err = await analysisRes.json()
-        if (analysisRes.status===429) { setRateLimitMessage(err.detail?.message||'You have reached the daily analysis limit.'); return }
-        if (analysisRes.status===403) throw new Error(err.detail?.message||'Security check failed.')
-        throw new Error(err.detail||'Failed to analyze workflow')
+        const err = await safeJson(analysisRes)
+        if (analysisRes.status===429) { setRateLimitMessage(err.detail?.message||err.detail||'You have reached the daily analysis limit.'); return }
+        if (analysisRes.status===403) throw new Error(err.detail?.message||err.detail||'Security check failed.')
+        throw new Error(err.detail||`Analysis failed (HTTP ${analysisRes.status}) — please try again.`)
       }
       advanceTo(3); await new Promise(r=>setTimeout(r,600))
       advanceTo(4); await new Promise(r=>setTimeout(r,700))

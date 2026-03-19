@@ -76,7 +76,8 @@ class AIAnalyzer:
             message = self.client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=min(500 * n + 500, 8000),
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
+                timeout=90.0,
             )
             raw = message.content[0].text
             return self._parse_batch_response(raw, n)
