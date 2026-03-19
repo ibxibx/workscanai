@@ -151,11 +151,10 @@ async def analyze_workflow(
     
     # Initialize AI analyzer
     analyzer = AIAnalyzer()
-    
-    # Analyze each task
-    tasks_analysis = []
-    for task in workflow.tasks:
-        task_dict = {
+
+    # Build task dicts for batch analysis
+    task_dicts = [
+        {
             'name': task.name,
             'description': task.description,
             'frequency': task.frequency,
@@ -166,8 +165,14 @@ async def analyze_workflow(
             'team_size': workflow.team_size,
             'industry': workflow.industry,
         }
-        
-        analysis_result = analyzer.analyze_task(task_dict)
+        for task in workflow.tasks
+    ]
+
+    # ONE Claude API call for all tasks (was N sequential calls — now 1)
+    batch_results = analyzer.analyze_tasks_batch(task_dicts)
+
+    tasks_analysis = []
+    for task, task_dict, analysis_result in zip(workflow.tasks, task_dicts, batch_results):
         analysis_result['task'] = task_dict
         analysis_result['task_obj'] = task
         tasks_analysis.append(analysis_result)
