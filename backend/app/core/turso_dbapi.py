@@ -24,7 +24,14 @@ class InterfaceError(Error): pass
 
 
 def _to_args(params) -> list:
-    """Convert Python parameter tuple/list to Turso typed-arg format."""
+    """Convert Python parameter tuple/list to Turso typed-arg format.
+
+    Turso /v2/pipeline expects:
+      integers → {"type": "integer", "value": "123"}   (value as string)
+      floats   → {"type": "float",   "value": 73.9}    (value as JSON number, NOT string)
+      text     → {"type": "text",    "value": "hello"}
+      null     → {"type": "null"}
+    """
     if not params:
         return []
     def _val(v):
@@ -36,7 +43,8 @@ def _to_args(params) -> list:
         if isinstance(v, int):
             return {"type": "integer", "value": str(v)}
         if isinstance(v, float):
-            return {"type": "float", "value": str(v)}
+            # Turso requires float value as a JSON number, not a string
+            return {"type": "float", "value": float(v)}
         return {"type": "text", "value": str(v)}
     return [_val(v) for v in params]
 
