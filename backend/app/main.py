@@ -1,8 +1,9 @@
 # FastAPI main application
 
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.core.database import engine, Base
 from app.api.routes import workflows, extraction, reports, auth
 from mangum import Mangum
@@ -64,6 +65,17 @@ except Exception as e:
     print(f"Warning: Could not create DB tables at startup: {e}")
 
 app = FastAPI(title="WorkScanAI API", version="1.0.0")
+
+# Global exception handler — ensures ALL errors return JSON, never plain text.
+# This prevents "Unexpected token 'I', 'Internal S...'" on the frontend.
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    print(f"[UNHANDLED ERROR] {request.method} {request.url}\n{traceback.format_exc()}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal server error: {str(exc)}"},
+    )
 
 # CORS settings
 _cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
