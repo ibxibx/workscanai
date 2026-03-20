@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown,
          CheckCircle2, Circle, Mail, ArrowRight, X, RefreshCw, Linkedin, Building2, User } from 'lucide-react'
 import { saveMyWorkflowId } from '@/app/dashboard/page'
-import { useAuth } from '@/lib/auth'
+import { useAuth, persistSession } from '@/lib/auth'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type AnalysisContext = 'individual' | 'team' | 'company'
@@ -253,7 +253,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       const res = await fetch('/api/auth/verify-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:authEmail.trim(),code:authCode.trim()}) })
       const d = await safeJson(res)
       if (!res.ok) throw new Error(d.detail || 'Invalid code')
-      localStorage.setItem('wsai_email', d.email)
+      persistSession(d.email)
       window.dispatchEvent(new StorageEvent('storage', { key:'wsai_email', newValue:d.email }))
       setAuthStep('success')
       setTimeout(() => { pendingSubmitRef.current = false; setShowAuthModal(false); runAnalysis(d.email) }, 1000)
