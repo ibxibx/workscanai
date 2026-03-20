@@ -47,6 +47,7 @@ class AIAnalyzer:
         prompt = (
             f"You are an AI automation analyst. Analyze ALL {n} tasks below in ONE response.\n"
             f"{context_instruction}\n\n"
+            f"IMPORTANT: Use € (Euro) for ALL currency values — never use $ or USD.\n\n"
             f"{tasks_block}\n\n"
             f"For EACH task output a block using EXACTLY this format (repeat {n} times):\n\n"
             f"---TASK_[N]---\n"
