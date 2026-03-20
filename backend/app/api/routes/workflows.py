@@ -126,21 +126,15 @@ async def analyze_workflow(
     email = x_user_email.lower().strip()
 
     # 2. Rate limit — 5 analyses per 24 hours per email
-    # ── TESTING MODE: rate limit disabled ──────────────────────────────
-    # To re-enable: uncomment the 3 lines below and remove the pass
-    # count = _get_user_daily_analyses(email, db)
-    # if count >= DAILY_ANALYSIS_LIMIT:
-    #     raise HTTPException(
-    #         status_code=429,
-    #         detail={"error": "rate_limit", "message": f"Daily limit reached ({DAILY_ANALYSIS_LIMIT} analyses per 24 hours). Try again later.", "retry_after_seconds": 86400},
-    #     )
-    pass  # rate limit off during testing
+    count = _get_user_daily_analyses(email, db)
+    if count >= DAILY_ANALYSIS_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail={"error": "rate_limit", "message": f"Daily limit reached ({DAILY_ANALYSIS_LIMIT} analyses per 24 hours). Try again later.", "retry_after_seconds": 86400},
+        )
 
     # 3. IP-based rate limit
-    # ── TESTING MODE: IP rate limit disabled ───────────────────────────
-    # To re-enable: uncomment the line below
-    # check_rate_limit(http_request)
-    pass  # IP rate limit off during testing
+    check_rate_limit(http_request)
 
     # 4. reCAPTCHA — skip silently if token absent
     if request.recaptcha_token:
