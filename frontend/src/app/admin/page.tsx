@@ -18,6 +18,7 @@ interface AdminStats {
     task_names: string[]; source_text: string | null
     automation_score: number | null; annual_savings: number | null
     hours_saved: number | null; share_code: string | null
+    result_url: string | null; share_url: string | null
   }>
 }
 
@@ -293,15 +294,26 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="shrink-0 flex items-center gap-[8px]">
-                    {wf.share_code && (
+                    {wf.result_url && (
                       <a
-                        href={`https://workscanai.vercel.app/report/${wf.share_code}`}
+                        href={wf.result_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
-                        className="text-[11px] text-[#0071e3] hover:underline"
+                        className="text-[11px] text-[#0071e3] hover:underline font-semibold"
                       >
-                        view ↗
+                        results ↗
+                      </a>
+                    )}
+                    {wf.share_url && (
+                      <a
+                        href={wf.share_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="text-[11px] text-[#86868b] hover:text-[#0071e3] hover:underline"
+                      >
+                        share ↗
                       </a>
                     )}
                     {expandedWf === wf.id
@@ -340,11 +352,25 @@ export default function AdminPage() {
                       </div>
                     )}
 
-                    {/* Workflow ID link */}
-                    <div className="text-[11px] text-[#86868b]">
-                      Workflow ID: {wf.id}
-                      {wf.share_code && <> · Share code: <code className="font-mono">{wf.share_code}</code></>}
-                      {wf.team_size && <> · Team size: {wf.team_size}</>}
+                    {/* URLs */}
+                    <div className="text-[11px] space-y-[4px]">
+                      {wf.result_url && (
+                        <div>
+                          <span className="text-[#86868b] font-semibold">Results: </span>
+                          <a href={wf.result_url} target="_blank" rel="noopener noreferrer" className="text-[#0071e3] hover:underline font-mono">{wf.result_url}</a>
+                        </div>
+                      )}
+                      {wf.share_url && (
+                        <div>
+                          <span className="text-[#86868b] font-semibold">Share: </span>
+                          <a href={wf.share_url} target="_blank" rel="noopener noreferrer" className="text-[#0071e3] hover:underline font-mono">{wf.share_url}</a>
+                        </div>
+                      )}
+                      <div className="text-[#86868b]">
+                        Workflow ID: {wf.id}
+                        {wf.share_code && <> · Share code: <code className="font-mono">{wf.share_code}</code></>}
+                        {wf.team_size && <> · Team size: {wf.team_size}</>}
+                      </div>
                     </div>
                   </div>
                 )}

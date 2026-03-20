@@ -99,6 +99,8 @@ def get_admin_stats(db: Session = Depends(get_db), _=Depends(_require_admin)):
             "annual_savings": round(analysis.annual_savings, 0) if analysis and analysis.annual_savings else None,
             "hours_saved": round(analysis.hours_saved, 1) if analysis and analysis.hours_saved else None,
             "share_code": w.share_code,
+            "result_url": f"https://workscanai.vercel.app/dashboard/results/{w.id}" if analysis else None,
+            "share_url": f"https://workscanai.vercel.app/report/{w.share_code}" if w.share_code and analysis else None,
         })
 
     return {
