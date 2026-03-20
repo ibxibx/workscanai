@@ -80,6 +80,7 @@ class AnalysisResultResponse(BaseModel):
     human_edge_score: Optional[float] = None
     pivot_skills: Optional[str] = None
     pivot_roles: Optional[str] = None
+    decision_layer: Optional[str] = None   # 'none'|'partial'|'full'
     
     class Config:
         from_attributes = True

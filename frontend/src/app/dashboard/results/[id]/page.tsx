@@ -24,6 +24,7 @@ interface TaskResult {
   human_edge_score?: number   // 0-100
   pivot_skills?: string       // JSON
   pivot_roles?: string        // JSON
+  decision_layer?: string     // 'none'|'partial'|'full'
 }
 
 interface AnalysisData {
@@ -204,6 +205,15 @@ export default function ResultsPage() {
                             🧠 {Math.round(result.human_edge_score)}% Human Edge
                           </span>
                         )}
+                        {result.decision_layer && result.decision_layer !== 'none' && (
+                          <span className={`text-[11px] font-bold px-[10px] py-[4px] rounded-full border ${
+                            result.decision_layer === 'full'
+                              ? 'bg-violet-50 text-violet-700 border-violet-200'
+                              : 'bg-sky-50 text-sky-700 border-sky-200'
+                          }`}>
+                            {result.decision_layer === 'full' ? '🧩 Decision Layer: Human Required' : '🔀 Decision Layer: AI + Human'}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -257,12 +267,16 @@ export default function ResultsPage() {
                     <div className="text-[12px] font-bold text-[#0071e3] uppercase tracking-wide mb-[8px]">💡 Recommendation</div>
                     {(() => {
                       const text = result.recommendation
-                      const opt2 = text.match(/(Option\s+2\s*[—–-])/i)
-                      if (opt2?.index) {
+                      // Split on "Option 2" OR "Decision layer" patterns
+                      const splitPoint = text.match(/(Option\s+2\s*[—–-]|Decision\s+layer\s*[—–:-])/i)
+                      if (splitPoint?.index) {
+                        const isDecision = /Decision\s+layer/i.test(splitPoint[0])
                         return (
                           <div className="space-y-[8px]">
-                            <p className="text-[13px] text-[#1d1d1f]">{text.slice(0, opt2.index).trim()}</p>
-                            <p className="text-[13px] text-[#1d1d1f] border-t border-blue-100 pt-[8px]">{text.slice(opt2.index).trim()}</p>
+                            <p className="text-[13px] text-[#1d1d1f]">{text.slice(0, splitPoint.index).trim()}</p>
+                            <p className={`text-[13px] border-t pt-[8px] ${isDecision ? 'text-violet-800 border-violet-100 font-medium' : 'text-[#1d1d1f] border-blue-100'}`}>
+                              {text.slice(splitPoint.index).trim()}
+                            </p>
                           </div>
                         )
                       }

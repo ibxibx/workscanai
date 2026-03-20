@@ -225,6 +225,7 @@ async def analyze_workflow(
             human_edge_score=task_analysis.get('human_edge_score'),
             pivot_skills=task_analysis.get('pivot_skills'),
             pivot_roles=task_analysis.get('pivot_roles'),
+            decision_layer=task_analysis.get('decision_layer'),
         )
         db.add(result)
     

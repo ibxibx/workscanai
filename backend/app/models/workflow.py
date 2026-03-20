@@ -124,6 +124,7 @@ class AnalysisResult(Base):
     human_edge_score = Column(Float, nullable=True)         # 0-100 irreplaceability
     pivot_skills = Column(Text, nullable=True)              # JSON skills to develop
     pivot_roles = Column(Text, nullable=True)               # JSON adjacent roles
+    decision_layer = Column(String(20), nullable=True)      # 'none'|'partial'|'full'
     
     # Relationships
     analysis = relationship("Analysis", back_populates="results")

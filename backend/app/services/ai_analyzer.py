@@ -1,5 +1,7 @@
 """AI service for workflow analysis - BATCHED: all tasks in ONE Claude call.
 Context-aware for Individual / Team / Company.
+Incorporates decision-layer analysis for strategic tasks (backlog prioritization,
+stakeholder alignment, trade-off resolution) per n8n PM feedback.
 """
 import os
 import json
@@ -28,10 +30,32 @@ class AIAnalyzer:
         industry = tasks[0].get('industry', '') or 'General'
 
         context_instruction = {
-            'individual': "CONTEXT: Personal career analysis - frame as career/survival moves.",
-            'team':       "CONTEXT: Team/startup analysis - frame as team productivity & velocity.",
-            'company':    "CONTEXT: Company/department analysis - frame as strategic ROI decisions.",
-        }.get(context, '')
+            'individual': (
+                "CONTEXT: Personal career analysis. Frame as career survival and growth moves. "
+                "Distinguish between tasks AI can handle fully (data processing, scheduling, reporting) "
+                "vs tasks requiring human judgment (client relationships, creative decisions, ethical calls). "
+                "For strategic or relationship-heavy tasks: SCORE_ERROR should be 30-55 — "
+                "AI can assist but cannot replace the human judgment layer."
+            ),
+            'team': (
+                "CONTEXT: Team/startup analysis. Frame as velocity, speed, and competitive advantage. "
+                "Data-processing tasks (reporting, logging, triage) score high on all dimensions. "
+                "Coordination tasks (stakeholder alignment, prioritization trade-offs, discovery) "
+                "require a DECISION LAYER — AI surfaces the options and data, human makes the call "
+                "given team context, constraints, and implicit knowledge. Score these honestly: "
+                "SCORE_ERROR 35-60, DIFFICULTY hard, AGENT_PHASE 1 or 2 maximum."
+            ),
+            'company': (
+                "CONTEXT: Company/department analysis. Frame as strategic ROI and risk management. "
+                "Separate automation potential into two layers: "
+                "(1) DATA LAYER — what AI can gather, aggregate, and surface (high automation), "
+                "(2) DECISION LAYER — what requires human judgment given org constraints, politics, "
+                "trade-offs, and implicit business context (cannot be fully automated). "
+                "Strategic tasks like resource allocation, roadmap decisions, and stakeholder management "
+                "sit mostly in layer 2. Score SCORE_ERROR 25-55 for these. "
+                "Be realistic — oversimplifying strategic tasks destroys trust in the analysis."
+            ),
+        }.get(context, "CONTEXT: General workflow analysis.")
 
         task_lines = []
         for i, t in enumerate(tasks, 1):
@@ -45,9 +69,29 @@ class AIAnalyzer:
         n = len(tasks)
 
         prompt = (
-            f"You are an AI automation analyst. Analyze ALL {n} tasks below in ONE response.\n"
+            f"You are a McKinsey Principal specialising in AI workflow automation. "
+            f"Analyze ALL {n} tasks below in ONE response.\n"
             f"{context_instruction}\n\n"
             f"IMPORTANT: Use € (Euro) for ALL currency values — never use $ or USD.\n\n"
+            f"SCORING RULES — apply with precision:\n"
+            f"SCORE_REPEATABILITY: How rule-based and consistent is the task? "
+            f"  High (80-100): identical steps every time. Low (20-50): varies by context/stakeholder.\n"
+            f"SCORE_DATA: Is input data structured and accessible? "
+            f"  High: clean APIs, databases. Low: qualitative, political, relationship-based.\n"
+            f"SCORE_ERROR: How tolerant is the task to AI mistakes? "
+            f"  High: errors caught easily, low stakes. "
+            f"  CRITICAL — score this LOW (25-55) for: prioritization decisions, stakeholder trade-offs, "
+            f"  strategy, resource allocation, implicit org knowledge tasks. "
+            f"  These tasks depend on context AI cannot model — an AI mistake here causes real damage.\n"
+            f"SCORE_INTEGRATION: How easily does automation plug into existing tools?\n\n"
+            f"DECISION LAYER RULE: For any task involving trade-offs, prioritization, stakeholder "
+            f"alignment, or strategy — the RECOMMENDATION must explicitly state: "
+            f"'AI surfaces [X data/options], human decides [Y] given [constraints/context].' "
+            f"Do NOT just list tools. Explain what the human decision layer is and why it cannot be removed.\n\n"
+            f"DIFFICULTY CALIBRATION:\n"
+            f"  easy: pure data/process tasks, tools available today, setup <1 week\n"
+            f"  medium: requires integration work or human-in-loop validation\n"
+            f"  hard: requires strategic judgment, custom development, or org change management\n\n"
             f"{tasks_block}\n\n"
             f"For EACH task output a block using EXACTLY this format (repeat {n} times):\n\n"
             f"---TASK_[N]---\n"
@@ -56,27 +100,35 @@ class AIAnalyzer:
             f"SCORE_ERROR: [0-100]\n"
             f"SCORE_INTEGRATION: [0-100]\n"
             f"COMPOSITE_SCORE: [R*0.3+D*0.3+E*0.2+I*0.2]\n"
-            f"TIME_SAVED: [0-100]\n"
+            f"TIME_SAVED: [0-100 — for strategic tasks, AI saves time on data prep only, not decision-making]\n"
             f"DIFFICULTY: [easy/medium/hard]\n"
             f"RISK_LEVEL: [safe/caution/warning]\n"
-            f"RISK_FLAG: [one sentence]\n"
-            f"RECOMMENDATION: Option 1 - [Tool+price]: [what it does, setup Xh, payback Yw.] Option 2 - [Tool+price]: [what it does.]\n"
+            f"RISK_FLAG: [one sentence — for strategic tasks, flag the decision-layer risk explicitly]\n"
+            f"RECOMMENDATION: [For data tasks: Option 1 - Tool+price: what it does, setup Xh, payback Yw. "
+            f"Option 2 - Tool+price: what it does. "
+            f"For strategic tasks: AI layer — what AI surfaces/prepares. Decision layer — what human decides and why it cannot be delegated.]\n"
+            f"DECISION_LAYER: [none / partial / full — 'none'=fully automatable, 'partial'=AI assists human decides, 'full'=human judgment required throughout]\n"
             f"AGENT_PHASE: [1/2/3]\n"
             f"AGENT_LABEL: [Phase 1: Human-in-Loop / Phase 2: Supervised / Phase 3: Full Delegation]\n"
-            f"AGENT_MILESTONE: [one concrete milestone]\n"
-            f"ORCHESTRATION: [pipeline if score>=70, else human-assist]\n"
+            f"AGENT_MILESTONE: [one concrete measurable milestone]\n"
+            f"ORCHESTRATION: [pipeline description if score>=70, else describe human-AI handoff]\n"
             f"COUNTDOWN_WINDOW: [now/12-24/24-48/48+]\n"
-            f"HUMAN_EDGE_SCORE: [0-100]\n"
+            f"HUMAN_EDGE_SCORE: [0-100 — high for strategic/relational tasks, low for pure data tasks]\n"
             f'PIVOT_SKILLS: ["skill1","skill2","skill3","skill4","skill5","skill6"]\n'
-            f'PIVOT_ROLES: [{{"role":"X","risk":"low","pivot_distance":"easy","automation_score_pct":38}},{{"role":"Y","risk":"low","pivot_distance":"medium","automation_score_pct":42}}]\n\n'
-            f"Rules: vary scores meaningfully. COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2. "
-            f"warning only for PII/financial/legal/medical. now=score>=75 AND tools exist today."
+            f'PIVOT_ROLES: [{{"role":"X","risk":"low","pivot_distance":"easy","automation_score_pct":38}},'
+            f'{{"role":"Y","risk":"low","pivot_distance":"medium","automation_score_pct":42}}]\n\n'
+            f"Final rules: vary scores meaningfully across tasks — identical scores signal lazy analysis. "
+            f"COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2. "
+            f"'warning' risk level only for PII/financial/legal/medical data. "
+            f"'now' countdown only if score>=75 AND the specific tools exist and are production-ready today. "
+            f"Strategic tasks (prioritization, stakeholder alignment, trade-offs) should rarely exceed "
+            f"COMPOSITE_SCORE 70 — be honest about the decision layer."
         )
 
         try:
             message = self.client.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=min(500 * n + 500, 8000),
+                max_tokens=min(600 * n + 500, 8000),
                 messages=[{"role": "user", "content": prompt}],
                 timeout=90.0,
             )
@@ -139,6 +191,9 @@ class AIAnalyzer:
                 result['risk_flag'] = val
             elif key == 'RECOMMENDATION':
                 result['recommendation'] = val
+            elif key == 'DECISION_LAYER':
+                dl = val.lower().strip()
+                result['decision_layer'] = dl if dl in ['none','partial','full'] else 'partial'
             elif key == 'AGENT_PHASE':
                 result['agent_phase'] = self._int(val)
             elif key == 'AGENT_LABEL':
@@ -190,6 +245,11 @@ class AIAnalyzer:
         if 'human_edge_score' not in result:
             result['human_edge_score'] = round(100 - result.get('ai_readiness_score', 50) * 0.7, 1)
 
+        # Default decision_layer based on score if not set
+        if 'decision_layer' not in result:
+            score = result.get('ai_readiness_score', 50)
+            result['decision_layer'] = 'none' if score >= 75 else ('partial' if score >= 45 else 'full')
+
         for k, v in self._defaults().items():
             result.setdefault(k, v)
         return result
@@ -223,6 +283,7 @@ class AIAnalyzer:
             'risk_level': 'safe',
             'risk_flag': 'Safe to automate fully.',
             'recommendation': 'Review task manually for automation opportunities.',
+            'decision_layer': 'partial',
             'agent_phase': 1,
             'agent_label': 'Phase 1: Human-in-Loop AI Draft',
             'agent_milestone': 'Pilot AI drafts on 20% of volume; measure error rate before scaling.',
