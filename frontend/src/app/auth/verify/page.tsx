@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { persistSession } from '@/lib/auth'
 
 function VerifyInner() {
   const router = useRouter()
@@ -19,7 +20,7 @@ function VerifyInner() {
       .then(r => r.json().then(d => ({ ok: r.ok, ...d })))
       .then(data => {
         if (!data.ok) throw new Error(data.detail || 'Invalid link')
-        localStorage.setItem('wsai_email', data.email)
+        persistSession(data.email)
         setStatus('success')
         setTimeout(() => router.push('/'), 1500)
       })
