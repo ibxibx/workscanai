@@ -468,7 +468,85 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const selectClass = `${inputClass} appearance-none cursor-pointer`
   const labelClass = "block text-[13px] font-medium text-[#6e6e73] mb-[6px] uppercase tracking-wide"
   const taskCount = tasks.filter(t=>t.name.trim()).length
-  const showProgress = activeStep >= 0 || rateLimitMessage !== null
+  const showProgress = activeStep >= 0 && rateLimitMessage === null
+
+  // ── Rate Limit Modal ────────────────────────────────────────────────────────
+  const RateLimitModal = () => (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center px-4" style={{background:'rgba(0,0,0,0.55)',backdropFilter:'blur(8px)'}}>
+      {/* Animated glow backdrop */}
+      <div className="relative w-full max-w-[440px]">
+        {/* Glow ring */}
+        <div className="absolute -inset-[2px] rounded-[28px] opacity-60" style={{background:'linear-gradient(135deg,#f59e0b,#f97316,#ef4444)',filter:'blur(16px)'}}/>
+        {/* Card */}
+        <div className="relative bg-white rounded-[26px] shadow-2xl overflow-hidden">
+          {/* Top gradient bar */}
+          <div className="h-[5px] w-full" style={{background:'linear-gradient(90deg,#f59e0b,#f97316,#ef4444)'}}/>
+
+          <div className="px-[40px] pt-[36px] pb-[40px]">
+            {/* Icon */}
+            <div className="flex justify-center mb-[24px]">
+              <div className="relative">
+                <div className="w-[80px] h-[80px] rounded-full flex items-center justify-center" style={{background:'linear-gradient(135deg,#fef3c7,#fde68a)'}}>
+                  <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#f59e0b" stroke="#f59e0b" strokeWidth="0.5" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                {/* Small rocket */}
+                <div className="absolute -bottom-[4px] -right-[4px] w-[28px] h-[28px] bg-white rounded-full shadow-md flex items-center justify-center">
+                  <span style={{fontSize:'15px',lineHeight:1}}>🚀</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Heading */}
+            <h2 className="text-center text-[22px] font-bold text-[#1d1d1f] mb-[8px] tracking-tight">
+              Thank you for using WorkScanAI!
+            </h2>
+
+            {/* Subheading */}
+            <p className="text-center text-[15px] text-[#6e6e73] mb-[28px] leading-relaxed">
+              You&apos;ve used all <span className="font-semibold text-[#f97316]">5 free daily analyses</span>.<br/>
+              Your limit resets in&nbsp;24 hours.
+            </p>
+
+            {/* Info card */}
+            <div className="rounded-[16px] px-[24px] py-[20px] mb-[28px]" style={{background:'linear-gradient(135deg,#fffbeb,#fff7ed)'}}>
+              <div className="space-y-[12px]">
+                {[
+                  { icon:'⏰', text:'Free tier: 5 analyses per 24 hours' },
+                  { icon:'🔒', text:'Your results are saved — come back anytime' },
+                  { icon:'☀️', text:'New analyses available tomorrow' },
+                ].map(({icon,text})=>(
+                  <div key={text} className="flex items-center gap-[12px]">
+                    <span className="shrink-0 w-[32px] h-[32px] rounded-full bg-white shadow-sm flex items-center justify-center text-[15px]">{icon}</span>
+                    <span className="text-[14px] text-[#374151] font-medium">{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* OK button */}
+            <button
+              type="button"
+              onClick={resetProgress}
+              className="w-full py-[15px] rounded-[14px] text-white text-[16px] font-bold tracking-wide transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+              style={{background:'linear-gradient(135deg,#f59e0b,#f97316)'}}
+            >
+              Got it — see you tomorrow! 👋
+            </button>
+
+            {/* Fine print */}
+            <p className="text-center text-[12px] text-[#9ca3af] mt-[14px]">
+              Want unlimited analyses?{' '}
+              <a href="mailto:hello@workscanai.com" className="text-[#f97316] font-medium hover:underline">
+                Contact us about Pro
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   const AuthModal = () => (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
@@ -582,21 +660,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   return (
     <>
       {showAuthModal && <AuthModal/>}
+      {rateLimitMessage && <RateLimitModal/>}
 
       {showProgress && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-md">
           <div className="bg-white border border-[#d2d2d7] rounded-[24px] shadow-2xl p-[48px] w-full max-w-[480px] mx-4">
-            {rateLimitMessage ? (
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-amber-50 border border-amber-200 mb-[24px]"><span className="text-[32px]">☕</span></div>
-                <h2 className="text-[22px] font-semibold text-[#1d1d1f] mb-[16px]">Daily limit reached</h2>
-                <div className="text-left bg-[#f5f5f7] border border-[#d2d2d7] rounded-[14px] px-[24px] py-[20px] mb-[28px] space-y-[12px]">
-                  {rateLimitMessage.split('\n\n').map((para,i)=><p key={i} className={`text-[15px] leading-relaxed ${i===0?'font-medium text-[#1d1d1f]':'text-[#6e6e73]'}`}>{para}</p>)}
-                </div>
-                <button type="button" onClick={resetProgress} className="inline-flex items-center gap-[8px] bg-[#1d1d1f] hover:bg-[#3d3d3f] text-white px-[28px] py-[14px] rounded-full font-semibold text-[15px] transition-all">Got it, close</button>
-              </div>
-            ) : (
-              <>
                 <div className="text-center mb-[40px]">
                   <div className="text-[24px] font-semibold text-[#1d1d1f] mb-[6px]">{activeStep<STEPS.length-1?'Analyzing your workflow…':'All done!'}</div>
                   {activeStep===2&&taskCount>1&&<p className="text-[14px] text-[#6e6e73]">Running AI analysis on {taskCount} tasks — this takes {taskCount*3}–{taskCount*6}s</p>}
@@ -624,8 +692,6 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                   <div className="w-full h-[4px] bg-[#e8e8ed] rounded-full overflow-hidden"><div className="h-full bg-[#0071e3] rounded-full transition-all duration-700 ease-out" style={{width:`${(completedSteps.size/STEPS.length)*100}%`}}/></div>
                 </div>
                 {SITE_KEY&&<p className="text-[11px] text-[#86868b] text-center mt-[20px]">Protected by reCAPTCHA · <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" className="underline">Privacy</a> · <a href="https://policies.google.com/terms" target="_blank" rel="noopener" className="underline">Terms</a></p>}
-              </>
-            )}
           </div>
         </div>
       )}
