@@ -45,7 +45,7 @@ Most organisations have no systematic way to answer this. WorkScanAI answers it 
 
 ## The Solution
 
-Submit your team's tasks via **voice recording**, **document upload**, **LinkedIn profile**, or **manual entry**.
+Submit your team's tasks via **voice recording**, **document upload**, or **manual entry**.
 Receive a scored automation assessment, concrete ROI projection, phased implementation roadmap, and a decision-layer breakdown distinguishing what AI can automate from what requires irreplaceable human judgment — then export it as a polished DOCX or PDF report.
 
 ---
@@ -56,7 +56,6 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 |---|---|
 | 🎙️ **Voice Input** | Record tasks verbally — Web Speech API transcribes in real time |
 | 📄 **Document Upload** | Parse PDFs, Word, Excel, PowerPoint, images (20+ formats) via Claude Vision OCR |
-| 🔗 **LinkedIn Import** | Paste LinkedIn profile URL or text — Claude extracts role context automatically |
 | ✍️ **Manual Entry** | Type tasks directly with dynamic add/remove controls |
 | 👤 **3 Analysis Contexts** | Individual (career survival), Team/Startup (velocity), Company/Dept (strategic ROI) |
 | 🤖 **AI-Readiness Scoring** | 0–100% composite score per task: Repeatability, Data Access, Error Tolerance, Integration |
@@ -499,6 +498,14 @@ Contributions welcome — open an issue first to discuss.
 - Chrome extension — capture repetitive tasks directly from any web app
 - Multi-language support (Next.js i18n)
 - Fine-tuning on company-specific workflow data
+
+### Planned & Tested — Not Currently Active
+
+These features were fully built and tested but pulled from the live product pending further refinement:
+
+| Feature | Status | Notes |
+|---|---|---|
+| 🔗 **LinkedIn Import** | Built & tested | Paste a LinkedIn profile URL or raw text — Claude extracts role, tasks, and context automatically. Removed from active input modes; code preserved in `WorkflowForm.tsx`. Planned for re-activation with a dedicated scraping/proxy layer. |
 
 ---
 
