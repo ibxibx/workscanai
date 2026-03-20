@@ -179,14 +179,12 @@ export default function DashboardPage() {
 
         {/* Header */}
         <div className="mb-[48px]">
-          <div className="flex items-baseline gap-[20px]">
-            <h1 className="text-[48px] leading-[1.08] font-semibold italic tracking-tight shrink-0">
-              Dashboard
-            </h1>
-            <p className="text-[19px] italic text-[#6e6e73]">
-              Your workflow analyses and automation insights.
-            </p>
-          </div>
+          <h1 className="text-[48px] leading-[1.08] font-semibold italic tracking-tight mb-[8px]">
+            Dashboard
+          </h1>
+          <p className="text-[19px] italic text-[#6e6e73]">
+            Your workflow analyses and automation insights.
+          </p>
         </div>
 
         {/* Sign-in banner — shown when not logged in */}
