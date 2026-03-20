@@ -122,19 +122,27 @@ class ReportGenerator:
             lbl = score_label(task_score)
             block = []
 
-            # Header
+            # Header — number column wide enough for 2 digits, score column fixed
+            num_col  = 20*mm   # wide enough for "27" at font 18
+            score_col = 26*mm
+            name_col  = W - num_col - score_col
             block.append(Table([[
                 Paragraph(f'<font color="#0071e3"><b>{idx}</b></font>',
-                    style_fn(f'tn{idx}', fontSize=22, fontName='Helvetica-Bold', textColor=BLUE, alignment=TA_CENTER)),
+                    style_fn(f'tn{idx}', fontSize=18, fontName='Helvetica-Bold',
+                             textColor=BLUE, alignment=TA_CENTER, leading=22)),
                 Paragraph(f'<b>{task["name"]}</b>',
-                    style_fn(f'th{idx}', fontSize=13, fontName='Helvetica-Bold', textColor=GRAY_900, leading=17)),
+                    style_fn(f'th{idx}', fontSize=13, fontName='Helvetica-Bold',
+                             textColor=GRAY_900, leading=17)),
                 Paragraph(f'<b>{task_score:.0f}%</b><br/><font size="8">{lbl}</font>',
-                    style_fn(f'tb{idx}', fontSize=16, fontName='Helvetica-Bold', textColor=tc, alignment=TA_CENTER, leading=20)),
-            ]], colWidths=[14*mm, W-14*mm-22*mm, 22*mm],
+                    style_fn(f'tb{idx}', fontSize=16, fontName='Helvetica-Bold',
+                             textColor=tc, alignment=TA_CENTER, leading=20)),
+            ]], colWidths=[num_col, name_col, score_col],
             style=TableStyle([('BACKGROUND',(0,0),(-1,-1),tc_light),
                 ('TOPPADDING',(0,0),(-1,-1),10),('BOTTOMPADDING',(0,0),(-1,-1),10),
-                ('LEFTPADDING',(0,0),(0,-1),10),('LEFTPADDING',(1,0),(1,-1),8),
-                ('RIGHTPADDING',(2,0),(2,-1),10),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+                ('LEFTPADDING',(0,0),(0,-1),6),('LEFTPADDING',(1,0),(1,-1),8),
+                ('RIGHTPADDING',(2,0),(2,-1),10),
+                ('NOSPLIT',(0,0),(-1,-1)),
+                ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
                 ('LINEBELOW',(0,0),(-1,-1),1.5,tc)])))
 
             # Details rows
@@ -303,58 +311,62 @@ class ReportGenerator:
             story.append(Paragraph(insight, style_fn('he_ins', fontSize=9, fontName='Helvetica-Oblique',
                 textColor=GRAY_600, leading=14, spaceAfter=8, spaceBefore=4)))
 
-            # B3 — Career Pivot
-            pivot_tasks = [r for r in sorted_results if r.get('pivot_roles') or r.get('pivot_skills')]
-            if pivot_tasks:
-                story.append(Paragraph('Career Pivot Recommendations', style_fn('cpr', fontSize=13,
-                    fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
-
-                # Aggregate skills (deduplicated)
-                all_skills = []
-                for r in pivot_tasks:
-                    try:
-                        sk = _json.loads(r['pivot_skills']) if isinstance(r.get('pivot_skills'), str) else (r.get('pivot_skills') or [])
-                        for s in (sk if isinstance(sk, list) else []):
-                            if s not in all_skills and len(all_skills) < 6:
-                                all_skills.append(s)
-                    except Exception: pass
-                if all_skills:
-                    story.append(Paragraph('Skills to Develop Now', style_fn('sk_ttl', fontSize=10,
-                        fontName='Helvetica-Bold', textColor=BLUE, spaceAfter=4)))
-                    story.append(Paragraph('  ·  '.join(all_skills), style_fn('sk_list', fontSize=9,
-                        fontName='Helvetica', textColor=GRAY_900, leading=14, spaceAfter=6)))
-
-                # Roles
-                all_roles = []
-                for r in pivot_tasks:
-                    try:
-                        roles = _json.loads(r['pivot_roles']) if isinstance(r.get('pivot_roles'), str) else (r.get('pivot_roles') or [])
-                        for role in (roles if isinstance(roles, list) else []):
-                            if not any(x.get('role') == role.get('role') for x in all_roles) and len(all_roles) < 5:
-                                all_roles.append(role)
-                    except Exception: pass
-                if all_roles:
-                    story.append(Paragraph('Adjacent Roles (Lower AI Risk)', style_fn('ro_ttl', fontSize=10,
-                        fontName='Helvetica-Bold', textColor=BLUE, spaceAfter=4)))
-                    role_rows = [[Paragraph('<b>Role</b>', ST['label']),
-                                  Paragraph('<b>Risk</b>', ST['label']),
-                                  Paragraph('<b>Pivot Distance</b>', ST['label'])]]
-                    for role_item in all_roles:
-                        rn = role_item.get('role', '—')
-                        risk = role_item.get('risk', '—')
-                        pdist = role_item.get('pivot_distance', '—')
-                        rc2 = GREEN if risk == 'low' else (AMBER if risk == 'medium' else RED)
-                        role_rows.append([
-                            Paragraph(rn, style_fn(f'prn{rn[:8]}', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
-                            Paragraph(risk, style_fn(f'prr{risk}', fontSize=9, fontName='Helvetica-Bold', textColor=rc2)),
-                            Paragraph(pdist, style_fn(f'prd{pdist}', fontSize=9, fontName='Helvetica', textColor=GRAY_600)),
-                        ])
-                    story.append(Table(role_rows, colWidths=[W*0.5, W*0.2, W*0.3],
-                        style=TableStyle([('BACKGROUND',(0,0),(-1,0),GRAY_100),
-                            ('ROWBACKGROUNDS',(0,1),(-1,-1),[WHITE,GRAY_100]),
-                            ('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5),
-                            ('LEFTPADDING',(0,0),(-1,-1),10),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
-
+            # B3 — Career Pivot (always render)
+            story.append(Paragraph('Career Pivot Recommendations', style_fn('cpr', fontSize=13,
+                fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
+            all_skills = []
+            for r in sorted_results:
+                try:
+                    sk = _json.loads(r['pivot_skills']) if isinstance(r.get('pivot_skills'), str) else (r.get('pivot_skills') or [])
+                    for s in (sk if isinstance(sk, list) else []):
+                        label = s if isinstance(s, str) else s.get('skill', str(s))
+                        if label and label not in all_skills and len(all_skills) < 8:
+                            all_skills.append(label)
+                except Exception: pass
+            if not all_skills:
+                all_skills = ['AI prompt engineering','Strategic planning','Data interpretation',
+                              'Client relationship management','Creative direction','Change management']
+            story.append(Paragraph('Skills to Develop Now', style_fn('sk_ttl2', fontSize=10,
+                fontName='Helvetica-Bold', textColor=BLUE, spaceAfter=4)))
+            story.append(Paragraph('  ·  '.join(all_skills[:6]), style_fn('sk_list2', fontSize=9,
+                fontName='Helvetica', textColor=GRAY_900, leading=14, spaceAfter=6)))
+            all_roles = []
+            for r in sorted_results:
+                try:
+                    roles = _json.loads(r['pivot_roles']) if isinstance(r.get('pivot_roles'), str) else (r.get('pivot_roles') or [])
+                    for role in (roles if isinstance(roles, list) else []):
+                        if not any(x.get('role') == role.get('role') for x in all_roles) and len(all_roles) < 5:
+                            all_roles.append(role)
+                except Exception: pass
+            if all_roles:
+                story.append(Paragraph('Adjacent Roles — Lower AI Risk', style_fn('ro_ttl2', fontSize=10,
+                    fontName='Helvetica-Bold', textColor=BLUE, spaceAfter=4)))
+                role_rows = [[Paragraph('<b>Role</b>', ST['label']),
+                              Paragraph('<b>AI Risk</b>', ST['label']),
+                              Paragraph('<b>Pivot Distance</b>', ST['label'])]]
+                for role_item in all_roles:
+                    rn    = role_item.get('role', '—')
+                    risk  = role_item.get('risk', '—')
+                    pdist = role_item.get('pivot_distance', '—')
+                    apct  = role_item.get('automation_score_pct')
+                    rc2   = GREEN if risk == 'low' else (AMBER if risk == 'medium' else RED)
+                    role_rows.append([
+                        Paragraph(rn, style_fn(f'prn2{rn[:6]}', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
+                        Paragraph(f'{risk}{f" ({apct}%)" if apct else ""}',
+                            style_fn(f'prr2{risk}', fontSize=9, fontName='Helvetica-Bold', textColor=rc2)),
+                        Paragraph(pdist, style_fn(f'prd2{pdist[:6]}', fontSize=9, fontName='Helvetica', textColor=GRAY_600)),
+                    ])
+                story.append(Table(role_rows, colWidths=[W*0.45, W*0.25, W*0.30],
+                    style=TableStyle([('BACKGROUND',(0,0),(-1,0),GRAY_100),
+                        ('ROWBACKGROUNDS',(0,1),(-1,-1),[WHITE,GRAY_100]),
+                        ('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5),
+                        ('LEFTPADDING',(0,0),(-1,-1),10),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
+            story.append(Paragraph(
+                '90-Day Action Plan: Identify the top 2 skills above. Spend 1 hour/day practising with AI tools '
+                '(Claude, Perplexity, Replit). Build one public project. This moves you from replacement target '
+                'to AI-empowered operator.',
+                style_fn('pivot_cta2', fontSize=9, fontName='Helvetica-Oblique', textColor=GRAY_600,
+                    leading=14, spaceAfter=8, spaceBefore=6)))
         # ── TEAM ──────────────────────────────────────────────────────────
         elif context == 'team':
             story.append(PageBreak())
@@ -895,16 +907,17 @@ class ReportGenerator:
             s_hex = '34c759' if task_score>=70 else ('ff9f0a' if task_score>=40 else 'ff3b30')
             bg_hex = 'e8f9ed' if task_score>=70 else ('fff4e0' if task_score>=40 else 'ffe5e3')
 
-            # Header row
+            # Header row — number col wide enough for 2 digits
             t=doc.add_table(rows=1,cols=3); t.style='Table Grid'
             c0=t.rows[0].cells[0]; set_bg(c0,bg_hex); p2=c0.paragraphs[0]
-            p2.alignment=WD_ALIGN_PARAGRAPH.CENTER; run(p2,f'{idx:02d}',bold=True,size=18,color='0071e3')
+            p2.alignment=WD_ALIGN_PARAGRAPH.CENTER
+            run(p2,f'{idx}',bold=True,size=16,color='0071e3')
             c1=t.rows[0].cells[1]; set_bg(c1,bg_hex); run(c1.paragraphs[0],task['name'],bold=True,size=13,color='1d1d1f')
             c2=t.rows[0].cells[2]; set_bg(c2,bg_hex); p3=c2.paragraphs[0]
             p3.alignment=WD_ALIGN_PARAGRAPH.CENTER
             run(p3,f'{task_score:.0f}%\n',bold=True,size=16,color=s_hex)
             run(p3,lbl,bold=True,size=8,color=s_hex)
-            set_w(c0,1.2); set_w(c1,11.0); set_w(c2,2.8)
+            set_w(c0,1.6); set_w(c1,10.6); set_w(c2,2.8)
             doc.add_paragraph()
 
             # Details
