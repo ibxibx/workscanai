@@ -145,7 +145,7 @@ export default function ResultsPage() {
               </span>
             )}
           </div>
-          <h1 className="text-[44px] leading-[1.08] font-semibold italic tracking-tight mb-[6px]">
+          <h1 className="text-[28px] sm:text-[44px] leading-[1.08] font-semibold italic tracking-tight mb-[6px] break-words">
             {analysisData.workflow.name}
           </h1>
           <p className="text-[14px] text-[#86868b]">Analysis ID: {id} · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
@@ -159,18 +159,17 @@ export default function ResultsPage() {
             { label: 'Quick Wins', value: `${quickWins}`, color: 'text-purple-600', sub: 'Automatable today' },
             { label: 'Human Edge', value: `${Math.round(avgHumanEdge)}%`, color: 'text-amber-600', sub: 'Irreplaceable value' },
           ].map(card => (
-            <div key={card.label} className="bg-white border border-[#e8e8ed] rounded-[18px] p-[24px] shadow-sm">
-              <div className="text-[11px] font-semibold text-[#86868b] uppercase tracking-widest mb-[10px]">{card.label}</div>
-              <div className={`text-[36px] font-semibold tracking-tight ${card.color} mb-[4px]`}>{card.value}</div>
-              <div className="text-[12px] text-[#86868b]">{card.sub}</div>
+            <div key={card.label} className="bg-white border border-[#e8e8ed] rounded-[18px] p-[16px] sm:p-[24px] shadow-sm hover-lift hover-stat cursor-default min-w-0">
+              <div className="text-[10px] sm:text-[11px] font-semibold text-[#86868b] uppercase tracking-widest mb-[8px] sm:mb-[10px]">{card.label}</div>
+              <div className={`text-[22px] sm:text-[36px] font-semibold tracking-tight ${card.color} mb-[4px] leading-tight truncate`}>{card.value}</div>
+              <div className="text-[11px] sm:text-[12px] text-[#86868b] leading-snug">{card.sub}</div>
             </div>
           ))}
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════════
-            SECTION A — TASK BREAKDOWN (all contexts)
-        ═══════════════════════════════════════════════════════════════ */}
-        <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+        {/* ── Section padding — reduce on mobile throughout ── */}
+        {/* SECTION A — TASK BREAKDOWN */}
+        <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
           <div className="flex items-center gap-[10px] mb-[8px]">
             <BarChart3 className="h-[20px] w-[20px] text-[#0071e3]" />
             <h2 className="text-[24px] font-semibold italic tracking-tight">Task-by-Task Breakdown</h2>
@@ -303,7 +302,7 @@ export default function ResultsPage() {
         {context === 'individual' && (
           <>
             {/* B1 — Automation Countdown Clock */}
-            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
                   <Clock className="h-[18px] w-[18px] text-white" />
@@ -316,29 +315,29 @@ export default function ResultsPage() {
 
               <div className="grid grid-cols-1 gap-[2px] mt-[28px] rounded-[14px] overflow-hidden border border-[#e8e8ed]">
                 {/* Header */}
-                <div className="grid grid-cols-[1fr_140px_100px] gap-0 bg-[#f5f5f7] px-[20px] py-[12px]">
+                <div className="grid grid-cols-[1fr_auto_60px] gap-0 bg-[#f5f5f7] px-[16px] py-[12px]">
                   <div className="text-[11px] font-bold text-[#86868b] uppercase tracking-widest">Task</div>
-                  <div className="text-[11px] font-bold text-[#86868b] uppercase tracking-widest">Risk Window</div>
-                  <div className="text-[11px] font-bold text-[#86868b] uppercase tracking-widest text-right">AI Score</div>
+                  <div className="text-[11px] font-bold text-[#86868b] uppercase tracking-widest px-[8px]">Window</div>
+                  <div className="text-[11px] font-bold text-[#86868b] uppercase tracking-widest text-right">Score</div>
                 </div>
                 {analysisData.results.map((r, i) => {
                   const windowMap: Record<string, { label: string; bar: string; bg: string }> = {
-                    'now':   { label: '⚡ Act now',     bar: 'bg-red-500',    bg: 'bg-red-50' },
-                    '12-24': { label: '🟠 12–24 mo',    bar: 'bg-orange-400', bg: '' },
-                    '24-48': { label: '🟡 24–48 mo',    bar: 'bg-yellow-400', bg: '' },
-                    '48+':   { label: '🟢 48+ months',  bar: 'bg-green-400',  bg: 'bg-green-50' },
+                    'now':   { label: '⚡ Now',        bar: 'bg-red-500',    bg: 'bg-red-50' },
+                    '12-24': { label: '🟠 12–24 mo',   bar: 'bg-orange-400', bg: '' },
+                    '24-48': { label: '🟡 24–48 mo',   bar: 'bg-yellow-400', bg: '' },
+                    '48+':   { label: '🟢 48+ mo',     bar: 'bg-green-400',  bg: 'bg-green-50' },
                   }
                   const wm = windowMap[r.countdown_window || '24-48']
                   return (
-                    <div key={i} className={`grid grid-cols-[1fr_140px_100px] gap-0 px-[20px] py-[14px] border-t border-[#e8e8ed] ${wm.bg}`}>
-                      <div className="text-[14px] font-medium text-[#1d1d1f]">{r.task?.name || `Task ${i+1}`}</div>
-                      <div>
-                        <span className="text-[12px] font-semibold">{wm.label}</span>
-                        <div className="w-[100px] h-[4px] bg-[#e8e8ed] rounded-full mt-[4px] overflow-hidden">
+                    <div key={i} className={`grid grid-cols-[1fr_auto_60px] gap-0 px-[16px] py-[12px] border-t border-[#e8e8ed] ${wm.bg}`}>
+                      <div className="text-[13px] font-medium text-[#1d1d1f] truncate pr-[8px]">{r.task?.name || `Task ${i+1}`}</div>
+                      <div className="px-[8px]">
+                        <span className="text-[11px] font-semibold whitespace-nowrap">{wm.label}</span>
+                        <div className="w-[60px] h-[4px] bg-[#e8e8ed] rounded-full mt-[4px] overflow-hidden">
                           <div className={`h-full rounded-full ${wm.bar}`} style={{ width: `${r.ai_readiness_score}%` }} />
                         </div>
                       </div>
-                      <div className="text-[14px] font-bold text-right text-[#1d1d1f]">{Math.round(r.ai_readiness_score)}%</div>
+                      <div className="text-[13px] font-bold text-right text-[#1d1d1f]">{Math.round(r.ai_readiness_score)}%</div>
                     </div>
                   )
                 })}
@@ -352,7 +351,7 @@ export default function ResultsPage() {
             </div>
 
             {/* B2 — Job Survival Score */}
-            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center">
                   <Target className="h-[18px] w-[18px] text-white" />
@@ -413,7 +412,7 @@ export default function ResultsPage() {
             </div>
 
             {/* B3 — Safe Career Pivot */}
-            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                   <ArrowRight className="h-[18px] w-[18px] text-white" />
@@ -522,7 +521,7 @@ export default function ResultsPage() {
         {context === 'team' && (
           <>
             {/* C1 — Team Velocity Impact */}
-            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
                   <TrendingUp className="h-[18px] w-[18px] text-white" />
@@ -533,14 +532,14 @@ export default function ResultsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-[16px] mt-[28px] mb-[24px]">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px] mt-[28px] mb-[24px]">
                 {[
                   { label: 'Hours freed / yr', value: `${Math.round(analysisData.hours_saved)}h`, color: 'text-[#0071e3]', sub: 'Available for product & growth' },
                   { label: 'FTE equivalent', value: `${(analysisData.hours_saved / 1800).toFixed(1)}`, color: 'text-emerald-600', sub: 'Roles redeployable to strategic work' },
                   { label: 'Cost saved / yr', value: `€${Math.round(analysisData.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: 'At your team\'s hourly rate' },
                 ].map(card => (
-                  <div key={card.label} className="bg-emerald-50 border border-emerald-100 rounded-[14px] p-[20px] text-center">
-                    <div className={`text-[32px] font-bold mb-[4px] ${card.color}`}>{card.value}</div>
+                  <div key={card.label} className="bg-emerald-50 border border-emerald-100 rounded-[14px] p-[16px] sm:p-[20px] text-center min-w-0">
+                    <div className={`text-[24px] sm:text-[32px] font-bold mb-[4px] ${card.color} truncate`}>{card.value}</div>
                     <div className="text-[12px] font-semibold text-[#1d1d1f] mb-[2px]">{card.label}</div>
                     <div className="text-[11px] text-[#86868b]">{card.sub}</div>
                   </div>
@@ -574,7 +573,7 @@ export default function ResultsPage() {
             </div>
 
             {/* C2 — 90-Day Sprint Plan */}
-            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center">
                   <Zap className="h-[18px] w-[18px] text-white" />
@@ -621,7 +620,7 @@ export default function ResultsPage() {
         {context === 'company' && (
           <>
             {/* D1 — AI-First Competitor Gap */}
-            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
                   <AlertTriangle className="h-[18px] w-[18px] text-white" />
@@ -632,14 +631,14 @@ export default function ResultsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-[14px] mt-[28px] mb-[24px]">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px] mt-[28px] mb-[24px]">
                 {[
                   { label: 'If you automate now', value: `€${Math.round(analysisData.annual_savings).toLocaleString()}/yr`, sub: 'Your annual advantage', color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
                   { label: 'If you wait 12 months', value: `€${Math.round(analysisData.annual_savings * 0.35).toLocaleString()}/yr`, sub: '65% of advantage lost to delayed adoption', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-100' },
                   { label: 'AI-first competitor edge', value: `€${Math.round(analysisData.annual_savings * 1.4).toLocaleString()}/yr`, sub: 'Over you if they move first', color: 'text-red-600', bg: 'bg-red-50 border-red-100' },
                 ].map(card => (
-                  <div key={card.label} className={`rounded-[14px] border p-[20px] ${card.bg}`}>
-                    <div className={`text-[26px] font-bold mb-[4px] ${card.color}`}>{card.value}</div>
+                  <div key={card.label} className={`rounded-[14px] border p-[16px] sm:p-[20px] min-w-0 ${card.bg}`}>
+                    <div className={`text-[20px] sm:text-[26px] font-bold mb-[4px] ${card.color} truncate`}>{card.value}</div>
                     <div className="text-[12px] font-semibold text-[#1d1d1f] mb-[2px]">{card.label}</div>
                     <div className="text-[11px] text-[#86868b]">{card.sub}</div>
                   </div>
@@ -655,7 +654,7 @@ export default function ResultsPage() {
             </div>
 
             {/* D2 — Headcount Signal */}
-            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
                   <Users className="h-[18px] w-[18px] text-white" />
@@ -666,15 +665,15 @@ export default function ResultsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-[16px] mt-[28px]">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px] mt-[28px]">
                 {[
                   { label: 'Hours freed / yr', value: `${Math.round(analysisData.hours_saved)}h`, note: 'Total across all tasks', color: 'text-[#0071e3]' },
                   { label: 'FTE equivalent', value: `${(analysisData.hours_saved / 1800).toFixed(1)}`, note: 'At 1,800 working hrs/yr', color: 'text-purple-600' },
                   { label: 'Saved per FTE', value: `€${Math.round(analysisData.annual_savings / Math.max(analysisData.hours_saved / 1800, 0.1)).toLocaleString()}`, note: 'Annual cost per role', color: 'text-green-600' },
                 ].map(item => (
-                  <div key={item.label} className="bg-[#fafafa] border border-[#e8e8ed] rounded-[14px] p-[20px] text-center">
-                    <div className={`text-[36px] font-bold mb-[6px] ${item.color}`}>{item.value}</div>
-                    <div className="text-[13px] font-semibold text-[#1d1d1f]">{item.label}</div>
+                  <div key={item.label} className="bg-[#fafafa] border border-[#e8e8ed] rounded-[14px] p-[16px] sm:p-[20px] text-center min-w-0">
+                    <div className={`text-[24px] sm:text-[36px] font-bold mb-[6px] ${item.color} truncate`}>{item.value}</div>
+                    <div className="text-[12px] sm:text-[13px] font-semibold text-[#1d1d1f]">{item.label}</div>
                     <div className="text-[11px] text-[#86868b] mt-[2px]">{item.note}</div>
                   </div>
                 ))}
@@ -685,7 +684,7 @@ export default function ResultsPage() {
             </div>
 
             {/* D3 — Industry Benchmark */}
-            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-[#0071e3] flex items-center justify-center">
                   <Globe2 className="h-[18px] w-[18px] text-white" />
@@ -696,17 +695,17 @@ export default function ResultsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-[12px] mt-[28px]">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-[10px] mt-[28px]">
                 {[
                   { label: 'Your score', val: `${Math.round(analysisData.automation_score)}%`, note: 'This workflow', color: 'text-[#0071e3]', bg: 'bg-blue-50 border-blue-100' },
                   { label: 'Sector average', val: '58%', note: 'Cognitive workflows', color: 'text-[#6e6e73]', bg: 'bg-[#f5f5f7] border-[#e8e8ed]' },
                   { label: 'Top 10% orgs', val: '81%', note: 'AI-first companies', color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
                   { label: 'Gap to close', val: `${Math.max(0, 81 - Math.round(analysisData.automation_score))}%`, note: 'To reach top 10%', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-100' },
                 ].map(item => (
-                  <div key={item.label} className={`rounded-[14px] border p-[18px] text-center ${item.bg}`}>
-                    <div className={`text-[30px] font-bold mb-[4px] ${item.color}`}>{item.val}</div>
-                    <div className="text-[12px] font-semibold text-[#1d1d1f]">{item.label}</div>
-                    <div className="text-[10px] text-[#86868b] mt-[2px]">{item.note}</div>
+                  <div key={item.label} className={`rounded-[14px] border p-[14px] sm:p-[18px] text-center min-w-0 ${item.bg}`}>
+                    <div className={`text-[22px] sm:text-[30px] font-bold mb-[4px] ${item.color}`}>{item.val}</div>
+                    <div className="text-[11px] sm:text-[12px] font-semibold text-[#1d1d1f] leading-snug">{item.label}</div>
+                    <div className="text-[10px] text-[#86868b] mt-[2px] leading-snug">{item.note}</div>
                   </div>
                 ))}
               </div>
@@ -722,7 +721,7 @@ export default function ResultsPage() {
             </div>
 
             {/* D4 — Board Summary */}
-            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
+            <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-[#1d1d1f] flex items-center justify-center">
                   <Briefcase className="h-[18px] w-[18px] text-white" />
@@ -757,16 +756,16 @@ export default function ResultsPage() {
             SECTION E — AI Readiness Score (all contexts)
         ═══════════════════════════════════════════════════════════════ */}
         {analysisData.readiness_score != null && (
-          <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[40px] mb-[24px] shadow-sm">
-            <div className="flex items-start justify-between mb-[24px]">
+          <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-[16px] mb-[24px]">
               <div>
                 <h2 className="text-[22px] font-semibold italic tracking-tight">
                   {context === 'individual' ? 'Your' : context === 'team' ? 'Team' : 'Organisation'} AI Readiness
                 </h2>
                 <p className="text-[13px] text-[#86868b] mt-[4px]">How ready are you to adopt and scale AI automation</p>
               </div>
-              <div className="text-center">
-                <div className="text-[52px] font-bold tracking-tight text-[#0071e3]">{Math.round(analysisData.readiness_score)}%</div>
+              <div className="text-left sm:text-center shrink-0">
+                <div className="text-[40px] sm:text-[52px] font-bold tracking-tight text-[#0071e3] leading-none">{Math.round(analysisData.readiness_score)}%</div>
                 <div className="text-[12px] text-[#86868b]">Overall Readiness</div>
               </div>
             </div>
