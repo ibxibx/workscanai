@@ -8,6 +8,41 @@ import {
   CheckCircle2, Circle, ArrowRight
 } from 'lucide-react'
 
+// ── Recommendation renderer — splits on Option 1/2/3 and Decision layer ─────
+function RecommendationBlocks({ text }: { text: string }) {
+  if (!text) return null
+  const segments = text.split(/(Option\s+\d+\s*[—–\-:]\s*|Decision\s+layer\s*[—–:\-]\s*)/i)
+  const blocks: { label: string; body: string; isDecision: boolean }[] = []
+  for (let i = 0; i < segments.length; i++) {
+    if (i % 2 === 0) {
+      const body = segments[i].trim()
+      if (body) blocks.push({ label: '', body, isDecision: false })
+    } else {
+      const label = segments[i].trim().replace(/[—–\-:]\s*$/, '').trim()
+      const body = (segments[i + 1] || '').trim()
+      const isDecision = /Decision\s+layer/i.test(label)
+      if (body) blocks.push({ label, body, isDecision })
+      i++
+    }
+  }
+  if (blocks.length <= 1) return <>{text}</>
+  return (
+    <div className="space-y-0">
+      {blocks.map((block, i) => (
+        <div key={i} className={`leading-relaxed ${i > 0 ? 'border-t border-[#d8d8de] pt-[10px] mt-[10px]' : ''} ${block.isDecision ? 'text-violet-800' : ''}`}>
+          {block.label && (
+            <span className={`font-bold mr-[6px] ${block.isDecision ? 'text-violet-700' : 'text-[#0071e3]'}`}>
+              {block.label}
+              {!/[—–\-:]$/.test(block.label) ? ' —' : ''}
+            </span>
+          )}
+          {block.body}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 interface TaskResult {
   task: { name: string; description: string; frequency: string; time_per_task: number; category: string }
   ai_readiness_score: number
@@ -296,32 +331,7 @@ export default function RoadmapPage() {
                             </div>
 
                             <div className="bg-[#f5f5f7] rounded-[10px] px-[16px] py-[12px] text-[14px] text-[#1d1d1f] mb-[14px]">
-                              {(() => {
-                                const rec = result.recommendation || ''
-                                const opt2 = rec.match(/(Option\s+2\s*[—\-–])/)
-                                if (opt2 && opt2.index) {
-                                  const p1 = rec.slice(0, opt2.index).trim()
-                                  const p2 = rec.slice(opt2.index).trim()
-                                  return (
-                                    <>
-                                      <div className="mb-[10px]">
-                                        <span className="font-semibold text-[#0071e3]">→ </span>
-                                        {p1}
-                                      </div>
-                                      <div className="border-t border-[#e0e0e5] pt-[10px]">
-                                        <span className="font-semibold text-[#0071e3]">→ </span>
-                                        {p2}
-                                      </div>
-                                    </>
-                                  )
-                                }
-                                return (
-                                  <>
-                                    <span className="font-semibold text-[#0071e3]">→ </span>
-                                    {rec}
-                                  </>
-                                )
-                              })()}
+                              <RecommendationBlocks text={result.recommendation || ''} />
                             </div>
 
                             {tools.length > 0 && (
