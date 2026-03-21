@@ -85,7 +85,7 @@ export default function LandingPage() {
               <div className="flex gap-[16px] justify-center items-center flex-wrap">
                 <a
                   href="#analyze"
-                  className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[17px] leading-[1.17] font-normal px-[22px] py-[12px] rounded-full transition-all group shadow-lg"
+                  className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[17px] leading-[1.17] font-normal px-[22px] py-[12px] rounded-full transition-all group shadow-lg hover-pop"
                 >
                   <span>Analyze now</span>
                   <ArrowRight className="h-[16px] w-[16px] group-hover:translate-x-[2px] transition-transform" />
@@ -124,18 +124,18 @@ export default function LandingPage() {
       <section className="py-[60px] border-y border-[#d2d2d7] bg-[#f5f5f7]">
         <div className="max-w-[980px] mx-auto px-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-[20px]">
-            <div className="text-center bg-white border border-[#e8e8ed] rounded-[18px] p-[32px] h-full transition-all duration-300 hover:border-[#0071e3] hover:shadow-lg">
-              <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <div className="text-center bg-white border border-[#e8e8ed] rounded-[18px] p-[32px] h-full hover-lift hover-glow hover-float-icon cursor-default">
+              <div className="icon-circle w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 <Sparkles className="h-[20px] w-[20px] text-white" />
               </div>
-              <h3 className="text-[19px] font-semibold italic mb-[8px] tracking-tight text-[#1d1d1f]">AI Analysis</h3>
+              <h3 className="text-[19px] font-semibold italic mb-[8px] tracking-tight text-[#1d1d1f] hover-shimmer">AI Analysis</h3>
               <p className="text-[14px] text-[#6e6e73] leading-[1.4]">
                 Evaluates every task for automation readiness
               </p>
             </div>
 
-            <div className="text-center bg-white border border-[#e8e8ed] rounded-[18px] p-[32px] h-full transition-all duration-300 hover:border-[#0071e3] hover:shadow-lg">
-              <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+            <div className="text-center bg-white border border-[#e8e8ed] rounded-[18px] p-[32px] h-full hover-lift hover-glow hover-float-icon cursor-default">
+              <div className="icon-circle w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
                 <svg className="h-[20px] w-[20px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -146,8 +146,8 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="text-center bg-white border border-[#e8e8ed] rounded-[18px] p-[32px] h-full transition-all duration-300 hover:border-[#0071e3] hover:shadow-lg">
-              <div className="w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center">
+            <div className="text-center bg-white border border-[#e8e8ed] rounded-[18px] p-[32px] h-full hover-lift hover-glow hover-float-icon cursor-default">
+              <div className="icon-circle w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center">
                 <svg className="h-[20px] w-[20px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
@@ -195,7 +195,7 @@ export default function LandingPage() {
                     { name: 'Generate performance reports',  freq: 'Weekly',  time: '2 hrs'  },
                     { name: 'Research trending topics',      freq: 'Daily',   time: '1 hr'   },
                   ].map((t, i) => (
-                    <div key={i} className="flex items-center justify-between bg-white border border-[#e8e8ed] rounded-[10px] px-[14px] py-[10px]">
+                    <div key={i} className="flex items-center justify-between bg-white border border-[#e8e8ed] rounded-[10px] px-[14px] py-[10px] hover-lift cursor-default">
                       <span className="text-[13px] font-medium text-[#1d1d1f]">{t.name}</span>
                       <div className="flex gap-[8px] shrink-0 ml-[12px]">
                         <span className="text-[11px] text-[#86868b] bg-[#f5f5f7] px-[8px] py-[3px] rounded-full">{t.freq}</span>
@@ -207,37 +207,57 @@ export default function LandingPage() {
               </div>
 
               {/* Overall Score */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-[18px] p-[16px] sm:p-[32px] flex flex-col justify-between min-w-0 overflow-hidden">
-                <div className="text-[11px] font-semibold text-[#0071e3] tracking-widest uppercase mb-[20px]">② Analysis — Summary</div>
-                <div className="flex flex-wrap items-center gap-[16px] mb-[24px]">
-                  <div>
-                    <div className="text-[64px] leading-none font-semibold tracking-tight text-[#0071e3]">72%</div>
-                    <div className="text-[15px] text-[#6e6e73]">Automation Score</div>
-                  </div>
-                  <div className="h-[64px] w-[1px] bg-blue-200"></div>
-                  <div className="space-y-[12px]">
-                    <div>
-                      <div className="text-[28px] font-semibold tracking-tight text-green-600">€28,000</div>
-                      <div className="text-[12px] text-[#6e6e73]">Annual cost savings</div>
+              {/* Outer ring — dark charcoal with subtle blue tint */}
+              <div className="bg-[#16191f] rounded-[22px] p-[3px] shadow-xl min-w-0 overflow-hidden flex flex-col">
+                {/* Inner ring — very slightly lighter, creates the double-frame feel */}
+                <div className="bg-[#1e222b] rounded-[20px] p-[2px] flex-1 flex flex-col">
+                  {/* Content surface */}
+                  <div className="bg-gradient-to-br from-[#1a1e28] to-[#111318] rounded-[18px] p-[16px] sm:p-[28px] flex flex-col justify-between flex-1">
+
+                    {/* Label */}
+                    <div className="flex items-center gap-[8px] mb-[20px]">
+                      <span className="w-[6px] h-[6px] rounded-full bg-[#0071e3] shrink-0"></span>
+                      <span className="text-[10px] font-bold text-[#4a9eff] tracking-[0.15em] uppercase">Analysis — Summary</span>
                     </div>
-                    <div>
-                      <div className="text-[22px] font-semibold tracking-tight text-[#1d1d1f]">436 hrs</div>
-                      <div className="text-[12px] text-[#6e6e73]">Reclaimed per year</div>
+
+                    {/* Primary metrics */}
+                    <div className="flex flex-wrap items-center gap-[20px] mb-[24px]">
+                      {/* Score */}
+                      <div>
+                        <div className="text-[56px] sm:text-[64px] leading-none font-semibold tracking-tight text-white">72<span className="text-[#4a9eff]">%</span></div>
+                        <div className="text-[12px] text-[#6e7a8a] mt-[4px] font-medium">Automation Score</div>
+                      </div>
+                      {/* Divider */}
+                      <div className="h-[56px] w-[1px] bg-white/10 hidden sm:block"></div>
+                      {/* Savings */}
+                      <div className="space-y-[10px]">
+                        <div>
+                          <div className="text-[26px] font-semibold tracking-tight text-emerald-400">€28,000</div>
+                          <div className="text-[11px] text-[#6e7a8a]">Annual cost savings</div>
+                        </div>
+                        <div>
+                          <div className="text-[20px] font-semibold tracking-tight text-white/90">436 <span className="text-[14px] font-normal text-[#6e7a8a]">hrs</span></div>
+                          <div className="text-[11px] text-[#6e7a8a]">Reclaimed per year</div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-[8px]">
-                  <div className="bg-green-100 border border-green-200 rounded-[10px] p-[10px] text-center">
-                    <div className="text-[18px] font-semibold text-green-700">2</div>
-                    <div className="text-[10px] text-green-600 font-medium">High potential</div>
-                  </div>
-                  <div className="bg-yellow-100 border border-yellow-200 rounded-[10px] p-[10px] text-center">
-                    <div className="text-[18px] font-semibold text-yellow-700">2</div>
-                    <div className="text-[10px] text-yellow-600 font-medium">Medium potential</div>
-                  </div>
-                  <div className="bg-red-50 border border-red-200 rounded-[10px] p-[10px] text-center">
-                    <div className="text-[18px] font-semibold text-red-500">1</div>
-                    <div className="text-[10px] text-red-500 font-medium">Needs human</div>
+
+                    {/* Task distribution — white frosted mini-cards */}
+                    <div className="grid grid-cols-3 gap-[8px]">
+                      <div className="bg-white/[0.06] border border-white/[0.08] rounded-[10px] p-[10px] text-center backdrop-blur-sm">
+                        <div className="text-[18px] font-bold text-emerald-400">2</div>
+                        <div className="text-[9px] text-emerald-400/80 font-semibold uppercase tracking-wide mt-[2px]">High</div>
+                      </div>
+                      <div className="bg-white/[0.06] border border-white/[0.08] rounded-[10px] p-[10px] text-center backdrop-blur-sm">
+                        <div className="text-[18px] font-bold text-amber-400">2</div>
+                        <div className="text-[9px] text-amber-400/80 font-semibold uppercase tracking-wide mt-[2px]">Medium</div>
+                      </div>
+                      <div className="bg-white/[0.06] border border-white/[0.08] rounded-[10px] p-[10px] text-center backdrop-blur-sm">
+                        <div className="text-[18px] font-bold text-rose-400">1</div>
+                        <div className="text-[9px] text-rose-400/80 font-semibold uppercase tracking-wide mt-[2px]">Human</div>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               </div>
@@ -254,7 +274,7 @@ export default function LandingPage() {
                   { name: 'Research trending topics',        score: 58, difficulty: 'Medium', saving: '102 hrs/yr', badge: 'yellow', rec: 'AI aggregates signals, human curates final picks.' },
                   { name: 'Respond to comments',             score: 34, difficulty: 'Hard',   saving: '42 hrs/yr',  badge: 'red',    rec: 'AI drafts replies — human approval required.' },
                 ].map((t, i) => (
-                  <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-[10px] border border-[#e8e8ed] rounded-[12px] px-[16px] py-[12px]">
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-[10px] border border-[#e8e8ed] rounded-[12px] px-[16px] py-[12px] hover-lift cursor-default">
                     <div className="flex items-center gap-[12px] flex-1 min-w-0">
                       <span className={`shrink-0 text-[12px] font-bold px-[10px] py-[4px] rounded-full border ${
                         t.badge === 'green'  ? 'bg-green-100 text-green-700 border-green-200' :
@@ -275,7 +295,7 @@ export default function LandingPage() {
 
             {/* ── Row 3: Roadmap ── */}
             <div className="grid sm:grid-cols-3 gap-[16px]">
-              <div className="bg-green-50 border border-green-200 rounded-[18px] p-[24px]">
+              <div className="bg-green-50 border border-green-200 rounded-[18px] p-[24px] hover-lift cursor-default">
                 <div className="text-[11px] font-semibold text-green-700 tracking-widest uppercase mb-[4px]">③ Roadmap — Phase 1</div>
                 <div className="text-[13px] text-green-600 mb-[16px]">Quick Wins · 0–3 months</div>
                 <div className="space-y-[8px]">
@@ -291,7 +311,7 @@ export default function LandingPage() {
                 <div className="mt-[14px] text-[12px] font-medium text-green-700">→ 205 hrs/yr · €11,800 saved</div>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-[18px] p-[24px]">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-[18px] p-[24px] hover-lift cursor-default">
                 <div className="text-[11px] font-semibold text-yellow-700 tracking-widest uppercase mb-[4px]">③ Roadmap — Phase 2</div>
                 <div className="text-[13px] text-yellow-600 mb-[16px]">Medium-term · 3–6 months</div>
                 <div className="space-y-[8px]">
@@ -307,7 +327,7 @@ export default function LandingPage() {
                 <div className="mt-[14px] text-[12px] font-medium text-yellow-700">→ 189 hrs/yr · €10,900 saved</div>
               </div>
 
-              <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[24px]">
+              <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[24px] hover-lift cursor-default">
                 <div className="text-[11px] font-semibold text-[#86868b] tracking-widest uppercase mb-[4px]">③ Roadmap — Phase 3</div>
                 <div className="text-[13px] text-[#6e6e73] mb-[16px]">Human-in-loop · 6–12 months</div>
                 <div className="space-y-[8px]">
