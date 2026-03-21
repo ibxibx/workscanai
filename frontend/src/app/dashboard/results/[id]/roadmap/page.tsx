@@ -164,7 +164,7 @@ export default function RoadmapPage() {
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[80px]">
-      <div className="max-w-[860px] mx-auto px-6">
+      <div className="max-w-[860px] mx-auto px-4 sm:px-6">
 
         <Link href={`/dashboard/results/${id}`}
           className="inline-flex items-center gap-[6px] text-[14px] text-[#6e6e73] hover:text-[#1d1d1f] transition-colors mb-[40px]"
@@ -173,19 +173,18 @@ export default function RoadmapPage() {
         </Link>
 
         {/* Header */}
-        <div className="mb-[48px]">
-          <div className="relative inline-block">
-            <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/20 to-transparent blur-[100px]" />
-            <h1 className="relative text-[48px] leading-[1.08] font-semibold italic tracking-tight mb-[8px] px-[32px]">
+        <div className="mb-[32px] sm:mb-[48px]">
+          <div className="relative inline-block w-full">
+            <h1 className="relative text-[28px] sm:text-[40px] leading-[1.1] font-semibold italic tracking-tight mb-[8px]">
               Implementation Roadmap
             </h1>
           </div>
-          <p className="text-[19px] text-[#6e6e73]">{data.workflow.name}</p>
+          <p className="text-[15px] sm:text-[19px] text-[#6e6e73]">{data.workflow.name}</p>
         </div>
 
         {/* Progress */}
         {totalTasks > 0 && (
-          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px] mb-[48px]">
+          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[20px] sm:p-[32px] mb-[32px] sm:mb-[48px]">
             <div className="flex items-center justify-between mb-[16px]">
               <div>
                 <div className="text-[17px] font-semibold mb-[2px]">Your Progress</div>
@@ -205,15 +204,15 @@ export default function RoadmapPage() {
         )}
 
         {/* Phase summary strip */}
-        <div className="grid grid-cols-3 gap-[12px] mb-[56px]">
+        <div className="grid grid-cols-3 gap-[8px] sm:gap-[12px] mb-[40px] sm:mb-[56px]">
           {(Object.entries(byPhase) as [keyof typeof byPhase, TaskResult[]][]).map(([key, tasks]) => {
             const cfg = PHASE_CONFIG[key]
             const Icon = cfg.icon
             return (
-              <div key={key} className={`${cfg.bg} ${cfg.border} border rounded-[14px] p-[20px] text-center`}>
-                <Icon className={`h-[20px] w-[20px] ${cfg.iconColor} mx-auto mb-[8px]`} />
-                <div className="text-[28px] font-semibold text-[#1d1d1f]">{tasks.length}</div>
-                <div className="text-[13px] text-[#6e6e73]">
+              <div key={key} className={`${cfg.bg} ${cfg.border} border rounded-[14px] p-[14px] sm:p-[20px] text-center`}>
+                <Icon className={`h-[18px] w-[18px] ${cfg.iconColor} mx-auto mb-[6px]`} />
+                <div className="text-[22px] sm:text-[28px] font-semibold text-[#1d1d1f]">{tasks.length}</div>
+                <div className="text-[11px] sm:text-[13px] text-[#6e6e73]">
                   {key === 'quick' ? 'Quick wins' : key === 'medium' ? 'Medium-term' : 'Long-term'}
                 </div>
               </div>
@@ -232,14 +231,14 @@ export default function RoadmapPage() {
             return (
               <div key={key}>
                 {/* Phase header */}
-                <div className={`${cfg.bg} ${cfg.border} border rounded-[18px] p-[32px] mb-[20px]`}>
+                <div className={`${cfg.bg} ${cfg.border} border rounded-[18px] p-[16px] sm:p-[32px] mb-[20px]`}>
                   <div className="flex items-start gap-[16px]">
                     <div className={`flex items-center justify-center w-[48px] h-[48px] rounded-full bg-white border ${cfg.border} shrink-0`}>
                       <Icon className={`h-[22px] w-[22px] ${cfg.iconColor}`} />
                     </div>
                     <div>
                       <div className="flex items-center gap-[10px] mb-[4px]">
-                        <h2 className="text-[21px] font-semibold italic">{cfg.label}</h2>
+                        <h2 className="text-[17px] sm:text-[21px] font-semibold italic">{cfg.label}</h2>
                         <span className={`px-[10px] py-[3px] rounded-full text-[12px] font-semibold border ${cfg.badge}`}>
                           {doneCount}/{tasks.length} done
                         </span>
@@ -260,7 +259,7 @@ export default function RoadmapPage() {
                     )
 
                     return (
-                      <div key={i} className={`border rounded-[14px] p-[28px] transition-all ${
+                      <div key={i} className={`border rounded-[14px] p-[16px] sm:p-[28px] transition-all ${
                         isDone ? 'bg-[#f5f5f7] border-[#d2d2d7] opacity-60' : 'bg-white border-[#d2d2d7] hover:border-[#b8b8bd] hover:shadow-sm'
                       }`}>
                         <div className="flex items-start gap-[16px]">
@@ -348,7 +347,7 @@ export default function RoadmapPage() {
             <p className="text-[14px] text-[#6e6e73]">Begin with Phase 1 quick wins for the fastest ROI.</p>
           </div>
           <Link href={`/dashboard/results/${id}`}
-            className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all whitespace-nowrap"
+            className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[24px] py-[12px] rounded-full font-semibold text-[15px] transition-all whitespace-nowrap"
           >
             View Full Analysis <ArrowRight className="h-[16px] w-[16px]" />
           </Link>

@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react'
+import { Brain, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react'
 
 interface WorkflowTask { id: number; name: string; description: string }
 
@@ -87,42 +87,46 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
       {/* Top banner */}
-      <div className="bg-[#0071e3] text-white text-center py-[10px] px-4 text-[13px]">
-        <span className="opacity-80">Shared via </span>
-        <a href="https://workscanai.vercel.app" className="font-semibold underline underline-offset-2">WorkScanAI</a>
-        <span className="opacity-80"> — AI-Powered Workflow Analysis</span>
-        <span className="opacity-50 ml-3 text-[11px]">#{code}</span>
+      <div className="bg-[#0071e3] text-white px-4 py-[10px]">
+        <div className="max-w-[980px] mx-auto flex items-center justify-between gap-[8px]">
+          <a href="https://workscanai.vercel.app" className="flex items-center gap-[6px] font-semibold text-[14px] hover:opacity-90 transition-opacity">
+            <Brain className="h-[16px] w-[16px] shrink-0" />
+            WorkScanAI
+          </a>
+          <span className="text-[12px] opacity-80 hidden sm:inline">AI-Powered Workflow Analysis</span>
+          <span className="text-[11px] opacity-50 font-mono">#{code}</span>
+        </div>
       </div>
 
-      <div className="max-w-[980px] mx-auto px-6 pt-[48px] pb-[80px]">
+      <div className="max-w-[980px] mx-auto px-4 sm:px-6 pt-[32px] sm:pt-[48px] pb-[60px] sm:pb-[80px]">
         {/* Header */}
-        <div className="mb-[48px]">
-          <div className="inline-flex items-center gap-[8px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-full px-[14px] py-[6px] text-[12px] text-[#86868b] font-medium mb-[20px]">
+        <div className="mb-[32px] sm:mb-[48px]">
+          <div className="inline-flex items-center gap-[8px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-full px-[14px] py-[6px] text-[12px] text-[#86868b] font-medium mb-[16px] sm:mb-[20px]">
             <span className="w-[6px] h-[6px] rounded-full bg-green-500 inline-block"></span>
             AI Automation Analysis Report
           </div>
-          <h1 className="text-[48px] leading-[1.08] font-semibold italic tracking-tight mb-[8px]">{data.workflow.name}</h1>
-          {data.workflow.description && <p className="text-[17px] text-[#6e6e73]">{data.workflow.description}</p>}
+          <h1 className="text-[28px] sm:text-[40px] leading-[1.1] font-semibold italic tracking-tight mb-[8px] break-words">{data.workflow.name}</h1>
+          {data.workflow.description && <p className="text-[14px] sm:text-[17px] text-[#6e6e73]">{data.workflow.description}</p>}
         </div>
 
         {/* Summary Cards */}
-        <div className="grid md:grid-cols-3 gap-[16px] mb-[48px]">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px] sm:gap-[16px] mb-[32px] sm:mb-[48px]">
           {[
             { label: 'Automation Score', value: `${Math.round(data.automation_score)}%`, color: 'text-[#0071e3]', sub: `${automationReady} of ${totalTasks} tasks ready` },
             { label: 'Annual Savings', value: `€${Math.round(data.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: `${Math.round(data.hours_saved)} hours per year` },
             { label: 'Quick Wins', value: `${quickWins}`, color: 'text-purple-600', sub: 'Tasks you can automate today' },
           ].map(card => (
-            <div key={card.label} className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
-              <div className="text-[12px] font-semibold text-[#86868b] tracking-wide uppercase mb-[12px]">{card.label}</div>
-              <div className={`text-[48px] font-semibold tracking-tight mb-[4px] ${card.color}`}>{card.value}</div>
-              <div className="text-[13px] text-[#86868b]">{card.sub}</div>
+            <div key={card.label} className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[20px] sm:p-[32px]">
+              <div className="text-[11px] font-semibold text-[#86868b] tracking-wide uppercase mb-[10px]">{card.label}</div>
+              <div className={`text-[36px] sm:text-[48px] font-semibold tracking-tight mb-[4px] ${card.color} truncate`}>{card.value}</div>
+              <div className="text-[12px] sm:text-[13px] text-[#86868b]">{card.sub}</div>
             </div>
           ))}
         </div>
 
         {/* Task Breakdown */}
-        <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px] mb-[32px]">
-          <h2 className="text-[28px] font-semibold italic tracking-tight mb-[32px]">Task Breakdown</h2>
+        <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[20px] sm:p-[40px] mb-[24px] sm:mb-[32px]">
+          <h2 className="text-[20px] sm:text-[28px] font-semibold italic tracking-tight mb-[24px] sm:mb-[32px]">Task Breakdown</h2>
           <div className="space-y-[16px]">
             {data.results.map((result, index) => {
               const taskName = result.task?.name || `Task ${index + 1}`
@@ -131,9 +135,9 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
                 : 'bg-green-50 border-green-200 text-green-700'
               const RiskIcon = result.risk_level === 'warning' ? ShieldX : result.risk_level === 'caution' ? ShieldAlert : ShieldCheck
               return (
-                <div key={index} className="border border-[#d2d2d7] rounded-[12px] p-[24px] bg-white">
-                  <div className="flex flex-wrap justify-between items-start gap-[10px] mb-[12px]">
-                    <h3 className="text-[19px] font-semibold italic text-[#1d1d1f]">{taskName}</h3>
+                <div key={index} className="border border-[#d2d2d7] rounded-[12px] p-[16px] sm:p-[24px] bg-white">
+                  <div className="flex flex-wrap justify-between items-start gap-[8px] mb-[12px]">
+                    <h3 className="text-[15px] sm:text-[19px] font-semibold italic text-[#1d1d1f] break-words">{taskName}</h3>
                     <div className="flex flex-wrap gap-[8px] items-center">
                       {result.countdown_window && (
                         <span className="text-[11px] font-bold px-[10px] py-[4px] rounded-full border bg-[#f5f5f7] border-[#d2d2d7] text-[#1d1d1f]">
@@ -151,7 +155,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
 
                   {/* F1 sub-scores */}
                   {result.score_repeatability != null && (
-                    <div className="grid grid-cols-4 gap-[6px] mb-[12px]">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-[6px] mb-[12px]">
                       {[
                         { label: 'Repeatability', val: result.score_repeatability },
                         { label: 'Data Access', val: result.score_data_availability },
@@ -202,17 +206,17 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
         </div>
 
         {/* CTA */}
-        <div className="bg-[#1d1d1f] rounded-[24px] p-[48px] text-center">
-          <h2 className="text-[32px] font-semibold italic tracking-tight text-white mb-[12px]">Analyse your own workflows</h2>
-          <p className="text-[17px] text-[#86868b] mb-[32px] max-w-[480px] mx-auto">
+        <div className="bg-[#1d1d1f] rounded-[24px] p-[28px] sm:p-[48px] text-center">
+          <h2 className="text-[22px] sm:text-[32px] font-semibold italic tracking-tight text-white mb-[12px]">Analyse your own workflows</h2>
+          <p className="text-[14px] sm:text-[17px] text-[#86868b] mb-[24px] sm:mb-[32px] max-w-[480px] mx-auto">
             WorkScanAI identifies automation opportunities and calculates ROI in minutes — not months.
           </p>
-          <div className="flex flex-col sm:flex-row gap-[12px] justify-center">
-            <a href="https://workscanai.vercel.app" className="inline-flex items-center justify-center bg-[#0071e3] hover:bg-[#0077ed] text-white px-[32px] py-[14px] rounded-full font-semibold text-[17px] transition-all">
+          <div className="flex flex-col sm:flex-row gap-[12px] justify-center items-center">
+            <a href="https://workscanai.vercel.app" className="inline-flex items-center justify-center bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[12px] rounded-full font-semibold text-[15px] transition-all w-full sm:w-auto">
               Try WorkScanAI free →
             </a>
-            <div className="inline-flex items-center justify-center border border-[#424245] text-[#86868b] px-[24px] py-[14px] rounded-full text-[14px] font-mono">
-              📋 {shareUrl}
+            <div className="inline-flex items-center justify-center border border-[#424245] text-[#86868b] px-[16px] py-[12px] rounded-full text-[11px] font-mono w-full sm:w-auto overflow-hidden">
+              <span className="truncate">📋 {shareUrl}</span>
             </div>
           </div>
         </div>
