@@ -109,11 +109,11 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f]">
       {/* Header */}
-      <div className="bg-[#1d1d1f] px-[32px] py-[20px] flex items-center justify-between">
-        <div className="flex items-center gap-[12px]">
-          <Brain className="h-[24px] w-[24px] text-[#0071e3]" />
-          <span className="text-white font-semibold text-[18px]">WorkScanAI Admin</span>
-          <span className="text-[#86868b] text-[13px]">Platform Dashboard</span>
+      <div className="bg-[#1d1d1f] px-[16px] sm:px-[32px] py-[16px] sm:py-[20px] flex items-center justify-between">
+        <div className="flex items-center gap-[8px] sm:gap-[12px]">
+          <Brain className="h-[20px] w-[20px] sm:h-[24px] sm:w-[24px] text-[#0071e3] shrink-0" />
+          <span className="text-white font-semibold text-[15px] sm:text-[18px]">WorkScanAI Admin</span>
+          <span className="text-[#86868b] text-[11px] sm:text-[13px] hidden sm:inline">Platform Dashboard</span>
         </div>
         <button
           onClick={() => fetchStats(secret)}
@@ -123,20 +123,20 @@ export default function AdminPage() {
         </button>
       </div>
 
-      <div className="max-w-[1200px] mx-auto px-[32px] py-[40px]">
+      <div className="max-w-[1200px] mx-auto px-[16px] sm:px-[32px] py-[24px] sm:py-[40px]">
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-[16px] mb-[32px]">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-[12px] sm:gap-[16px] mb-[24px] sm:mb-[32px]">
           {[
             { icon: Users, label: 'Total Users', value: stats.totals.users, color: 'text-blue-600' },
             { icon: FileText, label: 'Workflows', value: stats.totals.workflows, color: 'text-purple-600' },
             { icon: BarChart3, label: 'Analyses Run', value: stats.totals.analyses, color: 'text-green-600' },
             { icon: Zap, label: 'Tasks Submitted', value: stats.totals.tasks, color: 'text-orange-600' },
           ].map(({ icon: Icon, label, value, color }) => (
-            <div key={label} className="bg-white rounded-[18px] p-[24px] border border-[#e8e8ed]">
-              <Icon className={`h-[20px] w-[20px] mb-[12px] ${color}`} />
-              <div className={`text-[36px] font-bold mb-[4px] ${color}`}>{value}</div>
-              <div className="text-[12px] text-[#86868b] font-semibold uppercase tracking-wide">{label}</div>
+            <div key={label} className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
+              <Icon className={`h-[18px] w-[18px] mb-[10px] ${color}`} />
+              <div className={`text-[26px] sm:text-[36px] font-bold mb-[4px] ${color}`}>{value}</div>
+              <div className="text-[10px] sm:text-[12px] text-[#86868b] font-semibold uppercase tracking-wide leading-snug">{label}</div>
             </div>
           ))}
         </div>
@@ -207,11 +207,11 @@ export default function AdminPage() {
 
         {/* Users Table */}
         <div className="bg-white rounded-[18px] border border-[#e8e8ed] mb-[32px] overflow-hidden">
-          <div className="px-[24px] py-[20px] border-b border-[#e8e8ed]">
-            <h2 className="text-[17px] font-semibold">Users <span className="text-[#86868b] font-normal text-[14px] ml-[8px]">{stats.users.length} accounts</span></h2>
+          <div className="px-[16px] sm:px-[24px] py-[16px] sm:py-[20px] border-b border-[#e8e8ed]">
+            <h2 className="text-[15px] sm:text-[17px] font-semibold">Users <span className="text-[#86868b] font-normal text-[13px] ml-[8px]">{stats.users.length} accounts</span></h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-[12px] sm:text-[13px] min-w-[480px]">
               <thead>
                 <tr className="bg-[#f9f9fb] text-[11px] text-[#86868b] uppercase tracking-wide">
                   <th className="text-left px-[24px] py-[12px] font-semibold">Email</th>
@@ -240,26 +240,26 @@ export default function AdminPage() {
 
         {/* Workflows Table */}
         <div className="bg-white rounded-[18px] border border-[#e8e8ed] overflow-hidden">
-          <div className="px-[24px] py-[20px] border-b border-[#e8e8ed] flex items-center justify-between gap-[16px]">
-            <h2 className="text-[17px] font-semibold">All Submissions <span className="text-[#86868b] font-normal text-[14px] ml-[8px]">{filteredWfs.length} of {stats.workflows.length}</span></h2>
+          <div className="px-[16px] sm:px-[24px] py-[16px] sm:py-[20px] border-b border-[#e8e8ed] flex flex-col sm:flex-row sm:items-center justify-between gap-[12px]">
+            <h2 className="text-[15px] sm:text-[17px] font-semibold">All Submissions <span className="text-[#86868b] font-normal text-[13px] ml-[8px]">{filteredWfs.length} of {stats.workflows.length}</span></h2>
             <input
               type="text"
               value={filter}
               onChange={e => setFilter(e.target.value)}
               placeholder="Filter by name, email, context…"
-              className="px-[14px] py-[8px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[10px] text-[13px] w-[260px] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40"
+              className="px-[14px] py-[8px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-[10px] text-[13px] w-full sm:w-[260px] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40"
             />
           </div>
           <div className="divide-y divide-[#f0f0f5]">
             {filteredWfs.map(wf => (
-              <div key={wf.id} className="px-[24px] py-[16px]">
+              <div key={wf.id} className="px-[16px] sm:px-[24px] py-[14px] sm:py-[16px]">
                 <div
-                  className="flex items-start justify-between gap-[16px] cursor-pointer"
+                  className="flex items-start justify-between gap-[12px] cursor-pointer"
                   onClick={() => setExpandedWf(expandedWf === wf.id ? null : wf.id)}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-[10px] mb-[6px] flex-wrap">
-                      <span className="text-[15px] font-semibold text-[#1d1d1f] truncate">{wf.name}</span>
+                    <div className="flex items-center gap-[8px] mb-[4px] flex-wrap">
+                      <span className="text-[13px] sm:text-[15px] font-semibold text-[#1d1d1f] truncate">{wf.name}</span>
                       <span className={`text-[10px] font-bold px-[8px] py-[2px] rounded-full capitalize ${ctxColor[wf.analysis_context] || ctxColor.unknown}`}>
                         {wf.analysis_context}
                       </span>

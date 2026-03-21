@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Mail, Sparkles, ArrowRight, CheckCircle } from 'lucide-react'
+import { Mail, Brain, ArrowRight, CheckCircle } from 'lucide-react'
 
 export default function SignInPage() {
   const [email, setEmail] = useState('')
@@ -34,12 +34,10 @@ export default function SignInPage() {
       <div className="w-full max-w-[420px]">
         {/* Logo */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-9 h-9 rounded-xl bg-[#0071e3] flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-[20px] font-semibold tracking-tight text-[#1d1d1f]">WorkScanAI</span>
-          </div>
+          <a href="/" className="inline-flex items-center gap-[6px] text-[18px] font-semibold tracking-tight text-[#1d1d1f]">
+            <Brain className="h-[18px] w-[18px]" />
+            WorkScanAI
+          </a>
         </div>
 
         <div className="bg-white rounded-2xl border border-[#e5e5ea] p-8 shadow-sm">

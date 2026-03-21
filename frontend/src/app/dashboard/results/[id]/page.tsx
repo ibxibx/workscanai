@@ -299,9 +299,9 @@ export default function ResultsPage() {
 
                   {/* Orchestration */}
                   {result.orchestration && (
-                    <div className="p-[14px] bg-[#1d1d1f] rounded-[10px]">
+                    <div className="p-[12px] sm:p-[14px] bg-[#1d1d1f] rounded-[10px] overflow-x-auto">
                       <div className="text-[10px] font-bold text-[#86868b] tracking-widest uppercase mb-[6px]">⚙ Orchestration Blueprint</div>
-                      <p className="text-[12px] text-[#e8e8ed] font-mono leading-relaxed">{result.orchestration}</p>
+                      <p className="text-[11px] sm:text-[12px] text-[#e8e8ed] font-mono leading-relaxed break-words">{result.orchestration}</p>
                     </div>
                   )}
                 </div>
@@ -746,7 +746,7 @@ export default function ResultsPage() {
                 </div>
               </div>
 
-              <div className="mt-[28px] bg-[#1d1d1f] rounded-[14px] p-[28px] font-mono text-[13px] text-[#e8e8ed] leading-[1.8] select-all">
+              <div className="mt-[28px] bg-[#1d1d1f] rounded-[14px] p-[16px] sm:p-[28px] font-mono text-[11px] sm:text-[13px] text-[#e8e8ed] leading-[1.8] select-all overflow-x-auto">
                 <div className="text-[10px] text-[#86868b] uppercase tracking-widest mb-[16px] border-b border-[#3a3a3c] pb-[10px]">
                   WorkScanAI — Executive Summary · {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
                 </div>
@@ -805,18 +805,18 @@ export default function ResultsPage() {
         {/* ═══════════════════════════════════════════════════════════════
             ACTIONS
         ═══════════════════════════════════════════════════════════════ */}
-        <div className="flex flex-wrap gap-[12px] pt-[8px]">
-          <button onClick={() => downloadReport('docx')} className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[24px] py-[12px] rounded-full font-semibold text-[15px] transition-all">
-            <Download className="h-[16px] w-[16px]" /> Download DOCX
+        <div className="flex flex-wrap gap-[10px] pt-[8px]">
+          <button onClick={() => downloadReport('docx')} className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[20px] py-[11px] rounded-full font-semibold text-[14px] transition-all">
+            <Download className="h-[15px] w-[15px]" /> Download DOCX
           </button>
-          <button onClick={() => downloadReport('pdf')} className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[24px] py-[12px] rounded-full font-semibold text-[15px] transition-all">
-            <Download className="h-[16px] w-[16px]" /> Download PDF
+          <button onClick={() => downloadReport('pdf')} className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[20px] py-[11px] rounded-full font-semibold text-[14px] transition-all">
+            <Download className="h-[15px] w-[15px]" /> Download PDF
           </button>
-          <button onClick={handleShare} className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[24px] py-[12px] rounded-full font-medium text-[15px] text-[#1d1d1f] transition-all">
-            {copied ? <><Check className="h-[16px] w-[16px] text-green-600" /><span className="text-green-600">Copied!</span></> : <><Share2 className="h-[16px] w-[16px]" />Share Report</>}
+          <button onClick={handleShare} className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[20px] py-[11px] rounded-full font-medium text-[14px] text-[#1d1d1f] transition-all">
+            {copied ? <><Check className="h-[15px] w-[15px] text-green-600" /><span className="text-green-600">Copied!</span></> : <><Share2 className="h-[15px] w-[15px]" />Share Report</>}
           </button>
-          <Link href={`/dashboard/results/${id}/roadmap`} className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[24px] py-[12px] rounded-full font-medium text-[15px] text-[#1d1d1f] transition-all">
-            <Map className="h-[16px] w-[16px]" /> View Roadmap
+          <Link href={`/dashboard/results/${id}/roadmap`} className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[20px] py-[11px] rounded-full font-medium text-[14px] text-[#1d1d1f] transition-all">
+            <Map className="h-[15px] w-[15px]" /> View Roadmap
           </Link>
         </div>
 

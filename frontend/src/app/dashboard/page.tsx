@@ -179,10 +179,10 @@ export default function DashboardPage() {
 
         {/* Header */}
         <div className="mb-[48px]">
-          <h1 className="text-[48px] leading-[1.08] font-semibold italic tracking-tight mb-[8px]">
+          <h1 className="text-[32px] sm:text-[48px] leading-[1.08] font-semibold italic tracking-tight mb-[8px]">
             Dashboard
           </h1>
-          <p className="text-[19px] italic text-[#6e6e73]">
+          <p className="text-[15px] sm:text-[19px] italic text-[#6e6e73]">
             Your workflow analyses and automation insights.
           </p>
         </div>
@@ -211,10 +211,10 @@ export default function DashboardPage() {
                     Start New
                   </span>
                 </div>
-                <h2 className="text-[28px] font-semibold italic tracking-tight mb-[8px]">
+                <h2 className="text-[20px] sm:text-[28px] font-semibold italic tracking-tight mb-[8px]">
                   Analyze a Workflow
                 </h2>
-                <p className="text-[15px] text-[#6e6e73] max-w-[600px]">
+                <p className="text-[13px] sm:text-[15px] text-[#6e6e73] max-w-[600px]">
                   Upload a document, record your voice, or enter tasks manually to discover automation opportunities and calculate ROI.
                 </p>
               </div>
@@ -343,7 +343,7 @@ export default function DashboardPage() {
         {/* Recent Analyses */}
         <div>
           <div className="flex items-center justify-between mb-[24px]">
-            <h2 className="text-[28px] font-semibold italic tracking-tight">Recent Analyses</h2>
+            <h2 className="text-[22px] sm:text-[28px] font-semibold italic tracking-tight">Recent Analyses</h2>
           </div>
 
           {loading ? (
