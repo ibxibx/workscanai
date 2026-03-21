@@ -185,8 +185,9 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-2 gap-[16px]">
 
               {/* Input */}
-              <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px]">
-                <div className="text-[11px] font-semibold text-[#86868b] tracking-widest uppercase mb-[20px]">① Input — 5 Tasks Entered</div>
+              <div className="bg-white rounded-[20px] shadow-[0_0_0_1px_rgba(0,0,0,0.06),0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden">
+                <div className="m-[6px] rounded-[15px] bg-[#f9f9fb] border border-[#e8e8ed] p-[16px] sm:p-[24px]">
+                  <div className="text-[10px] font-semibold text-[#86868b] tracking-[0.12em] uppercase mb-[18px]">① Input — 5 Tasks Entered</div>
                 <div className="space-y-[10px]">
                   {[
                     { name: 'Write social media posts',      freq: 'Daily',   time: '30 min' },
@@ -204,61 +205,58 @@ export default function LandingPage() {
                     </div>
                   ))}
                 </div>
+                </div>
               </div>
 
-              {/* Overall Score */}
-              {/* Outer ring — dark charcoal with subtle blue tint */}
-              <div className="bg-[#16191f] rounded-[22px] p-[3px] shadow-xl min-w-0 overflow-hidden flex flex-col">
-                {/* Inner ring — very slightly lighter, creates the double-frame feel */}
-                <div className="bg-[#1e222b] rounded-[20px] p-[2px] flex-1 flex flex-col">
-                  {/* Content surface */}
-                  <div className="bg-gradient-to-br from-[#1a1e28] to-[#111318] rounded-[18px] p-[16px] sm:p-[28px] flex flex-col justify-between flex-1">
+              {/* Overall Score — Apple-style double-frame card, matches left card tone */}
+              <div className="bg-white rounded-[20px] shadow-[0_0_0_1px_rgba(0,0,0,0.06),0_2px_8px_rgba(0,0,0,0.06)] min-w-0 overflow-hidden flex flex-col">
+                {/* Inner inset frame */}
+                <div className="m-[6px] rounded-[15px] bg-[#f9f9fb] border border-[#e8e8ed] flex-1 flex flex-col p-[16px] sm:p-[24px]">
 
-                    {/* Label */}
-                    <div className="flex items-center gap-[8px] mb-[20px]">
-                      <span className="w-[6px] h-[6px] rounded-full bg-[#0071e3] shrink-0"></span>
-                      <span className="text-[10px] font-bold text-[#4a9eff] tracking-[0.15em] uppercase">Analysis — Summary</span>
-                    </div>
-
-                    {/* Primary metrics */}
-                    <div className="flex flex-wrap items-center gap-[20px] mb-[24px]">
-                      {/* Score */}
-                      <div>
-                        <div className="text-[56px] sm:text-[64px] leading-none font-semibold tracking-tight text-white">72<span className="text-[#4a9eff]">%</span></div>
-                        <div className="text-[12px] text-[#6e7a8a] mt-[4px] font-medium">Automation Score</div>
-                      </div>
-                      {/* Divider */}
-                      <div className="h-[56px] w-[1px] bg-white/10 hidden sm:block"></div>
-                      {/* Savings */}
-                      <div className="space-y-[10px]">
-                        <div>
-                          <div className="text-[26px] font-semibold tracking-tight text-emerald-400">€28,000</div>
-                          <div className="text-[11px] text-[#6e7a8a]">Annual cost savings</div>
-                        </div>
-                        <div>
-                          <div className="text-[20px] font-semibold tracking-tight text-white/90">436 <span className="text-[14px] font-normal text-[#6e7a8a]">hrs</span></div>
-                          <div className="text-[11px] text-[#6e7a8a]">Reclaimed per year</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Task distribution — white frosted mini-cards */}
-                    <div className="grid grid-cols-3 gap-[8px]">
-                      <div className="bg-white/[0.06] border border-white/[0.08] rounded-[10px] p-[10px] text-center backdrop-blur-sm">
-                        <div className="text-[18px] font-bold text-emerald-400">2</div>
-                        <div className="text-[9px] text-emerald-400/80 font-semibold uppercase tracking-wide mt-[2px]">High</div>
-                      </div>
-                      <div className="bg-white/[0.06] border border-white/[0.08] rounded-[10px] p-[10px] text-center backdrop-blur-sm">
-                        <div className="text-[18px] font-bold text-amber-400">2</div>
-                        <div className="text-[9px] text-amber-400/80 font-semibold uppercase tracking-wide mt-[2px]">Medium</div>
-                      </div>
-                      <div className="bg-white/[0.06] border border-white/[0.08] rounded-[10px] p-[10px] text-center backdrop-blur-sm">
-                        <div className="text-[18px] font-bold text-rose-400">1</div>
-                        <div className="text-[9px] text-rose-400/80 font-semibold uppercase tracking-wide mt-[2px]">Human</div>
-                      </div>
-                    </div>
-
+                  {/* Label */}
+                  <div className="flex items-center gap-[7px] mb-[18px]">
+                    <span className="w-[5px] h-[5px] rounded-full bg-[#0071e3] shrink-0"></span>
+                    <span className="text-[10px] font-semibold text-[#86868b] tracking-[0.12em] uppercase">② Analysis — Summary</span>
                   </div>
+
+                  {/* Primary metrics */}
+                  <div className="flex flex-wrap items-center gap-[16px] sm:gap-[20px] mb-[20px]">
+                    {/* Score */}
+                    <div>
+                      <div className="text-[52px] sm:text-[60px] leading-none font-semibold tracking-tight text-[#0071e3]">72%</div>
+                      <div className="text-[12px] text-[#86868b] mt-[4px]">Automation Score</div>
+                    </div>
+                    {/* Divider */}
+                    <div className="h-[52px] w-[1px] bg-[#d2d2d7] hidden sm:block shrink-0"></div>
+                    {/* Savings */}
+                    <div className="space-y-[10px]">
+                      <div>
+                        <div className="text-[24px] font-semibold tracking-tight text-green-600">€28,000</div>
+                        <div className="text-[11px] text-[#86868b]">Annual cost savings</div>
+                      </div>
+                      <div>
+                        <div className="text-[19px] font-semibold tracking-tight text-[#1d1d1f]">436 <span className="text-[13px] font-normal text-[#86868b]">hrs</span></div>
+                        <div className="text-[11px] text-[#86868b]">Reclaimed per year</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Task distribution — inset mini-cards on white */}
+                  <div className="grid grid-cols-3 gap-[6px]">
+                    <div className="bg-white border border-[#e8e8ed] rounded-[10px] p-[10px] text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                      <div className="text-[18px] font-semibold text-green-600">2</div>
+                      <div className="text-[9px] text-green-600 font-semibold uppercase tracking-wide mt-[2px]">High</div>
+                    </div>
+                    <div className="bg-white border border-[#e8e8ed] rounded-[10px] p-[10px] text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                      <div className="text-[18px] font-semibold text-yellow-600">2</div>
+                      <div className="text-[9px] text-yellow-600 font-semibold uppercase tracking-wide mt-[2px]">Medium</div>
+                    </div>
+                    <div className="bg-white border border-[#e8e8ed] rounded-[10px] p-[10px] text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                      <div className="text-[18px] font-semibold text-red-500">1</div>
+                      <div className="text-[9px] text-red-500 font-semibold uppercase tracking-wide mt-[2px]">Human</div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
