@@ -95,6 +95,11 @@ export default function ResultsPage() {
           ...r, task: taskMap[r.task_id] || { id: r.task_id, name: `Task ${r.task_id}`, description: '' }
         }))
         setAnalysisData(data)
+        // Silently rewrite the address bar to the public share URL so copying
+        // it is enough to share — does NOT navigate, just updates the URL shown
+        if (data.workflow?.share_code) {
+          window.history.replaceState(null, '', `/report/${data.workflow.share_code}`)
+        }
       } catch (err: unknown) {
         if (err instanceof Error && err.name === 'AbortError') return
         setError('Failed to load analysis results. Make sure the backend is running.')
