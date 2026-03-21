@@ -2,6 +2,41 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Brain, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react'
 
+// ── Recommendation renderer — splits on Option 1/2/3 and Decision layer ─────
+function RecommendationBlocks({ text }: { text: string }) {
+  if (!text) return null
+  const segments = text.split(/(Option\s+\d+\s*[—–\-:]\s*|Decision\s+layer\s*[—–:\-]\s*)/i)
+  const blocks: { label: string; body: string; isDecision: boolean }[] = []
+  for (let i = 0; i < segments.length; i++) {
+    if (i % 2 === 0) {
+      const body = segments[i].trim()
+      if (body) blocks.push({ label: '', body, isDecision: false })
+    } else {
+      const label = segments[i].trim().replace(/[—–\-:]\s*$/, '').trim()
+      const body = (segments[i + 1] || '').trim()
+      const isDecision = /Decision\s+layer/i.test(label)
+      if (body) blocks.push({ label, body, isDecision })
+      i++
+    }
+  }
+  if (blocks.length <= 1) return <p className="text-[13px] text-[#1d1d1f] leading-relaxed">{text}</p>
+  return (
+    <div className="space-y-0">
+      {blocks.map((block, i) => (
+        <div key={i} className={`text-[13px] leading-relaxed ${i > 0 ? 'border-t border-blue-200 pt-[10px] mt-[10px]' : ''} ${block.isDecision ? 'text-violet-800' : 'text-[#1d1d1f]'}`}>
+          {block.label && (
+            <span className={`font-bold mr-[6px] ${block.isDecision ? 'text-violet-700' : 'text-[#0071e3]'}`}>
+              {block.label}
+              {!/[—–\-:]$/.test(block.label) ? ' —' : ''}
+            </span>
+          )}
+          {block.body}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 interface WorkflowTask { id: number; name: string; description: string }
 
 interface TaskResult {
@@ -187,7 +222,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
 
                   <div className="p-[14px] bg-blue-50 border border-blue-200 rounded-[8px] mb-[8px]">
                     <div className="text-[13px] font-bold text-[#0071e3] mb-[6px]">💡 Recommendation</div>
-                    <p className="text-[13px] text-[#1d1d1f]">{result.recommendation}</p>
+                    <RecommendationBlocks text={result.recommendation} />
                   </div>
 
                   {result.agent_label && (

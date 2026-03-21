@@ -43,7 +43,44 @@ interface AnalysisData {
   results: TaskResult[]
 }
 
-// ── Countdown badge ──────────────────────────────────────────────────────────
+// ── Recommendation renderer — splits on Option 1/2/3 and Decision layer ─────
+function RecommendationBlocks({ text }: { text: string }) {
+  if (!text) return null
+  // Split on every "Option N" or "Decision layer" boundary
+  const segments = text.split(/(Option\s+\d+\s*[—–\-:]\s*|Decision\s+layer\s*[—–:\-]\s*)/i)
+  // Odd indices are the delimiters (labels), even indices are the content chunks
+  const blocks: { label: string; body: string; isDecision: boolean }[] = []
+  for (let i = 0; i < segments.length; i++) {
+    if (i % 2 === 0) {
+      const body = segments[i].trim()
+      if (body) blocks.push({ label: '', body, isDecision: false })
+    } else {
+      const label = segments[i].trim().replace(/[—–\-:]\s*$/, '').trim()
+      const body = (segments[i + 1] || '').trim()
+      const isDecision = /Decision\s+layer/i.test(label)
+      if (body) blocks.push({ label, body, isDecision })
+      i++ // skip the already-consumed content segment
+    }
+  }
+  if (blocks.length <= 1) return <p className="text-[13px] text-[#1d1d1f] leading-relaxed">{text}</p>
+  return (
+    <div className="space-y-0">
+      {blocks.map((block, i) => (
+        <div key={i} className={`text-[13px] leading-relaxed ${i > 0 ? 'border-t border-blue-200 pt-[10px] mt-[10px]' : ''} ${block.isDecision ? 'text-violet-800' : 'text-[#1d1d1f]'}`}>
+          {block.label && (
+            <span className={`font-bold mr-[6px] ${block.isDecision ? 'text-violet-700' : 'text-[#0071e3]'}`}>
+              {block.label}
+              {!/[—–\-:]$/.test(block.label) ? ' —' : ''}
+            </span>
+          )}
+          {block.body}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Countdown badge ───────────────────────────────────────────────────────────
 function CountdownBadge({ window: w }: { window?: string }) {
   const map: Record<string, { label: string; color: string; dot: string }> = {
     'now':   { label: '⚡ Automatable NOW',    color: 'bg-red-50 border-red-200 text-red-700',    dot: 'bg-red-500' },
@@ -270,23 +307,7 @@ export default function ResultsPage() {
                   {/* Recommendation */}
                   <div className="p-[16px] bg-blue-50 border border-blue-100 rounded-[10px] mb-[12px]">
                     <div className="text-[12px] font-bold text-[#0071e3] uppercase tracking-wide mb-[8px]">💡 Recommendation</div>
-                    {(() => {
-                      const text = result.recommendation
-                      // Split on "Option 2" OR "Decision layer" patterns
-                      const splitPoint = text.match(/(Option\s+2\s*[—–-]|Decision\s+layer\s*[—–:-])/i)
-                      if (splitPoint?.index) {
-                        const isDecision = /Decision\s+layer/i.test(splitPoint[0])
-                        return (
-                          <div className="space-y-[8px]">
-                            <p className="text-[13px] text-[#1d1d1f]">{text.slice(0, splitPoint.index).trim()}</p>
-                            <p className={`text-[13px] border-t pt-[8px] ${isDecision ? 'text-violet-800 border-violet-100 font-medium' : 'text-[#1d1d1f] border-blue-100'}`}>
-                              {text.slice(splitPoint.index).trim()}
-                            </p>
-                          </div>
-                        )
-                      }
-                      return <p className="text-[13px] text-[#1d1d1f]">{text}</p>
-                    })()}
+                    <RecommendationBlocks text={result.recommendation} />
                   </div>
 
                   {/* Agent phase */}
