@@ -79,7 +79,10 @@ export default function DashboardPage() {
           await Promise.all(
             mergedIds.map(async (id) => {
               try {
-                const aRes = await fetch(`/api/results/${id}`)
+                // Pass email so the ownership check on the backend passes
+                const resultHeaders: Record<string, string> = {}
+                if (email) resultHeaders['x-user-email'] = email
+                const aRes = await fetch(`/api/results/${id}`, { headers: resultHeaders })
                 if (aRes.ok) {
                   const aData = await aRes.json()
                   return {
