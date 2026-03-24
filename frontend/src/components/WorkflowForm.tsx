@@ -31,6 +31,10 @@ type AuthStep = 'email' | 'code' | 'success'
 
 const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''
 
+// Direct Render URL — used for all calls that may exceed Vercel's 60s proxy limit
+// (auth/request involves DB + Resend email; analyze involves AI; parse-tasks involves AI)
+const BACKEND_DIRECT = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://workscanai.onrender.com').replace(/\/$/, '')
+
 function loadRecaptchaScript(): Promise<void> {
   if (!SITE_KEY) return Promise.resolve()
   if (document.getElementById('recaptcha-script')) return Promise.resolve()
@@ -239,7 +243,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     if (!authEmail.trim() || !authEmail.includes('@')) { setAuthError('Please enter a valid email address.'); return }
     setAuthLoading(true); setAuthError('')
     try {
-      const res = await fetch('/api/auth/request', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:authEmail.trim()}) })
+      // Direct to Render — bypasses Vercel proxy which can 504 on cold starts
+      const res = await fetch(`${BACKEND_DIRECT}/api/auth/request`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:authEmail.trim()}) })
       if (!res.ok) { const d = await safeJson(res); throw new Error(d.detail || 'Failed to send code') }
       setAuthStep('code')
     } catch (e: any) { setAuthError(e.message || 'Something went wrong.') }
@@ -250,7 +255,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     if (authCode.length !== 4) { setAuthError('Please enter the 4-digit code from your email.'); return }
     setAuthLoading(true); setAuthError('')
     try {
-      const res = await fetch('/api/auth/verify-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:authEmail.trim(),code:authCode.trim()}) })
+      // Direct to Render — bypasses Vercel proxy which can 504 on cold starts
+      const res = await fetch(`${BACKEND_DIRECT}/api/auth/verify-otp`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:authEmail.trim(),code:authCode.trim()}) })
       const d = await safeJson(res)
       if (!res.ok) throw new Error(d.detail || 'Invalid code')
       persistSession(d.email)
@@ -414,11 +420,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const runAnalysis = async (userEmail: string) => {
     onError(''); setStepError(null)
 
-    // /api/analyze can take 30–90s for large workflows.
-    // Vercel Hobby serverless functions hard-kill at 10s, causing 504.
-    // Fix: call the Render backend DIRECTLY from the browser for /api/analyze only.
-    // All other calls stay proxied through /api/* as normal.
-    const BACKEND_DIRECT = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://workscanai.onrender.com').replace(/\/$/, '')
+    // BACKEND_DIRECT is a module-level constant — direct Render calls bypass
+    // Vercel's serverless timeout for long-running AI + auth operations.
 
     const effectiveSourceText = sourceText.trim() || (inputMode==='manual' && workflowDescription.trim() ? workflowDescription.trim() : '')
     try {
