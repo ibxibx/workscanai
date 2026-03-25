@@ -51,6 +51,13 @@ async def _send_otp_email(email: str, otp_code: str):
         print(f"[DEV] OTP code for {email}: {otp_code}")
         return
 
+    # Resend sandbox mode: onboarding@resend.dev can only send to the account owner.
+    # If a RESEND_TEST_EMAIL override is set, redirect all emails there (dev/sandbox use).
+    test_email_override = os.getenv("RESEND_TEST_EMAIL", "")
+    send_to = test_email_override if test_email_override else email
+    if test_email_override:
+        print(f"[auth] RESEND_TEST_EMAIL override active — sending to {send_to} instead of {email}")
+
     html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 420px; margin: 40px auto; padding: 40px 32px; border: 1px solid #e5e7eb; border-radius: 16px; background: #ffffff;">
       <div style="margin-bottom: 28px;">
@@ -76,12 +83,12 @@ async def _send_otp_email(email: str, otp_code: str):
         resp = await client.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
-            json={"from": FROM_EMAIL, "to": [email], "subject": f"{otp_code} is your WorkScanAI code", "html": html},
+            json={"from": FROM_EMAIL, "to": [send_to], "subject": f"{otp_code} is your WorkScanAI code", "html": html},
             timeout=10,
         )
         if resp.status_code >= 400:
             print(f"[auth] Resend error {resp.status_code}: {resp.text}")
-            raise HTTPException(status_code=500, detail=f"Failed to send email (Resend {resp.status_code}): {resp.text[:200]}")
+            raise HTTPException(status_code=500, detail="Failed to send verification email. Please try again in a moment.")
 
 
 @router.post("/auth/request")
