@@ -81,7 +81,7 @@ async def _send_otp_email(email: str, otp_code: str):
         )
         if resp.status_code >= 400:
             print(f"[auth] Resend error {resp.status_code}: {resp.text}")
-            raise HTTPException(status_code=500, detail="Failed to send email")
+            raise HTTPException(status_code=500, detail=f"Failed to send email (Resend {resp.status_code}): {resp.text[:200]}")
 
 
 @router.post("/auth/request")
