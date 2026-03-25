@@ -105,9 +105,14 @@ async def request_magic_link(body: MagicLinkRequest, db: Session = Depends(get_d
 
     try:
         await _send_otp_email(email, otp_code)
+    except HTTPException:
+        raise  # already a proper HTTP error with detail
     except Exception as e:
         print(f"[auth] Email send failed: {e}")
-        # Don't expose send errors to client — token is still valid
+        raise HTTPException(
+            status_code=503,
+            detail="Could not send verification email. The server may be warming up — please wait a moment and try again."
+        )
     return {"message": "Code sent — check your email."}
 
 
