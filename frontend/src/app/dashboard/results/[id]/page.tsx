@@ -122,7 +122,11 @@ export default function ResultsPage() {
     const controller = new AbortController()
     const fetchAnalysis = async () => {
       try {
-        const response = await fetch(`/api/results/${id}`, { signal: controller.signal })
+        // Send guest ID so the backend ownership check can match anonymous workflows
+        const guestId = typeof window !== 'undefined' ? (localStorage.getItem('wsai_guest_id') || '') : ''
+        const headers: Record<string, string> = {}
+        if (guestId) headers['x-user-email'] = guestId
+        const response = await fetch(`/api/results/${id}`, { signal: controller.signal, headers })
         if (response.status === 404) notFound()
         if (!response.ok) throw new Error('Failed to fetch analysis results')
         const data = await response.json()

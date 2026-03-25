@@ -288,11 +288,14 @@ def get_analysis_results(
     # provided, it must match exactly.
     workflow = analysis.workflow
     if workflow.user_email:
-        # Workflow has an owner — caller must supply matching email
-        if not x_user_email or x_user_email.lower().strip() != workflow.user_email.lower().strip():
-            raise HTTPException(status_code=403, detail="Access denied")
-    # If workflow.user_email is None the workflow was submitted anonymously;
-    # we allow the fetch so that the localStorage-only flow still works.
+        # Guest IDs are device-local anonymous identifiers — allow any bearer
+        is_guest = workflow.user_email.startswith('guest_')
+        if not is_guest:
+            # Real email: must match exactly
+            if not x_user_email or x_user_email.lower().strip() != workflow.user_email.lower().strip():
+                raise HTTPException(status_code=403, detail="Access denied")
+        # For guest workflows: anyone with the workflow ID can view it
+        # (share URLs use share_code which is a separate public endpoint)
 
     # Eagerly load relationships
     _ = analysis.results
