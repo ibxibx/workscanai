@@ -1040,7 +1040,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           <button type="submit" disabled={isAnalyzing||isUploading||isExtractingTasks} className="inline-flex items-center gap-[10px] bg-[#0071e3] hover:bg-[#0077ed] disabled:bg-[#86868b] disabled:cursor-not-allowed text-white px-[36px] py-[16px] rounded-full font-semibold text-[17px] transition-all">
             {isAnalyzing?<><Loader2 className="animate-spin h-[18px] w-[18px]"/>Running Analysis…</>:isExtractingTasks?<><Loader2 className="animate-spin h-[18px] w-[18px]"/>Extracting tasks…</>:'Analyse Workflow/s →'}
           </button>
-          {!sessionEmail&&!isAnalyzing&&<p className="text-[13px] text-[#86868b]">You'll be asked to sign in — your input won't be lost.</p>}
+          {!isAnalyzing&&<p className="text-[13px] text-[#86868b]">Free tier · 5 analyses per 24 hours · No account needed.</p>}
         </div>
 
       </form>
