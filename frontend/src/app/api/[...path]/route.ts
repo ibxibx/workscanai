@@ -81,5 +81,5 @@ export const PUT = handler
 export const PATCH = handler
 export const DELETE = handler
 
-// Increase max duration for long-running AI analysis calls (Vercel Pro: up to 300s)
-export const maxDuration = 60
+// Increase max duration: 120s covers Render free-tier cold start (~30-50s) + analysis time
+export const maxDuration = 120

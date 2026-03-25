@@ -122,14 +122,14 @@ class ReportGenerator:
             lbl = score_label(task_score)
             block = []
 
-            # Header — number column wide enough for 2 digits, score column fixed
-            num_col  = 20*mm   # wide enough for "27" at font 18
-            score_col = 26*mm
+            # Header — number column wide enough for 2 digits on one line
+            num_col  = 16*mm   # fixed narrow column; font kept at 16 so "27" fits on one line
+            score_col = 28*mm
             name_col  = W - num_col - score_col
             block.append(Table([[
                 Paragraph(f'<font color="#0071e3"><b>{idx}</b></font>',
-                    style_fn(f'tn{idx}', fontSize=18, fontName='Helvetica-Bold',
-                             textColor=BLUE, alignment=TA_CENTER, leading=22)),
+                    style_fn(f'tn{idx}', fontSize=16, fontName='Helvetica-Bold',
+                             textColor=BLUE, alignment=TA_CENTER, leading=20)),
                 Paragraph(f'<b>{task["name"]}</b>',
                     style_fn(f'th{idx}', fontSize=13, fontName='Helvetica-Bold',
                              textColor=GRAY_900, leading=17)),
@@ -224,9 +224,17 @@ class ReportGenerator:
                         Paragraph(result['agent_milestone'], style_fn(f'amv{idx}', fontSize=9, fontName='Helvetica', textColor=GRAY_900, leading=13)),
                     ])
                 if result.get('orchestration'):
+                    orch_raw = result['orchestration']
+                    orch_label_map = {
+                        'pipeline': 'Fully Automated Pipeline',
+                        'human-assist': 'Human-Assisted Automation',
+                        'human_assist': 'Human-Assisted Automation',
+                        'supervised': 'Supervised Automation',
+                    }
+                    orch_display = orch_label_map.get(orch_raw.lower().replace(' ','-'), orch_raw.replace('-',' ').replace('_',' ').title())
                     agent_rows.append([
                         Paragraph('Pipeline', style_fn(f'aol{idx}', fontSize=8, fontName='Helvetica', textColor=GRAY_600, leading=12)),
-                        Paragraph(result['orchestration'], style_fn(f'aov{idx}', fontSize=9, fontName='Helvetica', textColor=GRAY_900, leading=13)),
+                        Paragraph(orch_display, style_fn(f'aov{idx}', fontSize=9, fontName='Helvetica', textColor=GRAY_900, leading=13)),
                     ])
                 block.append(Table(agent_rows, colWidths=[28*mm, W-28*mm],
                     style=TableStyle([('BACKGROUND',(0,0),(-1,-1),BLUE_LIGHT),
@@ -549,15 +557,14 @@ class ReportGenerator:
             board_rows = []
             for k, v in board_lines:
                 board_rows.append([
-                    Paragraph(f'<b>{k}</b>', style_fn(f'bk{k[:6]}', fontSize=9, fontName='Helvetica-Bold', textColor=GRAY_600)),
-                    Paragraph(v, style_fn(f'bv{k[:6]}', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
+                    Paragraph(f'<b>{k}</b>', style_fn(f'bk{k[:6]}', fontSize=9, fontName='Helvetica-Bold', textColor=colors.HexColor('#86868b'))),
+                    Paragraph(v, style_fn(f'bv{k[:6]}', fontSize=9, fontName='Helvetica', textColor=WHITE)),
                 ])
             story.append(Table(board_rows, colWidths=[W*0.38, W*0.62],
                 style=TableStyle([('BACKGROUND',(0,0),(-1,-1),colors.HexColor('#1d1d1f')),
-                    ('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),6),
-                    ('LEFTPADDING',(0,0),(-1,-1),12),('LINEBELOW',(0,0),(-1,-1),0.3,colors.HexColor('#3a3a3c')),
-                    ('TEXTCOLOR',(0,0),(0,-1),colors.HexColor('#86868b')),
-                    ('TEXTCOLOR',(1,0),(1,-1),colors.white),
+                    ('TOPPADDING',(0,0),(-1,-1),7),('BOTTOMPADDING',(0,0),(-1,-1),7),
+                    ('LEFTPADDING',(0,0),(-1,-1),12),('RIGHTPADDING',(0,0),(-1,-1),12),
+                    ('LINEBELOW',(0,0),(-1,-1),0.3,colors.HexColor('#3a3a3c')),
                 ])))
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -624,13 +631,16 @@ class ReportGenerator:
         source_text = workflow.get('source_text', '').strip()
         if source_text:
             mode_labels = {'voice':'Voice Transcript','document':'Extracted Document Text','manual':'Original Input'}
+            # Truncate long source text to keep cover page compact
+            max_chars = 600
+            display_text = source_text[:max_chars] + ('…' if len(source_text) > max_chars else '')
             story.append(Spacer(1, 4*mm))
             story.append(Paragraph(mode_labels.get(workflow.get('input_mode','manual'),'Original Input'),
                 style('src_lbl', fontSize=9, leading=12, textColor=BLUE, fontName='Helvetica-Bold', spaceAfter=4)))
-            story.append(Table([[Paragraph(source_text,
-                style('src', fontSize=9, leading=14, textColor=GRAY_900, fontName='Helvetica'))]],
+            story.append(Table([[Paragraph(display_text,
+                style('src', fontSize=8, leading=12, textColor=GRAY_600, fontName='Helvetica'))]],
                 colWidths=[W], style=TableStyle([('BACKGROUND',(0,0),(-1,-1),GRAY_100),
-                    ('TOPPADDING',(0,0),(-1,-1),10),('BOTTOMPADDING',(0,0),(-1,-1),10),
+                    ('TOPPADDING',(0,0),(-1,-1),8),('BOTTOMPADDING',(0,0),(-1,-1),8),
                     ('LEFTPADDING',(0,0),(-1,-1),14),('RIGHTPADDING',(0,0),(-1,-1),14),
                     ('LINEBEFORE',(0,0),(0,-1),3,BLUE)])))
 
@@ -708,10 +718,19 @@ class ReportGenerator:
                 story.append(Spacer(1, 10*mm))
 
         # ── Detailed Task Analysis ────────────────────────────────────────
-        story.append(Paragraph('Detailed Task Analysis', ST['section_title']))
-        story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
-        for blk in ReportGenerator._pdf_task_blocks(sorted_results, analysis_data, W, s, ST, style):
-            story.append(blk)
+        task_blocks = ReportGenerator._pdf_task_blocks(sorted_results, analysis_data, W, s, ST, style)
+        # Keep section heading with first task block to avoid orphan header
+        if task_blocks:
+            story.append(KeepTogether([
+                Paragraph('Detailed Task Analysis', ST['section_title']),
+                HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10),
+                task_blocks[0],
+            ]))
+            for blk in task_blocks[1:]:
+                story.append(blk)
+        else:
+            story.append(Paragraph('Detailed Task Analysis', ST['section_title']))
+            story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
 
         # ── Implementation Roadmap ────────────────────────────────────────
         story.append(PageBreak())
@@ -745,7 +764,7 @@ class ReportGenerator:
                         Paragraph('>', style(f'ar{r["task"]["name"][:8]}', fontSize=10,
                             fontName='Helvetica-Bold', textColor=col)),
                         Paragraph(f'<b>{r["task"]["name"]}</b>  <font size="9" color="#6e6e73">'
-                            f'Score {r["ai_readiness_score"]:.0f}%  {r.get("estimated_hours_saved",0):.0f} hrs saved</font>',
+                            f'Score {r["ai_readiness_score"]:.0f}%  ·  {r.get("estimated_hours_saved",0):.0f} hrs saved</font>',
                             style(f'ri{r["task"]["name"][:8]}', fontSize=10, fontName='Helvetica',
                                 textColor=GRAY_900, leading=14)),
                     ]], colWidths=[8*mm, W-8*mm],

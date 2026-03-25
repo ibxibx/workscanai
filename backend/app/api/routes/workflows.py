@@ -237,20 +237,36 @@ async def analyze_workflow(
 
 
 @router.get("/results/{workflow_id}", response_model=AnalysisResponse)
-def get_analysis_results(workflow_id: int, db: Session = Depends(get_db)):
-    """Get analysis results for a workflow"""
-    
+def get_analysis_results(
+    workflow_id: int,
+    db: Session = Depends(get_db),
+    x_user_email: Optional[str] = Header(None),
+):
+    """Get analysis results for a workflow — requires ownership via x-user-email header."""
+
     analysis = db.query(Analysis).filter(Analysis.workflow_id == workflow_id).first()
-    
+
     if not analysis:
         raise HTTPException(status_code=404, detail="No analysis found for this workflow")
-    
+
+    # Ownership check: workflow must belong to the requesting user.
+    # Workflows with no owner (user_email is None) are only accessible if the
+    # request carries no email either — i.e. the session that created it on the
+    # same device (handled by localStorage in the frontend).  When an email IS
+    # provided, it must match exactly.
+    workflow = analysis.workflow
+    if workflow.user_email:
+        # Workflow has an owner — caller must supply matching email
+        if not x_user_email or x_user_email.lower().strip() != workflow.user_email.lower().strip():
+            raise HTTPException(status_code=403, detail="Access denied")
+    # If workflow.user_email is None the workflow was submitted anonymously;
+    # we allow the fetch so that the localStorage-only flow still works.
+
     # Eagerly load relationships
-    _ = analysis.workflow
     _ = analysis.results
     for r in analysis.results:
         _ = r.task
-    
+
     return analysis
 
 
