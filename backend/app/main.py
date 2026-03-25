@@ -39,6 +39,7 @@ try:
             "ALTER TABLE analysis_results ADD COLUMN human_edge_score REAL",
             "ALTER TABLE analysis_results ADD COLUMN pivot_skills TEXT",
             "ALTER TABLE analysis_results ADD COLUMN pivot_roles TEXT",
+            "ALTER TABLE analysis_results ADD COLUMN decision_layer VARCHAR(20)",
             "ALTER TABLE analyses ADD COLUMN readiness_score REAL",
             "ALTER TABLE analyses ADD COLUMN readiness_data_quality REAL",
             "ALTER TABLE analyses ADD COLUMN readiness_process_docs REAL",
