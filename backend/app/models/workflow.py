@@ -47,6 +47,7 @@ class Workflow(Base):
     team_size = Column(String(50), nullable=True)
     industry = Column(String(100), nullable=True)
     user_email = Column(String(255), ForeignKey("users.email"), nullable=True, index=True)
+    client_ip = Column(String(45), nullable=True, index=True)   # IPv4/IPv6 for rate limiting
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
