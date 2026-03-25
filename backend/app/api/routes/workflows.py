@@ -111,6 +111,29 @@ def list_workflows(
     return q.order_by(Workflow.created_at.desc()).all()
 
 
+def _get_ip_daily_analyses(ip: str, db: Session) -> int:
+    """Count analyses in the last 24 hours for this IP address."""
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    return (
+        db.query(sqlfunc.count(Analysis.id))
+        .join(Workflow, Analysis.workflow_id == Workflow.id)
+        .filter(Workflow.client_ip == ip)
+        .filter(Analysis.created_at >= since)
+        .scalar() or 0
+    )
+
+
+def _get_client_ip(request: Request) -> str:
+    """Extract real client IP, respecting common proxy headers."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip.strip()
+    return request.client.host if request.client else "unknown"
+
+
 @router.post("/analyze", response_model=AnalysisResponse)
 async def analyze_workflow(
     request: AnalyzeRequest,
@@ -118,25 +141,29 @@ async def analyze_workflow(
     db: Session = Depends(get_db),
     x_user_email: Optional[str] = Header(None),
 ):
-    """Analyze a workflow using AI (rate-limited per user email)"""
+    """Analyze a workflow using AI — no auth required, IP-rate-limited."""
 
-    # 1. Require authentication
-    if not x_user_email:
-        raise HTTPException(status_code=401, detail="Sign in required to run analyses.")
-    email = x_user_email.lower().strip()
+    client_ip = _get_client_ip(http_request)
 
-    # 2. Rate limit — 5 analyses per 24 hours per email
-    count = _get_user_daily_analyses(email, db)
-    if count >= DAILY_ANALYSIS_LIMIT:
+    # 1. IP-based rate limit — 5 analyses per 24 hours per IP (primary, works for all users)
+    ip_count = _get_ip_daily_analyses(client_ip, db)
+    if ip_count >= DAILY_ANALYSIS_LIMIT:
         raise HTTPException(
             status_code=429,
-            detail={"error": "rate_limit", "message": f"Daily limit reached ({DAILY_ANALYSIS_LIMIT} analyses per 24 hours). Try again later.", "retry_after_seconds": 86400},
+            detail={"error": "rate_limit", "message": f"Daily limit reached ({DAILY_ANALYSIS_LIMIT} analyses per 24 hours). Try again tomorrow.", "retry_after_seconds": 86400},
         )
 
-    # 3. IP-based rate limit
-    check_rate_limit(http_request)
+    # 2. Email-based rate limit — additional check for signed-in users
+    if x_user_email:
+        email = x_user_email.lower().strip()
+        count = _get_user_daily_analyses(email, db)
+        if count >= DAILY_ANALYSIS_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail={"error": "rate_limit", "message": f"Daily limit reached ({DAILY_ANALYSIS_LIMIT} analyses per 24 hours). Try again tomorrow.", "retry_after_seconds": 86400},
+            )
 
-    # 4. reCAPTCHA — skip silently if token absent
+    # 3. reCAPTCHA — skip silently if token absent
     if request.recaptcha_token:
         await verify_recaptcha(request.recaptcha_token)
     
@@ -145,6 +172,11 @@ async def analyze_workflow(
     
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Store client IP on workflow for rate-limit tracking
+    if not workflow.client_ip:
+        workflow.client_ip = client_ip
+        db.flush()
     
     if not workflow.tasks:
         raise HTTPException(status_code=400, detail="Workflow has no tasks to analyze")

@@ -2,9 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown,
-         CheckCircle2, Circle, Mail, ArrowRight, X, RefreshCw, Linkedin, Building2, User } from 'lucide-react'
+         CheckCircle2, Circle, X, RefreshCw, Linkedin, Building2, User } from 'lucide-react'
 import { saveMyWorkflowId } from '@/app/dashboard/page'
-import { useAuth, persistSession } from '@/lib/auth'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type AnalysisContext = 'individual' | 'team' | 'company'
@@ -119,7 +118,15 @@ const CONTEXT_OPTIONS = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFormProps) {
-  const { email: sessionEmail, isLoaded: authLoaded } = useAuth()
+  // Guest session: stable anonymous ID stored in localStorage for workflow ownership
+  const getGuestId = (): string => {
+    let id = localStorage.getItem('wsai_guest_id')
+    if (!id) {
+      id = 'guest_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now().toString(36)
+      localStorage.setItem('wsai_guest_id', id)
+    }
+    return id
+  }
 
   const [workflowName, setWorkflowName] = useState('')
   const [workflowDescription, setWorkflowDescription] = useState('')
@@ -152,33 +159,10 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [stepError, setStepError] = useState<string | null>(null)
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null)
   const isAnalyzing = activeStep >= 0 && activeStep < STEPS.length - 1
-  const [showAuthModal, setShowAuthModal] = useState(false)
-  const [authStep, setAuthStep] = useState<AuthStep>('email')
-  const [authEmail, setAuthEmailState] = useState('')
-  const [authCode, setAuthCode] = useState('')
-  const [authLoading, setAuthLoading] = useState(false)
-  const [authError, setAuthError] = useState('')
-  const pendingSubmitRef = useRef(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<any>(null)
-  const codeRef0 = useRef<HTMLInputElement>(null)
-  const codeRef1 = useRef<HTMLInputElement>(null)
-  const codeRef2 = useRef<HTMLInputElement>(null)
-  const codeRef3 = useRef<HTMLInputElement>(null)
-  const codeInputRefs = [codeRef0, codeRef1, codeRef2, codeRef3]
 
   useEffect(() => { loadRecaptchaScript() }, [])
-  useEffect(() => {
-    if (authLoaded && sessionEmail && pendingSubmitRef.current) {
-      pendingSubmitRef.current = false
-      setShowAuthModal(false)
-      runAnalysis(sessionEmail)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionEmail, authLoaded])
-  useEffect(() => {
-    if (authStep === 'code') setTimeout(() => codeInputRefs[0].current?.focus(), 100)
-  }, [authStep])
 
   // Listen for postMessage from the linkedin-receiver popup
   useEffect(() => {
@@ -463,8 +447,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       document.getElementById('context-selector')?.scrollIntoView({ behavior:'smooth', block:'center' })
       return
     }
-    if (!sessionEmail) { openAuthModal(); return }
-    await runAnalysis(sessionEmail)
+    // No auth required — use guest ID for workflow ownership + rate limiting
+    const guestId = getGuestId()
+    await runAnalysis(guestId)
   }
 
   const inputClass = "w-full px-[14px] py-[10px] bg-white border border-[#d2d2d7] rounded-[10px] text-[15px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] transition-all"
@@ -662,7 +647,6 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
   return (
     <>
-      {showAuthModal && <AuthModal/>}
       {rateLimitMessage && <RateLimitModal/>}
 
       {showProgress && (

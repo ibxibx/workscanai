@@ -28,6 +28,7 @@ try:
             "ALTER TABLE workflows ADD COLUMN analysis_context VARCHAR(50)",
             "ALTER TABLE workflows ADD COLUMN team_size VARCHAR(50)",
             "ALTER TABLE workflows ADD COLUMN industry VARCHAR(100)",
+            "ALTER TABLE workflows ADD COLUMN client_ip VARCHAR(45)",
             "ALTER TABLE analysis_results ADD COLUMN score_repeatability REAL",
             "ALTER TABLE analysis_results ADD COLUMN score_data_availability REAL",
             "ALTER TABLE analysis_results ADD COLUMN score_error_tolerance REAL",
