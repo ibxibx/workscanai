@@ -93,7 +93,8 @@ class AIAnalyzer:
             f"  medium: requires integration work or human-in-loop validation\n"
             f"  hard: requires strategic judgment, custom development, or org change management\n\n"
             f"{tasks_block}\n\n"
-            f"For EACH task output a block using EXACTLY this format (repeat {n} times):\n\n"
+            f"For EACH task output a block using EXACTLY this format (repeat {n} times).\n"
+            f"Start your response IMMEDIATELY with ---TASK_1--- — no introduction or prose before it:\n\n"
             f"---TASK_[N]---\n"
             f"SCORE_REPEATABILITY: [0-100]\n"
             f"SCORE_DATA: [0-100]\n"
@@ -153,8 +154,9 @@ class AIAnalyzer:
         # Use a more robust split that handles variations like ---TASK_1--- or --- TASK_1 ---
         blocks = re.split(r'-{2,}\s*TASK_\d+\s*-{2,}', text)
         blocks = [b.strip() for b in blocks if b.strip()]
-        # If Claude prefixed with prose before the first block, drop it
-        if blocks and not re.search(r'SCORE_REPEATABILITY', blocks[0]):
+        # Drop leading prose only if the first block has NO known scoring keys at all
+        _ANY_KEY = re.compile(r'^(SCORE_|COMPOSITE_|TIME_SAVED|DIFFICULTY|RISK_|RECOMMENDATION|DECISION_LAYER|AGENT_|ORCHESTRATION|COUNTDOWN|HUMAN_EDGE|PIVOT_)', re.MULTILINE)
+        if blocks and not _ANY_KEY.search(blocks[0]):
             blocks = blocks[1:]
         results = []
         for i in range(expected):
