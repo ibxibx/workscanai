@@ -28,7 +28,6 @@ reportlab>=4.0.0
 
 # HTTP client (reCAPTCHA verification + Tavily search)
 httpx>=0.27.0
-tavily-python>=0.3.0
 
 # Utilities  
 pydantic>=2.9.0
