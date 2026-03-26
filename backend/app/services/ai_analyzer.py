@@ -150,79 +150,62 @@ class AIAnalyzer:
 
     def _parse_batch_response(self, text: str, expected: int) -> List[Dict]:
         """Split Claude response into per-task blocks and parse each."""
-        blocks = re.split(r'---TASK_\d+---', text)
+        # Use a more robust split that handles variations like ---TASK_1--- or --- TASK_1 ---
+        blocks = re.split(r'-{2,}\s*TASK_\d+\s*-{2,}', text)
         blocks = [b.strip() for b in blocks if b.strip()]
+        # If Claude prefixed with prose before the first block, drop it
+        if blocks and not re.search(r'SCORE_REPEATABILITY', blocks[0]):
+            blocks = blocks[1:]
         results = []
         for i in range(expected):
             block = blocks[i] if i < len(blocks) else ''
             results.append(self._parse_block(block))
         return results
 
-    def _parse_block(self, text: str) -> Dict:
-        """Parse a single task result block into a result dict."""
-        result = {}
-        for line in text.strip().split('\n'):
-            line = line.strip()
-            if ':' not in line:
-                continue
-            key, _, val = line.partition(':')
-            key = key.strip()
-            val = val.strip()
+    # Known single-line keys — everything else may be multi-line
+    _SINGLE_LINE_KEYS = {
+        'SCORE_REPEATABILITY', 'SCORE_DATA', 'SCORE_ERROR', 'SCORE_INTEGRATION',
+        'COMPOSITE_SCORE', 'TIME_SAVED', 'DIFFICULTY', 'RISK_LEVEL',
+        'DECISION_LAYER', 'AGENT_PHASE', 'AGENT_LABEL', 'COUNTDOWN_WINDOW',
+        'HUMAN_EDGE_SCORE', 'PIVOT_SKILLS', 'PIVOT_ROLES',
+    }
+    # Multi-line keys — collect continuation lines
+    _MULTI_LINE_KEYS = {'RISK_FLAG', 'RECOMMENDATION', 'AGENT_MILESTONE', 'ORCHESTRATION'}
 
-            if key == 'SCORE_REPEATABILITY':
-                result['score_repeatability'] = self._float(val)
-            elif key == 'SCORE_DATA':
-                result['score_data_availability'] = self._float(val)
-            elif key == 'SCORE_ERROR':
-                result['score_error_tolerance'] = self._float(val)
-            elif key == 'SCORE_INTEGRATION':
-                result['score_integration'] = self._float(val)
-            elif key == 'COMPOSITE_SCORE':
-                result['ai_readiness_score'] = self._float(val)
-            elif key == 'TIME_SAVED':
-                result['time_saved_percentage'] = self._float(val)
-            elif key == 'DIFFICULTY':
-                d = val.lower()
-                result['difficulty'] = d if d in ['easy','medium','hard'] else 'medium'
-            elif key == 'RISK_LEVEL':
-                r = val.lower()
-                result['risk_level'] = r if r in ['safe','caution','warning'] else 'safe'
-            elif key == 'RISK_FLAG':
-                result['risk_flag'] = val
-            elif key == 'RECOMMENDATION':
-                result['recommendation'] = val
-            elif key == 'DECISION_LAYER':
-                dl = val.lower().strip()
-                result['decision_layer'] = dl if dl in ['none','partial','full'] else 'partial'
-            elif key == 'AGENT_PHASE':
-                result['agent_phase'] = self._int(val)
-            elif key == 'AGENT_LABEL':
-                result['agent_label'] = val
-            elif key == 'AGENT_MILESTONE':
-                result['agent_milestone'] = val
-            elif key == 'ORCHESTRATION':
-                result['orchestration'] = val
-            elif key == 'COUNTDOWN_WINDOW':
-                cw = val.lower().strip()
-                result['countdown_window'] = cw if cw in ['now','12-24','24-48','48+'] else '24-48'
-            elif key == 'HUMAN_EDGE_SCORE':
-                result['human_edge_score'] = self._float(val)
-            elif key == 'PIVOT_SKILLS':
-                try:
-                    parsed = json.loads(val)
-                    normalised = [
-                        s if isinstance(s, str) else s.get('skill', str(s))
-                        for s in parsed
-                    ] if isinstance(parsed, list) else []
-                    result['pivot_skills'] = json.dumps(normalised)
-                except Exception:
-                    result['pivot_skills'] = None
-            elif key == 'PIVOT_ROLES':
-                try:
-                    parsed = json.loads(val)
-                    result['pivot_roles'] = json.dumps(parsed) if isinstance(parsed, list) else None
-                except Exception:
-                    result['pivot_roles'] = None
+    def _parse_block(self, text: str) -> Dict:
+        """Parse a single task result block — handles multi-line values correctly."""
+        result = {}
+        lines = text.strip().split('\n')
+        current_key = None
+        current_val_lines: list = []
+
+        def flush():
+            nonlocal current_key, current_val_lines
+            if current_key:
+                val = ' '.join(current_val_lines).strip()
+                self._assign_field(result, current_key, val)
+            current_key = None
+            current_val_lines = []
+
+        for line in lines:
+            stripped = line.strip()
+            # Detect a new KEY: value line
+            match = re.match(r'^([A-Z_]{3,25})\s*:\s*(.*)', stripped)
+            if match:
+                candidate_key = match.group(1)
+                val_start = match.group(2).strip()
+                # Only treat as a key if it's one we know about
+                if candidate_key in self._SINGLE_LINE_KEYS or candidate_key in self._MULTI_LINE_KEYS:
+                    flush()
+                    current_key = candidate_key
+                    current_val_lines = [val_start] if val_start else []
+                    continue
+            # Continuation line for multi-line keys
+            if current_key in self._MULTI_LINE_KEYS and stripped:
+                current_val_lines.append(stripped)
+            # For single-line keys ignore extra lines (shouldn't happen)
+
+        flush()  # flush last key
 
         # Derived fields
         if 'ai_readiness_score' not in result:
@@ -245,7 +228,6 @@ class AIAnalyzer:
         if 'human_edge_score' not in result:
             result['human_edge_score'] = round(100 - result.get('ai_readiness_score', 50) * 0.7, 1)
 
-        # Default decision_layer based on score if not set
         if 'decision_layer' not in result:
             score = result.get('ai_readiness_score', 50)
             result['decision_layer'] = 'none' if score >= 75 else ('partial' if score >= 45 else 'full')
@@ -253,6 +235,66 @@ class AIAnalyzer:
         for k, v in self._defaults().items():
             result.setdefault(k, v)
         return result
+
+    def _assign_field(self, result: Dict, key: str, val: str):
+        """Assign a parsed key/value into the result dict."""
+        if key == 'SCORE_REPEATABILITY':
+            result['score_repeatability'] = self._float(val)
+        elif key == 'SCORE_DATA':
+            result['score_data_availability'] = self._float(val)
+        elif key == 'SCORE_ERROR':
+            result['score_error_tolerance'] = self._float(val)
+        elif key == 'SCORE_INTEGRATION':
+            result['score_integration'] = self._float(val)
+        elif key == 'COMPOSITE_SCORE':
+            result['ai_readiness_score'] = self._float(val)
+        elif key == 'TIME_SAVED':
+            result['time_saved_percentage'] = self._float(val)
+        elif key == 'DIFFICULTY':
+            d = val.lower()
+            result['difficulty'] = d if d in ['easy', 'medium', 'hard'] else 'medium'
+        elif key == 'RISK_LEVEL':
+            r = val.lower()
+            result['risk_level'] = r if r in ['safe', 'caution', 'warning'] else 'safe'
+        elif key == 'RISK_FLAG':
+            result['risk_flag'] = val
+        elif key == 'RECOMMENDATION':
+            result['recommendation'] = val
+        elif key == 'DECISION_LAYER':
+            dl = val.lower().strip()
+            result['decision_layer'] = dl if dl in ['none', 'partial', 'full'] else 'partial'
+        elif key == 'AGENT_PHASE':
+            result['agent_phase'] = self._int(val)
+        elif key == 'AGENT_LABEL':
+            result['agent_label'] = val
+        elif key == 'AGENT_MILESTONE':
+            result['agent_milestone'] = val
+        elif key == 'ORCHESTRATION':
+            result['orchestration'] = val
+        elif key == 'COUNTDOWN_WINDOW':
+            cw = val.lower().strip()
+            result['countdown_window'] = cw if cw in ['now', '12-24', '24-48', '48+'] else '24-48'
+        elif key == 'HUMAN_EDGE_SCORE':
+            result['human_edge_score'] = self._float(val)
+        elif key == 'PIVOT_SKILLS':
+            try:
+                parsed = json.loads(val)
+                normalised = [
+                    s if isinstance(s, str) else s.get('skill', str(s))
+                    for s in parsed
+                ] if isinstance(parsed, list) else []
+                result['pivot_skills'] = json.dumps(normalised)
+            except Exception:
+                result['pivot_skills'] = None
+        elif key == 'PIVOT_ROLES':
+            try:
+                parsed = json.loads(val)
+                result['pivot_roles'] = json.dumps(parsed) if isinstance(parsed, list) else None
+            except Exception:
+                result['pivot_roles'] = None
+
+    def _parse_block_unused(self, key: str):
+        pass  # old single-line parser replaced by _assign_field + multi-line _parse_block above
 
 
     # ------------------------------------------------------------------
