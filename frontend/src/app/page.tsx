@@ -51,7 +51,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section €” sits flush under the fixed nav, no gap */}
+      {/* Hero Section — sits flush under the fixed nav, no gap */}
       <section className="relative min-h-[580px]" style={{marginTop: '44px', marginBottom: 0}}>
         {/* Image covers the full section */}
         <img
@@ -80,7 +80,7 @@ export default function LandingPage() {
           <div className="max-w-[680px] mx-auto mt-[24px] sm:mt-[40px]">
             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[18px] p-[20px] sm:p-[32px]">
               <p className="text-[16px] sm:text-[21px] leading-[1.381] font-normal text-white/90 mb-[20px] sm:mb-[28px]">
-                Find out which of your tasks AI can automate <em>right now</em> and how €” save your time and money.
+                Find out which of your tasks AI can automate <em>right now</em> and how — save your time and money.
               </p>
               <div className="flex gap-[16px] justify-center items-center flex-wrap">
                 <a
@@ -107,7 +107,7 @@ export default function LandingPage() {
               <div className="text-[10px] sm:text-[13px] text-white/60 mt-[4px]">to analyze</div>
             </div>
             <div className="text-center border-x border-white/20 px-[8px] sm:px-0 min-w-0">
-              <div className="text-[20px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight">0€“100%</div>
+              <div className="text-[20px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight">0–100%</div>
               <div className="text-[10px] sm:text-[13px] text-white/60 mt-[4px]">automation score</div>
             </div>
             <div className="text-center min-w-0">

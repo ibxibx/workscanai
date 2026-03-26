@@ -44,7 +44,7 @@ interface AnalysisData {
   results: TaskResult[]
 }
 
-// â”€â”€ Recommendation renderer — splits on Option 1/2/3 and Decision layer â”€â”€â”€â”€â”€
+// —€—€ Recommendation renderer — splits on Option 1/2/3 and Decision layer —€—€—€—€—€
 function RecommendationBlocks({ text }: { text: string }) {
   if (!text) return null
   // Split on every "Option N" or "Decision layer" boundary
@@ -81,7 +81,7 @@ function RecommendationBlocks({ text }: { text: string }) {
   )
 }
 
-// â”€â”€ Countdown badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// —€—€ Countdown badge —€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€
 function CountdownBadge({ window: w }: { window?: string }) {
   const map: Record<string, { label: string; color: string; dot: string }> = {
     'now':   { label: '⚡ Automatable NOW',    color: 'bg-red-50 border-red-200 text-red-700',    dot: 'bg-red-500' },
@@ -224,7 +224,7 @@ export default function ResultsPage() {
     <div className="min-h-screen bg-[#fafafa] text-[#1d1d1f] pt-[88px] pb-[80px]">
       <div className="max-w-[980px] mx-auto px-6">
 
-        {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* —€—€ Header —€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€ */}
         <div className="mb-[40px]">
           <div className="flex items-center gap-[10px] mb-[16px]">
             <div className={`w-[32px] h-[32px] rounded-full bg-gradient-to-br ${contextGradient} flex items-center justify-center text-white`}>
@@ -249,7 +249,7 @@ export default function ResultsPage() {
           <p className="text-[14px] text-[#86868b]">Analysis ID: {id} · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
         </div>
 
-        {/* â”€â”€ Hero KPI Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* —€—€ Hero KPI Cards —€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€—€ */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-[12px] mb-[40px]">
           {[
             { label: 'Automation Score', value: `${Math.round(analysisData.automation_score)}%`, color: 'text-[#0071e3]', sub: `${automationReady} of ${totalTasks} tasks ready` },
@@ -265,7 +265,7 @@ export default function ResultsPage() {
           ))}
         </div>
 
-        {/* â”€â”€ Section padding — reduce on mobile throughout â”€â”€ */}
+        {/* —€—€ Section padding — reduce on mobile throughout —€—€ */}
         {/* SECTION A — TASK BREAKDOWN */}
         <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
           <div className="flex items-center gap-[10px] mb-[8px]">
