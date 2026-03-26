@@ -29,6 +29,12 @@ export default function DashboardLayout({
               >
                 New Analysis
               </Link>
+              <Link 
+                href="/dashboard/job-scanner" 
+                className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors"
+              >
+                Job Scanner
+              </Link>
             </div>
           </div>
         </div>
