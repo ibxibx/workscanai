@@ -128,7 +128,7 @@ class AIAnalyzer:
         try:
             message = self.client.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=min(600 * n + 500, 8000),
+                max_tokens=min(500 * n + 400, 6000),
                 messages=[{"role": "user", "content": prompt}],
                 timeout=90.0,
             )
