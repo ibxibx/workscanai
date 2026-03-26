@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { Brain, ShieldCheck, ShieldAlert, ShieldX, Search, Download } from 'lucide-react'
+import { Brain, ShieldCheck, ShieldAlert, ShieldX, Search } from 'lucide-react'
+import ReportActions from './ReportActions'
 
 // ── Recommendation renderer — splits on Option 1/2/3 and Decision layer ─────
 function RecommendationBlocks({ text }: { text: string }) {
@@ -248,6 +249,23 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
             })}
           </div>
         </div>
+
+        {/* Download + Share actions */}
+        <ReportActions
+          workflowId={data.workflow_id}
+          workflowName={data.workflow.name}
+          shareUrl={shareUrl}
+          shareCode={code}
+          isJobScan={data.workflow.input_mode === 'job_scan'}
+          topTaskResults={[...data.results]
+            .sort((a, b) => b.ai_readiness_score - a.ai_readiness_score)
+            .slice(0, 3)
+            .map(r => ({
+              taskName: r.task?.name || 'Task',
+              score: Math.round(r.ai_readiness_score),
+              recommendation: r.recommendation,
+            }))}
+        />
 
         {/* CTA */}
         <div className="bg-[#1d1d1f] rounded-[24px] p-[28px] sm:p-[48px] text-center">
