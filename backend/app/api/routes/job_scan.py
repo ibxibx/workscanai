@@ -1,11 +1,17 @@
 """
-Job Scanner route — POST /api/job-scan
-Accepts a job title, researches tasks via Tavily, runs full WorkScanAI
-analysis, saves as a workflow, and returns the workflow ID + n8n JSON.
+Job Scanner routes — two-step pipeline to stay within Vercel's 60s limit.
+
+Step 1: POST /api/job-scan/research
+  → Tavily search + Claude task extraction (~15-20s)
+  → Returns structured task list
+
+Step 2: POST /api/job-scan/analyze
+  → Takes task list, runs batch AI analysis + n8n generation + saves to DB (~30-40s)
+  → Returns workflow_id, share_code, n8n workflow JSON
 """
-from fastapi import APIRouter, Depends, HTTPException, Request, Header
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 
 from app.core.database import get_db
@@ -17,23 +23,45 @@ router = APIRouter()
 
 
 # ------------------------------------------------------------------
-# Request / Response schemas
+# Schemas
 # ------------------------------------------------------------------
 
-class JobScanRequest(BaseModel):
+class ResearchRequest(BaseModel):
     job_title: str = Field(..., min_length=2, max_length=100)
     industry: Optional[str] = Field(None, max_length=100)
     analysis_context: Optional[str] = Field("individual")
+
+
+class TaskItem(BaseModel):
+    name: str
+    description: Optional[str] = None
+    frequency: Optional[str] = "weekly"
+    time_per_task: Optional[int] = 30
+    category: Optional[str] = "general"
+    complexity: Optional[str] = "medium"
+
+
+class ResearchResponse(BaseModel):
+    job_title: str
+    industry: Optional[str]
+    tasks: List[TaskItem]
+    search_used: bool
+
+
+class AnalyzeRequest(BaseModel):
+    job_title: str
+    industry: Optional[str] = None
+    analysis_context: Optional[str] = "individual"
     hourly_rate: Optional[float] = Field(75.0, gt=0)
+    tasks: List[TaskItem]
 
 
-class JobScanResponse(BaseModel):
+class AnalyzeResponse(BaseModel):
     workflow_id: int
     share_code: str
     job_title: str
     tasks_found: int
     n8n_workflow: dict
-    search_used: bool
     message: str
 
     class Config:
@@ -41,38 +69,55 @@ class JobScanResponse(BaseModel):
 
 
 # ------------------------------------------------------------------
-# Endpoint
+# Step 1 — Research
 # ------------------------------------------------------------------
 
-@router.post("/job-scan", response_model=JobScanResponse, status_code=201)
-async def job_scan(
-    request: JobScanRequest,
-    http_request: Request,
-    db: Session = Depends(get_db),
-    x_user_email: Optional[str] = Header(None),
-):
+@router.post("/job-scan/research", response_model=ResearchResponse)
+async def job_scan_research(request: ResearchRequest):
     """
-    1. Research job tasks via Tavily web search
-    2. Extract structured task list via Claude
-    3. Save as a workflow + run full AI analysis
-    4. Generate n8n workflow JSON
-    5. Return workflow_id (for redirect to dashboard) + n8n JSON
+    Web-search the job title and extract a structured task list.
+    Fast — ~15-20s. No DB writes.
     """
-
-    # --- Scan job & extract tasks ---
     try:
         scanner = JobScanner()
-        scan_result = scanner.scan_job(
+        result = scanner.scan_job(
             job_title=request.job_title,
             industry=request.industry,
             analysis_context=request.analysis_context or "individual",
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Job scan failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Research failed: {str(e)}")
 
-    tasks = scan_result.get("tasks", [])
+    tasks = result.get("tasks", [])
     if not tasks:
         raise HTTPException(status_code=422, detail="Could not extract tasks for this job title")
+
+    return ResearchResponse(
+        job_title=request.job_title,
+        industry=request.industry,
+        tasks=[TaskItem(**t) for t in tasks],
+        search_used=result.get("search_used", False),
+    )
+
+
+# ------------------------------------------------------------------
+# Step 2 — Analyze + Save
+# ------------------------------------------------------------------
+
+@router.post("/job-scan/analyze", response_model=AnalyzeResponse, status_code=201)
+async def job_scan_analyze(
+    request: AnalyzeRequest,
+    db: Session = Depends(get_db),
+    x_user_email: Optional[str] = Header(None),
+):
+    """
+    Takes a task list from Step 1, runs full AI analysis,
+    generates n8n workflow JSON, saves everything to DB.
+    Fast — ~30-40s. Returns workflow_id for redirect.
+    """
+    tasks = request.tasks
+    if not tasks:
+        raise HTTPException(status_code=422, detail="No tasks provided")
 
     # --- Persist user ---
     if x_user_email:
@@ -87,7 +132,7 @@ async def job_scan(
     workflow = Workflow(
         share_code=_gen_share_code(),
         name=f"{request.job_title} – Job Scanner",
-        description=f"Auto-generated by WorkScanAI Job Scanner for role: {request.job_title}",
+        description=f"Auto-generated by WorkScanAI Job Scanner for: {request.job_title}",
         input_mode="job_scan",
         analysis_context=request.analysis_context or "individual",
         industry=request.industry,
@@ -96,33 +141,32 @@ async def job_scan(
     db.add(workflow)
     db.flush()
 
-
-    # --- Create tasks in DB ---
+    # --- Create task rows ---
     task_objs = []
     for t in tasks:
         task_obj = Task(
             workflow_id=workflow.id,
-            name=t.get("name", "Unknown task"),
-            description=t.get("description"),
-            frequency=t.get("frequency", "weekly"),
-            time_per_task=t.get("time_per_task", 30),
-            category=t.get("category", "general"),
-            complexity=t.get("complexity", "medium"),
+            name=t.name,
+            description=t.description,
+            frequency=t.frequency or "weekly",
+            time_per_task=t.time_per_task or 30,
+            category=t.category or "general",
+            complexity=t.complexity or "medium",
         )
         db.add(task_obj)
         task_objs.append(task_obj)
     db.flush()
 
-    # --- Run AI analysis (same engine as manual workflows) ---
+    # --- Run AI analysis ---
     analyzer = AIAnalyzer()
     task_dicts = [
         {
-            "name": t.get("name"),
-            "description": t.get("description"),
-            "frequency": t.get("frequency", "weekly"),
-            "time_per_task": t.get("time_per_task", 30),
-            "category": t.get("category", "general"),
-            "complexity": t.get("complexity", "medium"),
+            "name": t.name,
+            "description": t.description,
+            "frequency": t.frequency or "weekly",
+            "time_per_task": t.time_per_task or 30,
+            "category": t.category or "general",
+            "complexity": t.complexity or "medium",
             "analysis_context": request.analysis_context or "individual",
             "industry": request.industry or "",
         }
@@ -183,12 +227,20 @@ async def job_scan(
 
     db.commit()
 
-    return JobScanResponse(
+    # --- Generate n8n workflow ---
+    # Done after DB commit so a timeout here doesn't block saving
+    try:
+        scanner = JobScanner()
+        top_tasks = [t.dict() for t in tasks[:5]]
+        n8n_workflow = scanner._generate_n8n_workflow(request.job_title, top_tasks)
+    except Exception:
+        n8n_workflow = {"name": f"{request.job_title} Workflow", "nodes": [], "connections": {}}
+
+    return AnalyzeResponse(
         workflow_id=workflow.id,
         share_code=workflow.share_code,
         job_title=request.job_title,
         tasks_found=len(tasks),
-        n8n_workflow=scan_result.get("n8n_workflow", {}),
-        search_used=scan_result.get("search_used", False),
-        message=f"Scanned {len(tasks)} tasks for '{request.job_title}'. Analysis saved.",
+        n8n_workflow=n8n_workflow,
+        message=f"Analysis complete — {len(tasks)} tasks saved.",
     )
