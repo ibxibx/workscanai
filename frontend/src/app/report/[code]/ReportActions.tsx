@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, Share2, Check } from 'lucide-react'
+import { Download, Share2, Check, FileText, FileJson } from 'lucide-react'
 
 interface ReportActionsProps {
   workflowId: number
@@ -20,7 +20,6 @@ export default function ReportActions({
   workflowId,
   workflowName,
   shareUrl,
-  shareCode,
   isJobScan,
   topTaskResults,
 }: ReportActionsProps) {
@@ -31,7 +30,7 @@ export default function ReportActions({
     try {
       await navigator.clipboard.writeText(shareUrl)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setTimeout(() => setCopied(false), 2500)
     } catch {
       prompt('Copy this link:', shareUrl)
     }
@@ -47,10 +46,8 @@ export default function ReportActions({
       const a = document.createElement('a')
       a.href = url
       a.download = `WorkScanAI-${workflowName.replace(/\s+/g, '-')}.${fmt}`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      document.body.appendChild(a); a.click()
+      document.body.removeChild(a); URL.revokeObjectURL(url)
     } catch {
       alert(`Failed to generate ${fmt.toUpperCase()} report.`)
     } finally {
@@ -67,10 +64,8 @@ export default function ReportActions({
         parameters: { rule: { interval: [{ field: 'hours', hoursInterval: 24 }] } },
       },
       ...topTaskResults.slice(0, 3).map((r, i) => ({
-        id: `node_task_${i}`,
-        name: r.taskName,
-        type: 'n8n-nodes-base.httpRequest',
-        typeVersion: 3,
+        id: `node_task_${i}`, name: r.taskName,
+        type: 'n8n-nodes-base.httpRequest', typeVersion: 3,
         position: [460 + i * 220, 300],
         parameters: { method: 'POST', url: 'https://example.com/webhook' },
         notes: r.recommendation?.slice(0, 200) || '',
@@ -79,13 +74,8 @@ export default function ReportActions({
     const workflow = {
       name: `${workflowName} — WorkScanAI Automation`,
       nodes,
-      connections: {
-        'Schedule Trigger': {
-          main: [[{ node: topTaskResults[0]?.taskName || 'Task 1', type: 'main', index: 0 }]],
-        },
-      },
-      active: false,
-      settings: { executionOrder: 'v1' },
+      connections: { 'Schedule Trigger': { main: [[{ node: topTaskResults[0]?.taskName || 'Task 1', type: 'main', index: 0 }]] } },
+      active: false, settings: { executionOrder: 'v1' },
       id: `workscanai-${workflowId}`,
       meta: { generatedBy: 'WorkScanAI', reportUrl: shareUrl },
     }
@@ -94,51 +84,62 @@ export default function ReportActions({
     const a = document.createElement('a')
     a.href = url
     a.download = `${workflowName.replace(/\s+/g, '_')}_n8n_workflow.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    document.body.appendChild(a); a.click()
+    document.body.removeChild(a); URL.revokeObjectURL(url)
   }
 
   return (
-    <div className="flex flex-wrap gap-[10px] mt-[24px] sm:mt-[32px]">
-      <button
-        onClick={() => downloadReport('docx')}
-        disabled={downloading === 'docx'}
-        className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-60 text-white px-[20px] py-[11px] rounded-full font-semibold text-[14px] transition-all"
-      >
-        <Download className="h-[15px] w-[15px]" />
-        {downloading === 'docx' ? 'Generating…' : 'Download DOCX'}
-      </button>
+    <div className="mt-[40px] sm:mt-[56px] mb-[48px] sm:mb-[64px]">
+      {/* Divider */}
+      <div className="border-t border-[#e8e8ed] mb-[32px] sm:mb-[40px]" />
 
-      <button
-        onClick={() => downloadReport('pdf')}
-        disabled={downloading === 'pdf'}
-        className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-60 text-white px-[20px] py-[11px] rounded-full font-semibold text-[14px] transition-all"
-      >
-        <Download className="h-[15px] w-[15px]" />
-        {downloading === 'pdf' ? 'Generating…' : 'Download PDF'}
-      </button>
+      {/* Label */}
+      <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-widest mb-[16px] sm:mb-[20px]">
+        Export &amp; Share
+      </p>
 
-      {isJobScan && (
+      {/* Button row — wraps cleanly on mobile, each button full-width on xs */}
+      <div className="flex flex-col sm:flex-row flex-wrap gap-[12px]">
+
         <button
-          onClick={downloadN8n}
-          className="inline-flex items-center gap-[8px] bg-[#1d1d1f] hover:bg-[#3a3a3c] text-white px-[20px] py-[11px] rounded-full font-semibold text-[14px] transition-all"
+          onClick={() => downloadReport('docx')}
+          disabled={downloading === 'docx'}
+          className="inline-flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#005bbf] disabled:opacity-50 disabled:cursor-not-allowed text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm hover:shadow-md"
         >
-          <Download className="h-[15px] w-[15px]" />
-          n8n Workflow .json
+          <FileText className="h-[15px] w-[15px] shrink-0" />
+          {downloading === 'docx' ? 'Generating…' : 'Download DOCX'}
         </button>
-      )}
 
-      <button
-        onClick={handleShare}
-        className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[20px] py-[11px] rounded-full font-medium text-[14px] text-[#1d1d1f] transition-all"
-      >
-        {copied
-          ? <><Check className="h-[15px] w-[15px] text-green-600" /><span className="text-green-600">Copied!</span></>
-          : <><Share2 className="h-[15px] w-[15px]" />Share Report</>
-        }
-      </button>
+        <button
+          onClick={() => downloadReport('pdf')}
+          disabled={downloading === 'pdf'}
+          className="inline-flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#005bbf] disabled:opacity-50 disabled:cursor-not-allowed text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm hover:shadow-md"
+        >
+          <Download className="h-[15px] w-[15px] shrink-0" />
+          {downloading === 'pdf' ? 'Generating…' : 'Download PDF'}
+        </button>
+
+        {isJobScan && (
+          <button
+            onClick={downloadN8n}
+            className="inline-flex items-center justify-center gap-[8px] bg-[#1d1d1f] hover:bg-[#3a3a3c] active:bg-[#000] text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm hover:shadow-md"
+          >
+            <FileJson className="h-[15px] w-[15px] shrink-0" />
+            n8n Workflow .json
+          </button>
+        )}
+
+        <button
+          onClick={handleShare}
+          className="inline-flex items-center justify-center gap-[8px] border border-[#d2d2d7] hover:border-[#0071e3] hover:bg-[#f0f7ff] active:bg-[#e5f0ff] px-[24px] py-[13px] rounded-full font-medium text-[14px] text-[#1d1d1f] transition-all"
+        >
+          {copied
+            ? <><Check className="h-[15px] w-[15px] text-green-600 shrink-0" /><span className="text-green-600">Link copied!</span></>
+            : <><Share2 className="h-[15px] w-[15px] shrink-0" /><span>Share Report</span></>
+          }
+        </button>
+
+      </div>
     </div>
   )
 }
