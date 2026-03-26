@@ -106,10 +106,10 @@ class JobScanner:
 
         prompt = (
             f"You are an expert workflow analyst. Based on the research below about "
-            f"the role '{job_title}', extract exactly 10-12 specific, concrete tasks "
+            f"the role '{job_title}', extract exactly 8 specific, concrete tasks "
             f"that this role performs regularly.\n\n"
             f"RESEARCH:\n{search_content}\n\n"
-            f"For each task output EXACTLY this format (repeat 10-12 times):\n\n"
+            f"For each task output EXACTLY this format (repeat 8 times):\n\n"
             f"---TASK---\n"
             f"NAME: [short task name, max 60 chars]\n"
             f"DESCRIPTION: [one sentence describing the task concretely]\n"
@@ -171,7 +171,7 @@ class JobScanner:
                     task['complexity'] = c if c in ['low', 'medium', 'high'] else 'medium'
             if task.get('name'):
                 tasks.append(task)
-        return tasks[:12]
+        return tasks[:8]
 
 
     # ------------------------------------------------------------------
