@@ -308,7 +308,7 @@ export default function ResultsPage() {
                               ? 'bg-violet-50 text-violet-700 border-violet-200'
                               : 'bg-sky-50 text-sky-700 border-sky-200'
                           }`}>
-                            {result.decision_layer === 'full' ? '🧩 Decision Layer: Human Required' : '🔀�� Decision Layer: AI + Human'}
+                            {result.decision_layer === 'full' ? '🧩 Decision Layer: Human Required' : '🔀 Decision Layer: AI + Human'}
                           </span>
                         )}
                       </div>
@@ -361,7 +361,7 @@ export default function ResultsPage() {
 
                   {/* Recommendation */}
                   <div className="p-[16px] bg-blue-50 border border-blue-100 rounded-[10px] mb-[12px]">
-                    <div className="text-[12px] font-bold text-[#0071e3] uppercase tracking-wide mb-[8px]">💡� Recommendation</div>
+                    <div className="text-[12px] font-bold text-[#0071e3] uppercase tracking-wide mb-[8px]">💡 Recommendation</div>
                     <RecommendationBlocks text={result.recommendation} />
                   </div>
 
@@ -521,7 +521,7 @@ export default function ResultsPage() {
               <div className="mt-[28px] grid md:grid-cols-2 gap-[20px]">
                 {/* Skills to build */}
                 <div>
-                  <p className="text-[12px] font-bold text-[#86868b] uppercase tracking-widest mb-[14px]">🔧� Skills to Develop Now</p>
+                  <p className="text-[12px] font-bold text-[#86868b] uppercase tracking-widest mb-[14px]">🔧 Skills to Develop Now</p>
                   <div className="space-y-[10px]">
                     {(() => {
                       const allSkills: string[] = []
