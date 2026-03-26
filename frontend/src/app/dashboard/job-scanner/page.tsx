@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation'
 import { Briefcase, Search, Download, Loader2, Zap, CheckCircle, ChevronRight } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 
+// Research goes via Vercel proxy (fast, ~15s)
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || ''
+// Analyze goes direct to Render (slow ~45s) — hardcoded to bypass Vercel 60s proxy limit
+const RENDER_URL = process.env.NEXT_PUBLIC_RENDER_URL || 'https://workscanai.onrender.com'
 
 const INDUSTRIES = [
   '', 'Technology', 'Finance', 'Healthcare', 'Marketing', 'Sales',
@@ -90,10 +93,10 @@ export default function JobScannerPage() {
       return
     }
 
-    // ── Step 2: Analyze ───────────────────────────────────────────
+    // ── Step 2: Analyze — direct to Render, bypasses Vercel 60s limit ───
     setStep('analyzing')
     try {
-      const r2 = await fetch(`${API_BASE}/api/job-scan/analyze`, {
+      const r2 = await fetch(`${RENDER_URL}/api/job-scan/analyze`, {
         method: 'POST',
         headers: headers(),
         body: JSON.stringify({
