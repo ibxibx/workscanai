@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown,
-         CheckCircle2, Circle, X, RefreshCw, Linkedin, Building2, User } from 'lucide-react'
+         CheckCircle2, Circle, X, RefreshCw, Linkedin, Building2, User, Search } from 'lucide-react'
 import { saveMyWorkflowId } from '@/app/dashboard/page'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     name: '', description: '', frequency: 'weekly',
     time_per_task: 30, category: 'general', complexity: 'medium'
   }])
-  const [inputMode, setInputMode] = useState<'manual' | 'voice' | 'document'>('manual')
+  const [inputMode, setInputMode] = useState<'manual' | 'voice' | 'document' | 'jobscan'>('manual')
   const [analysisContext, setAnalysisContext] = useState<AnalysisContext | null>(null)
   const [contextError, setContextError] = useState(false)
   const [teamSize, setTeamSize] = useState<string>('')
@@ -148,6 +148,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [sourceText, setSourceText] = useState('')
   const [linkedinUrl, setLinkedinUrl] = useState('')
   const [linkedinPastedText, setLinkedinPastedText] = useState('')
+  // Job Scanner state
+  const [jobTitle, setJobTitle] = useState('')
+  const [jobScanStep, setJobScanStep] = useState<'idle' | 'researching' | 'analyzing' | 'done'>('idle')
+  const [jobScanError, setJobScanError] = useState('')
+  const [jobScanTasks, setJobScanTasks] = useState<Array<{name:string;description?:string;frequency?:string;time_per_task?:number;category?:string;complexity?:string}>>([])
+
   const [linkedinStatus, setLinkedinStatus] = useState<'idle' | 'fetching' | 'done' | 'error' | 'waiting_popup'>('idle')
   const [linkedinProfile, setLinkedinProfile] = useState<{ name: string; title_or_tagline: string; profile_type: string; linkedin_url: string } | null>(null)
   const [linkedinError, setLinkedinError] = useState('')
@@ -438,6 +444,35 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     } catch (err: any) { setStepError(err.message||'Something went wrong.'); onError(err.message||'Failed to analyze workflow.'); resetProgress() }
   }
 
+  // ── Job Scanner handler ──────────────────────────────────────────────────
+  const handleJobScan = async () => {
+    if (!jobTitle.trim()) return
+    setJobScanError(''); setJobScanTasks([]); setJobScanStep('researching')
+    try {
+      // Step 1: research via Vercel proxy (~15s)
+      const r1 = await fetch('/api/job-scan/research', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_title: jobTitle.trim(), analysis_context: analysisContext || 'individual', industry: industry || undefined }),
+      })
+      if (!r1.ok) { const e = await r1.json().catch(()=>({})); throw new Error(e.detail || `Research failed (${r1.status})`) }
+      const d1 = await r1.json()
+      setJobScanTasks(d1.tasks || [])
+      setJobScanStep('analyzing')
+      // Step 2: analyze direct to Render (~45s, bypasses Vercel 60s limit)
+      const r2 = await fetch(`${BACKEND_DIRECT}/api/job-scan/analyze`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_title: jobTitle.trim(), tasks: d1.tasks, analysis_context: analysisContext || 'individual', industry: industry || undefined, hourly_rate: hourlyRate }),
+      })
+      if (!r2.ok) { const e = await r2.json().catch(()=>({})); throw new Error(e.detail || `Analysis failed (${r2.status})`) }
+      const d2 = await r2.json()
+      setJobScanStep('done')
+      onAnalysisComplete(d2.workflow_id)
+    } catch (err: any) {
+      setJobScanError(err.message || 'Job scan failed. Please try again.')
+      setJobScanStep('idle')
+    }
+  }
+
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault()
     if (!workflowName.trim()) { onError('Please provide a workflow name'); return }
@@ -693,6 +728,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
             { mode:'manual' as const,    icon:FileText, label:'Manual Entry',     sublabel:'Type tasks directly' },
             { mode:'voice' as const,     icon:Mic,      label:'Voice Input',      sublabel:'Speak your workflow' },
             { mode:'document' as const,  icon:Upload,   label:'Upload Document',  sublabel:'PDF, Word, CV, Excel…' },
+            { mode:'jobscan' as const,   icon:Search,   label:'Job Scanner',      sublabel:'Auto-scan any job title' },
           ]).map(({mode,icon:Icon,label,sublabel}) => (
             <button key={mode} type="button" onClick={()=>setInputMode(mode)}
               className={`flex-1 flex items-center justify-center gap-[10px] px-[16px] py-[14px] rounded-[14px] font-semibold transition-all ${inputMode===mode?'bg-white text-[#1d1d1f] shadow-md':'text-white/60 hover:text-white hover:bg-white/10'}`}>
@@ -912,6 +948,83 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         )}
 
         {/* ── Context Selector — gradient circle icons + validation ── */}
+        {/* ── Job Scanner panel ── */}
+        {inputMode==='jobscan'&&(
+          <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
+            <div className="text-center mb-[28px]">
+              <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border border-[#d2d2d7] mb-[16px]">
+                <Search className="h-[28px] w-[28px] text-[#0071e3]"/>
+              </div>
+              <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Job Scanner</h3>
+              <p className="text-[15px] text-[#6e6e73] max-w-[440px] mx-auto">
+                Enter any job title — AI researches the role online, extracts real tasks, scores automation potential, and generates an n8n workflow.
+              </p>
+            </div>
+            {jobScanStep==='idle'&&(
+              <div className="max-w-[480px] mx-auto space-y-[16px]">
+                <div>
+                  <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-[6px]">Job Title <span className="text-red-500">*</span></label>
+                  <input
+                    type="text" value={jobTitle}
+                    onChange={e=>setJobTitle(e.target.value)}
+                    onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();handleJobScan()}}}
+                    placeholder="e.g. Marketing Manager, Data Analyst, Software Engineer"
+                    className="w-full px-[16px] py-[14px] rounded-[12px] border border-[#d2d2d7] bg-white text-[15px] text-[#1d1d1f] placeholder:text-[#a1a1a6] focus:outline-none focus:ring-2 focus:ring-[#0071e3] transition"
+                  />
+                </div>
+                {jobScanError&&<div className="bg-red-50 border border-red-200 rounded-[10px] px-[14px] py-[10px] text-[13px] text-red-600">{jobScanError}</div>}
+                <button type="button" onClick={handleJobScan} disabled={!jobTitle.trim()}
+                  className="w-full flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-[17px] py-[14px] rounded-full transition-all">
+                  <Search className="h-[18px] w-[18px]"/>Scan This Job
+                </button>
+              </div>
+            )}
+            {(jobScanStep==='researching'||jobScanStep==='analyzing')&&(
+              <div className="max-w-[400px] mx-auto text-center py-[8px] space-y-[24px]">
+                <div className="inline-flex items-center justify-center w-[64px] h-[64px] rounded-full bg-white border border-[#d2d2d7]">
+                  <Loader2 className="h-[28px] w-[28px] text-[#0071e3] animate-spin"/>
+                </div>
+                <div>
+                  <p className="text-[17px] font-semibold text-[#1d1d1f] mb-[4px]">
+                    {jobScanStep==='researching'?'Researching role online…':'Running AI analysis…'}
+                  </p>
+                  <p className="text-[13px] text-[#6e6e73]">
+                    {jobScanStep==='researching'?'Searching job boards for real task data':`Scoring ${jobScanTasks.length} tasks for automation potential`}
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-[10px]">
+                  {[{id:'researching',label:'Research'},{id:'analyzing',label:'Analysis'}].map((s,i)=>{
+                    const isActive=jobScanStep===s.id; const isDone=jobScanStep==='analyzing'&&s.id==='researching'
+                    return (
+                      <div key={s.id} className="flex items-center gap-[8px]">
+                        <div className={`flex items-center gap-[5px] px-[12px] py-[5px] rounded-full text-[12px] font-semibold transition-all ${isActive?'bg-[#0071e3] text-white':isDone?'bg-green-100 text-green-700':'bg-white border border-[#d2d2d7] text-[#86868b]'}`}>
+                          {isActive&&<Loader2 className="h-[10px] w-[10px] animate-spin"/>}
+                          {isDone&&<CheckCircle2 className="h-[10px] w-[10px]"/>}
+                          {s.label}
+                        </div>
+                        {i===0&&<div className="w-[12px] h-[1px] bg-[#d2d2d7]"/>}
+                      </div>
+                    )
+                  })}
+                </div>
+                {jobScanStep==='analyzing'&&jobScanTasks.length>0&&(
+                  <div className="bg-white border border-[#e8e8ed] rounded-[14px] p-[16px] text-left">
+                    <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider mb-[10px]">{jobScanTasks.length} tasks found</p>
+                    <div className="space-y-[6px]">
+                      {jobScanTasks.slice(0,5).map((t,i)=>(
+                        <div key={i} className="flex items-center gap-[8px] text-[13px] text-[#1d1d1f]">
+                          <div className="w-[5px] h-[5px] rounded-full bg-[#0071e3] shrink-0"/>{t.name}
+                        </div>
+                      ))}
+                      {jobScanTasks.length>5&&<div className="text-[11px] text-[#a1a1a6] pl-[13px]">+{jobScanTasks.length-5} more…</div>}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <div id="context-selector" className={`rounded-[18px] p-[32px] border-2 transition-all duration-300 ${contextError?'border-red-400 bg-red-50/60':'border-[#d2d2d7] bg-[#f5f5f7]'}`}>
           <div className="flex items-start justify-between gap-[12px] mb-[6px]">
             <h2 className="text-[17px] font-semibold text-[#1d1d1f]">Who is this analysis for? <span className="text-red-500">*</span></h2>
@@ -978,7 +1091,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           )}
         </div>
 
-        {/* Workflow Details */}
+        {/* Workflow Details — hidden in jobscan mode */}
+        {inputMode!=='jobscan'&&(
         <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
           <h2 className="text-[21px] font-semibold text-[#1d1d1f] mb-[6px]">Workflow Details</h2>
           {taskCount > 0 && (
@@ -999,6 +1113,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
               <input type="number" value={hourlyRate} onChange={e=>setHourlyRate(Number(e.target.value))} min="1" className={`${inputClass} pl-[28px]`}/></div></div>
           </div>
         </div>
+        )}
 
         {/* Tasks */}
         {(inputMode==='manual'||inputMode==='voice')&&(
@@ -1034,7 +1149,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           </div>
         )}
 
-        {/* Submit */}
+        {/* Submit — hidden in jobscan mode (scan button handles it) */}
+        {inputMode!=='jobscan'&&(
         <div className="flex flex-col items-end gap-[10px] pt-[8px]">
           {taskCount>0&&<p className="text-[13px] text-[#86868b]">Analysing {taskCount} task{taskCount!==1?'s':''} for {analysisContext==='individual'?'your role':analysisContext==='team'?'your team':analysisContext==='company'?'your company':'…'} — estimated {taskCount*3}–{taskCount*6}s</p>}
           <button type="submit" disabled={isAnalyzing||isUploading||isExtractingTasks} className="inline-flex items-center gap-[10px] bg-[#0071e3] hover:bg-[#0077ed] disabled:bg-[#86868b] disabled:cursor-not-allowed text-white px-[36px] py-[16px] rounded-full font-semibold text-[17px] transition-all">
@@ -1042,6 +1158,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           </button>
           {!isAnalyzing&&<p className="text-[13px] text-[#86868b]">Free tier · 5 analyses per 24 hours · No account needed.</p>}
         </div>
+        )}
 
       </form>
     </>
