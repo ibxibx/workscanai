@@ -1,4 +1,4 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import { Brain } from 'lucide-react'
 
 export default function DashboardLayout({
@@ -28,12 +28,6 @@ export default function DashboardLayout({
                 className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors"
               >
                 New Analysis
-              </Link>
-              <Link 
-                href="/dashboard/job-scanner" 
-                className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors"
-              >
-                Job Scanner
               </Link>
             </div>
           </div>
