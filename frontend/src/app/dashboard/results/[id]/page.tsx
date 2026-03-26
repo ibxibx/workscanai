@@ -906,6 +906,7 @@ export default function ResultsPage() {
             </Link>
           </div>
         </div>
+      </div>
     </div>
   )
 }
