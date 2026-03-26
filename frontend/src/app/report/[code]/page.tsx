@@ -129,6 +129,9 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
             WorkScanAI
           </a>
           <span className="text-[12px] opacity-80 hidden sm:inline">AI-Powered Workflow Analysis</span>
+          <a href="https://workscanai.vercel.app/dashboard/job-scanner" className="hidden sm:inline-flex items-center gap-[5px] text-[12px] font-semibold bg-white/20 hover:bg-white/30 px-[12px] py-[4px] rounded-full transition-all">
+            Try Job Scanner →
+          </a>
           <span className="text-[11px] opacity-50 font-mono">#{code}</span>
         </div>
       </div>

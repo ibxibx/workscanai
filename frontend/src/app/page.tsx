@@ -40,6 +40,12 @@ export default function LandingPage() {
               >
                 Past Analyses
               </Link>
+              <Link
+                href="/dashboard/job-scanner"
+                className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
+              >
+                Job Scanner
+              </Link>
               <a
                 href="#analyze"
                 className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors whitespace-nowrap"
