@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, notFound } from 'next/navigation'
@@ -44,11 +44,11 @@ interface AnalysisData {
   results: TaskResult[]
 }
 
-// ── Recommendation renderer — splits on Option 1/2/3 and Decision layer ─────
+// â”€â”€ Recommendation renderer â€” splits on Option 1/2/3 and Decision layer â”€â”€â”€â”€â”€
 function RecommendationBlocks({ text }: { text: string }) {
   if (!text) return null
   // Split on every "Option N" or "Decision layer" boundary
-  const segments = text.split(/(Option\s+\d+\s*[—–\-:]\s*|Decision\s+layer\s*[—–:\-]\s*)/i)
+  const segments = text.split(/(Option\s+\d+\s*[â€”â€“\-:]\s*|Decision\s+layer\s*[â€”â€“:\-]\s*)/i)
   // Odd indices are the delimiters (labels), even indices are the content chunks
   const blocks: { label: string; body: string; isDecision: boolean }[] = []
   for (let i = 0; i < segments.length; i++) {
@@ -56,7 +56,7 @@ function RecommendationBlocks({ text }: { text: string }) {
       const body = segments[i].trim()
       if (body) blocks.push({ label: '', body, isDecision: false })
     } else {
-      const label = segments[i].trim().replace(/[—–\-:]\s*$/, '').trim()
+      const label = segments[i].trim().replace(/[â€”â€“\-:]\s*$/, '').trim()
       const body = (segments[i + 1] || '').trim()
       const isDecision = /Decision\s+layer/i.test(label)
       if (body) blocks.push({ label, body, isDecision })
@@ -71,7 +71,7 @@ function RecommendationBlocks({ text }: { text: string }) {
           {block.label && (
             <span className={`font-bold mr-[6px] ${block.isDecision ? 'text-violet-700' : 'text-[#0071e3]'}`}>
               {block.label}
-              {!/[—–\-:]$/.test(block.label) ? ' —' : ''}
+              {!/[â€”â€“\-:]$/.test(block.label) ? ' â€”' : ''}
             </span>
           )}
           {block.body}
@@ -81,13 +81,13 @@ function RecommendationBlocks({ text }: { text: string }) {
   )
 }
 
-// ── Countdown badge ───────────────────────────────────────────────────────────
+// â”€â”€ Countdown badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CountdownBadge({ window: w }: { window?: string }) {
   const map: Record<string, { label: string; color: string; dot: string }> = {
-    'now':   { label: '⚡ Automatable NOW',    color: 'bg-red-50 border-red-200 text-red-700',    dot: 'bg-red-500' },
-    '12-24': { label: '🟠 12–24 months',       color: 'bg-orange-50 border-orange-200 text-orange-700', dot: 'bg-orange-400' },
-    '24-48': { label: '🟡 24–48 months',       color: 'bg-yellow-50 border-yellow-200 text-yellow-700', dot: 'bg-yellow-400' },
-    '48+':   { label: '🟢 Safe 48+ months',    color: 'bg-green-50 border-green-200 text-green-700',  dot: 'bg-green-500' },
+    'now':   { label: 'âš¡ Automatable NOW',    color: 'bg-red-50 border-red-200 text-red-700',    dot: 'bg-red-500' },
+    '12-24': { label: 'ðŸŸ  12â€“24 months',       color: 'bg-orange-50 border-orange-200 text-orange-700', dot: 'bg-orange-400' },
+    '24-48': { label: 'ðŸŸ¡ 24â€“48 months',       color: 'bg-yellow-50 border-yellow-200 text-yellow-700', dot: 'bg-yellow-400' },
+    '48+':   { label: 'ðŸŸ¢ Safe 48+ months',    color: 'bg-green-50 border-green-200 text-green-700',  dot: 'bg-green-500' },
   }
   const m = map[w || '24-48'] || map['24-48']
   return (
@@ -111,7 +111,7 @@ export default function ResultsPage() {
     const shareUrl = `${window.location.origin}/report/${shareCode}`
     try {
       if (navigator.share) {
-        await navigator.share({ title: analysisData ? `WorkScanAI — ${analysisData.workflow.name}` : 'WorkScanAI Analysis', text: 'Check out this automation analysis from WorkScanAI', url: shareUrl })
+        await navigator.share({ title: analysisData ? `WorkScanAI â€” ${analysisData.workflow.name}` : 'WorkScanAI Analysis', text: 'Check out this automation analysis from WorkScanAI', url: shareUrl })
       } else {
         await navigator.clipboard.writeText(shareUrl)
         setCopied(true); setTimeout(() => setCopied(false), 2000)
@@ -138,7 +138,7 @@ export default function ResultsPage() {
         }))
         setAnalysisData(data)
         // Silently rewrite the address bar to the public share URL so copying
-        // it is enough to share — does NOT navigate, just updates the URL shown
+        // it is enough to share â€” does NOT navigate, just updates the URL shown
         if (data.workflow?.share_code) {
           window.history.replaceState(null, '', `/report/${data.workflow.share_code}`)
         }
@@ -204,7 +204,7 @@ export default function ResultsPage() {
       main: [[{ node: topTasks[0]?.task?.name || 'Task 1', type: 'main', index: 0 }]],
     }
     const workflow = {
-      name: `${analysisData.workflow.name} — WorkScanAI Automation`,
+      name: `${analysisData.workflow.name} â€” WorkScanAI Automation`,
       nodes,
       connections,
       active: false,
@@ -224,7 +224,7 @@ export default function ResultsPage() {
     <div className="min-h-screen bg-[#fafafa] text-[#1d1d1f] pt-[88px] pb-[80px]">
       <div className="max-w-[980px] mx-auto px-6">
 
-        {/* ── Header ─────────────────────────────────────────────────── */}
+        {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="mb-[40px]">
           <div className="flex items-center gap-[10px] mb-[16px]">
             <div className={`w-[32px] h-[32px] rounded-full bg-gradient-to-br ${contextGradient} flex items-center justify-center text-white`}>
@@ -246,14 +246,14 @@ export default function ResultsPage() {
               Auto-generated by Job Scanner
             </div>
           )}
-          <p className="text-[14px] text-[#86868b]">Analysis ID: {id} · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <p className="text-[14px] text-[#86868b]">Analysis ID: {id} Â· {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
         </div>
 
-        {/* ── Hero KPI Cards ──────────────────────────────────────────── */}
+        {/* â”€â”€ Hero KPI Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-[12px] mb-[40px]">
           {[
             { label: 'Automation Score', value: `${Math.round(analysisData.automation_score)}%`, color: 'text-[#0071e3]', sub: `${automationReady} of ${totalTasks} tasks ready` },
-            { label: 'Annual Savings', value: `€${Math.round(analysisData.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: `${Math.round(analysisData.hours_saved)} hours/yr` },
+            { label: 'Annual Savings', value: `â‚¬${Math.round(analysisData.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: `${Math.round(analysisData.hours_saved)} hours/yr` },
             { label: 'Quick Wins', value: `${quickWins}`, color: 'text-purple-600', sub: 'Automatable today' },
             { label: 'Human Edge', value: `${Math.round(avgHumanEdge)}%`, color: 'text-amber-600', sub: 'Irreplaceable value' },
           ].map(card => (
@@ -265,8 +265,8 @@ export default function ResultsPage() {
           ))}
         </div>
 
-        {/* ── Section padding — reduce on mobile throughout ── */}
-        {/* SECTION A — TASK BREAKDOWN */}
+        {/* â”€â”€ Section padding â€” reduce on mobile throughout â”€â”€ */}
+        {/* SECTION A â€” TASK BREAKDOWN */}
         <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
           <div className="flex items-center gap-[10px] mb-[8px]">
             <BarChart3 className="h-[20px] w-[20px] text-[#0071e3]" />
@@ -299,7 +299,7 @@ export default function ResultsPage() {
                         </span>
                         {result.human_edge_score != null && (
                           <span className="text-[11px] font-bold px-[10px] py-[4px] rounded-full border bg-amber-50 text-amber-700 border-amber-200">
-                            🧠 {Math.round(result.human_edge_score)}% Human Edge
+                            ðŸ§  {Math.round(result.human_edge_score)}% Human Edge
                           </span>
                         )}
                         {result.decision_layer && result.decision_layer !== 'none' && (
@@ -308,7 +308,7 @@ export default function ResultsPage() {
                               ? 'bg-violet-50 text-violet-700 border-violet-200'
                               : 'bg-sky-50 text-sky-700 border-sky-200'
                           }`}>
-                            {result.decision_layer === 'full' ? '🧩 Decision Layer: Human Required' : '🔀 Decision Layer: AI + Human'}
+                            {result.decision_layer === 'full' ? 'ðŸ§© Decision Layer: Human Required' : 'ðŸ”€ Decision Layer: AI + Human'}
                           </span>
                         )}
                       </div>
@@ -327,7 +327,7 @@ export default function ResultsPage() {
                         <div key={label} className="bg-white border border-[#e8e8ed] rounded-[10px] p-[12px] text-center">
                           <div className={`text-[20px] font-bold mb-[2px] ${
                             val == null ? 'text-[#86868b]' : val >= 70 ? 'text-green-600' : val >= 45 ? 'text-yellow-600' : 'text-red-500'}`}>
-                            {val != null ? Math.round(val) : '—'}
+                            {val != null ? Math.round(val) : 'â€”'}
                           </div>
                           <div className="text-[10px] text-[#86868b] font-medium uppercase tracking-wide">{label}</div>
                         </div>
@@ -361,7 +361,7 @@ export default function ResultsPage() {
 
                   {/* Recommendation */}
                   <div className="p-[16px] bg-blue-50 border border-blue-100 rounded-[10px] mb-[12px]">
-                    <div className="text-[12px] font-bold text-[#0071e3] uppercase tracking-wide mb-[8px]">💡 Recommendation</div>
+                    <div className="text-[12px] font-bold text-[#0071e3] uppercase tracking-wide mb-[8px]">ðŸ’¡ Recommendation</div>
                     <RecommendationBlocks text={result.recommendation} />
                   </div>
 
@@ -374,14 +374,14 @@ export default function ResultsPage() {
                         </span>
                         <span className="text-[13px] font-semibold text-[#1d1d1f]">{result.agent_label}</span>
                       </div>
-                      {result.agent_milestone && <p className="text-[12px] text-[#6e6e73]">🎯 {result.agent_milestone}</p>}
+                      {result.agent_milestone && <p className="text-[12px] text-[#6e6e73]">ðŸŽ¯ {result.agent_milestone}</p>}
                     </div>
                   )}
 
                   {/* Orchestration */}
                   {result.orchestration && (
                     <div className="p-[12px] sm:p-[14px] bg-[#1d1d1f] rounded-[10px] overflow-x-auto">
-                      <div className="text-[10px] font-bold text-[#86868b] tracking-widest uppercase mb-[6px]">⚙ Orchestration Blueprint</div>
+                      <div className="text-[10px] font-bold text-[#86868b] tracking-widest uppercase mb-[6px]">âš™ Orchestration Blueprint</div>
                       <p className="text-[11px] sm:text-[12px] text-[#e8e8ed] font-mono leading-relaxed break-words">{result.orchestration}</p>
                     </div>
                   )}
@@ -391,12 +391,12 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════════
-            SECTION B — INDIVIDUAL: Countdown Clock + Job Survival + Career Pivot
-        ═══════════════════════════════════════════════════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            SECTION B â€” INDIVIDUAL: Countdown Clock + Job Survival + Career Pivot
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         {context === 'individual' && (
           <>
-            {/* B1 — Automation Countdown Clock */}
+            {/* B1 â€” Automation Countdown Clock */}
             <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
@@ -404,7 +404,7 @@ export default function ResultsPage() {
                 </div>
                 <div>
                   <h2 className="text-[22px] font-semibold italic tracking-tight">Your Automation Countdown</h2>
-                  <p className="text-[12px] text-[#86868b]">Based on Mostaque's 900-day window — when AI replaces each function</p>
+                  <p className="text-[12px] text-[#86868b]">Based on Mostaque's 900-day window â€” when AI replaces each function</p>
                 </div>
               </div>
 
@@ -417,10 +417,10 @@ export default function ResultsPage() {
                 </div>
                 {analysisData.results.map((r, i) => {
                   const windowMap: Record<string, { label: string; bar: string; bg: string }> = {
-                    'now':   { label: '⚡ Now',        bar: 'bg-red-500',    bg: 'bg-red-50' },
-                    '12-24': { label: '🟠 12–24 mo',   bar: 'bg-orange-400', bg: '' },
-                    '24-48': { label: '🟡 24–48 mo',   bar: 'bg-yellow-400', bg: '' },
-                    '48+':   { label: '🟢 48+ mo',     bar: 'bg-green-400',  bg: 'bg-green-50' },
+                    'now':   { label: 'âš¡ Now',        bar: 'bg-red-500',    bg: 'bg-red-50' },
+                    '12-24': { label: 'ðŸŸ  12â€“24 mo',   bar: 'bg-orange-400', bg: '' },
+                    '24-48': { label: 'ðŸŸ¡ 24â€“48 mo',   bar: 'bg-yellow-400', bg: '' },
+                    '48+':   { label: 'ðŸŸ¢ 48+ mo',     bar: 'bg-green-400',  bg: 'bg-green-50' },
                   }
                   const wm = windowMap[r.countdown_window || '24-48']
                   return (
@@ -440,12 +440,12 @@ export default function ResultsPage() {
 
               <div className="mt-[20px] p-[16px] bg-[#f5f5f7] border border-[#e8e8ed] rounded-[12px]">
                 <p className="text-[13px] text-[#6e6e73] leading-relaxed">
-                  <span className="font-semibold text-[#1d1d1f]">The 900-Day Window:</span> Emad Mostaque (founder of Stability AI) warns that within 900 days, any job done on a screen can be replaced by AI for under €1,000/year. Your tasks in the red zone are at immediate risk as agentic AI tools arrive in 2025–2026.
+                  <span className="font-semibold text-[#1d1d1f]">The 900-Day Window:</span> Emad Mostaque (founder of Stability AI) warns that within 900 days, any job done on a screen can be replaced by AI for under â‚¬1,000/year. Your tasks in the red zone are at immediate risk as agentic AI tools arrive in 2025â€“2026.
                 </p>
               </div>
             </div>
 
-            {/* B2 — Job Survival Score */}
+            {/* B2 â€” Job Survival Score */}
             <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center">
@@ -506,7 +506,7 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            {/* B3 — Safe Career Pivot */}
+            {/* B3 â€” Safe Career Pivot */}
             <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
@@ -521,7 +521,7 @@ export default function ResultsPage() {
               <div className="mt-[28px] grid md:grid-cols-2 gap-[20px]">
                 {/* Skills to build */}
                 <div>
-                  <p className="text-[12px] font-bold text-[#86868b] uppercase tracking-widest mb-[14px]">🔧 Skills to Develop Now</p>
+                  <p className="text-[12px] font-bold text-[#86868b] uppercase tracking-widest mb-[14px]">ðŸ”§ Skills to Develop Now</p>
                   <div className="space-y-[10px]">
                     {(() => {
                       const allSkills: string[] = []
@@ -550,7 +550,7 @@ export default function ResultsPage() {
 
                 {/* Adjacent roles */}
                 <div>
-                  <p className="text-[12px] font-bold text-[#86868b] uppercase tracking-widest mb-[14px]">🎯 Adjacent Roles (Lower AI Risk)</p>
+                  <p className="text-[12px] font-bold text-[#86868b] uppercase tracking-widest mb-[14px]">ðŸŽ¯ Adjacent Roles (Lower AI Risk)</p>
                   <div className="space-y-[10px]">
                     {(() => {
                       const seen = new Set<string>()
@@ -610,12 +610,12 @@ export default function ResultsPage() {
           </>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════
-            SECTION C — TEAM: Velocity Impact + Sprint Plan
-        ═══════════════════════════════════════════════════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            SECTION C â€” TEAM: Velocity Impact + Sprint Plan
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         {context === 'team' && (
           <>
-            {/* C1 — Team Velocity Impact */}
+            {/* C1 â€” Team Velocity Impact */}
             <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
@@ -631,7 +631,7 @@ export default function ResultsPage() {
                 {[
                   { label: 'Hours freed / yr', value: `${Math.round(analysisData.hours_saved)}h`, color: 'text-[#0071e3]', sub: 'Available for product & growth' },
                   { label: 'FTE equivalent', value: `${(analysisData.hours_saved / 1800).toFixed(1)}`, color: 'text-emerald-600', sub: 'Roles redeployable to strategic work' },
-                  { label: 'Cost saved / yr', value: `€${Math.round(analysisData.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: 'At your team\'s hourly rate' },
+                  { label: 'Cost saved / yr', value: `â‚¬${Math.round(analysisData.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: 'At your team\'s hourly rate' },
                 ].map(card => (
                   <div key={card.label} className="bg-emerald-50 border border-emerald-100 rounded-[14px] p-[16px] sm:p-[20px] text-center min-w-0">
                     <div className={`text-[24px] sm:text-[32px] font-bold mb-[4px] ${card.color} truncate`}>{card.value}</div>
@@ -645,9 +645,9 @@ export default function ResultsPage() {
               <div className="space-y-[10px]">
                 <p className="text-[12px] font-bold text-[#86868b] uppercase tracking-widest mb-[14px]">Automation Rollout Timeline</p>
                 {[
-                  { phase: 'Phase 1 — Quick Wins (0–3 months)', filter: (r: TaskResult) => r.difficulty === 'easy', color: 'bg-green-500', bg: 'bg-green-50 border-green-100' },
-                  { phase: 'Phase 2 — Medium-term (3–12 months)', filter: (r: TaskResult) => r.difficulty === 'medium', color: 'bg-yellow-400', bg: 'bg-yellow-50 border-yellow-100' },
-                  { phase: 'Phase 3 — Strategic (12–36 months)', filter: (r: TaskResult) => r.difficulty === 'hard', color: 'bg-orange-400', bg: 'bg-orange-50 border-orange-100' },
+                  { phase: 'Phase 1 â€” Quick Wins (0â€“3 months)', filter: (r: TaskResult) => r.difficulty === 'easy', color: 'bg-green-500', bg: 'bg-green-50 border-green-100' },
+                  { phase: 'Phase 2 â€” Medium-term (3â€“12 months)', filter: (r: TaskResult) => r.difficulty === 'medium', color: 'bg-yellow-400', bg: 'bg-yellow-50 border-yellow-100' },
+                  { phase: 'Phase 3 â€” Strategic (12â€“36 months)', filter: (r: TaskResult) => r.difficulty === 'hard', color: 'bg-orange-400', bg: 'bg-orange-50 border-orange-100' },
                 ].map(({ phase, filter, color, bg }) => {
                   const matched = analysisData.results.filter(filter)
                   const hrs = matched.reduce((s, r) => s + r.estimated_hours_saved, 0)
@@ -667,7 +667,7 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            {/* C2 — 90-Day Sprint Plan */}
+            {/* C2 â€” 90-Day Sprint Plan */}
             <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center">
@@ -693,28 +693,28 @@ export default function ResultsPage() {
                         <div className="flex items-start justify-between gap-[8px]">
                           <div>
                             <div className="text-[14px] font-semibold text-[#1d1d1f]">{r.task?.name}</div>
-                            <div className="text-[12px] text-[#86868b] mt-[2px]">{Math.round(r.ai_readiness_score)}% ready · {Math.round(r.estimated_hours_saved)}h/yr · {r.difficulty}</div>
+                            <div className="text-[12px] text-[#86868b] mt-[2px]">{Math.round(r.ai_readiness_score)}% ready Â· {Math.round(r.estimated_hours_saved)}h/yr Â· {r.difficulty}</div>
                           </div>
                           <CountdownBadge window={r.countdown_window} />
                         </div>
-                        {r.orchestration && <p className="text-[12px] text-[#0071e3] mt-[6px] font-mono">→ {r.orchestration.split('—')[0]?.trim()}</p>}
+                        {r.orchestration && <p className="text-[12px] text-[#0071e3] mt-[6px] font-mono">â†’ {r.orchestration.split('â€”')[0]?.trim()}</p>}
                       </div>
                     </div>
                   ))}
                 {analysisData.results.filter(r => r.difficulty === 'easy').length === 0 && (
-                  <div className="text-center py-[20px] text-[#86868b] text-[14px]">No easy-difficulty tasks — focus on medium-term automations from Phase 2.</div>
+                  <div className="text-center py-[20px] text-[#86868b] text-[14px]">No easy-difficulty tasks â€” focus on medium-term automations from Phase 2.</div>
                 )}
               </div>
             </div>
           </>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════
-            SECTION D — COMPANY: Competitor Gap + Board Summary + Benchmark
-        ═══════════════════════════════════════════════════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            SECTION D â€” COMPANY: Competitor Gap + Board Summary + Benchmark
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         {context === 'company' && (
           <>
-            {/* D1 — AI-First Competitor Gap */}
+            {/* D1 â€” AI-First Competitor Gap */}
             <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
@@ -722,15 +722,15 @@ export default function ResultsPage() {
                 </div>
                 <div>
                   <h2 className="text-[22px] font-semibold italic tracking-tight">AI-First Competitor Gap</h2>
-                  <p className="text-[12px] text-[#86868b]">The cost of inaction — what a fully AI-first competitor gains over you</p>
+                  <p className="text-[12px] text-[#86868b]">The cost of inaction â€” what a fully AI-first competitor gains over you</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px] mt-[28px] mb-[24px]">
                 {[
-                  { label: 'If you automate now', value: `€${Math.round(analysisData.annual_savings).toLocaleString()}/yr`, sub: 'Your annual advantage', color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
-                  { label: 'If you wait 12 months', value: `€${Math.round(analysisData.annual_savings * 0.35).toLocaleString()}/yr`, sub: '65% of advantage lost to delayed adoption', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-100' },
-                  { label: 'AI-first competitor edge', value: `€${Math.round(analysisData.annual_savings * 1.4).toLocaleString()}/yr`, sub: 'Over you if they move first', color: 'text-red-600', bg: 'bg-red-50 border-red-100' },
+                  { label: 'If you automate now', value: `â‚¬${Math.round(analysisData.annual_savings).toLocaleString()}/yr`, sub: 'Your annual advantage', color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
+                  { label: 'If you wait 12 months', value: `â‚¬${Math.round(analysisData.annual_savings * 0.35).toLocaleString()}/yr`, sub: '65% of advantage lost to delayed adoption', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-100' },
+                  { label: 'AI-first competitor edge', value: `â‚¬${Math.round(analysisData.annual_savings * 1.4).toLocaleString()}/yr`, sub: 'Over you if they move first', color: 'text-red-600', bg: 'bg-red-50 border-red-100' },
                 ].map(card => (
                   <div key={card.label} className={`rounded-[14px] border p-[16px] sm:p-[20px] min-w-0 ${card.bg}`}>
                     <div className={`text-[20px] sm:text-[26px] font-bold mb-[4px] ${card.color} truncate`}>{card.value}</div>
@@ -748,7 +748,7 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            {/* D2 — Headcount Signal */}
+            {/* D2 â€” Headcount Signal */}
             <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
@@ -756,7 +756,7 @@ export default function ResultsPage() {
                 </div>
                 <div>
                   <h2 className="text-[22px] font-semibold italic tracking-tight">Headcount Signal</h2>
-                  <p className="text-[12px] text-[#86868b]">FTE equivalent freed — talent to redeploy to higher-value work</p>
+                  <p className="text-[12px] text-[#86868b]">FTE equivalent freed â€” talent to redeploy to higher-value work</p>
                 </div>
               </div>
 
@@ -764,7 +764,7 @@ export default function ResultsPage() {
                 {[
                   { label: 'Hours freed / yr', value: `${Math.round(analysisData.hours_saved)}h`, note: 'Total across all tasks', color: 'text-[#0071e3]' },
                   { label: 'FTE equivalent', value: `${(analysisData.hours_saved / 1800).toFixed(1)}`, note: 'At 1,800 working hrs/yr', color: 'text-purple-600' },
-                  { label: 'Saved per FTE', value: `€${Math.round(analysisData.annual_savings / Math.max(analysisData.hours_saved / 1800, 0.1)).toLocaleString()}`, note: 'Annual cost per role', color: 'text-green-600' },
+                  { label: 'Saved per FTE', value: `â‚¬${Math.round(analysisData.annual_savings / Math.max(analysisData.hours_saved / 1800, 0.1)).toLocaleString()}`, note: 'Annual cost per role', color: 'text-green-600' },
                 ].map(item => (
                   <div key={item.label} className="bg-[#fafafa] border border-[#e8e8ed] rounded-[14px] p-[16px] sm:p-[20px] text-center min-w-0">
                     <div className={`text-[24px] sm:text-[36px] font-bold mb-[6px] ${item.color} truncate`}>{item.value}</div>
@@ -774,11 +774,11 @@ export default function ResultsPage() {
                 ))}
               </div>
               <p className="text-[13px] text-[#6e6e73] mt-[16px] text-center">
-                Recommended: redeploy freed capacity to AI oversight, customer relationships, and strategic growth — not headcount reduction.
+                Recommended: redeploy freed capacity to AI oversight, customer relationships, and strategic growth â€” not headcount reduction.
               </p>
             </div>
 
-            {/* D3 — Industry Benchmark */}
+            {/* D3 â€” Industry Benchmark */}
             <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-[#0071e3] flex items-center justify-center">
@@ -810,12 +810,12 @@ export default function ResultsPage() {
                   <span className="font-semibold text-[#1d1d1f]">Insight: </span>
                   {Math.round(analysisData.automation_score) >= 70
                     ? 'Your workflow automation potential is above the sector average. You are positioned to gain a significant competitive edge by acting within the next 90 days.'
-                    : 'Your workflow has significant untapped automation potential below the sector average. Companies that automate first in your sector typically reduce operational costs by 30–45% within 18 months.'}
+                    : 'Your workflow has significant untapped automation potential below the sector average. Companies that automate first in your sector typically reduce operational costs by 30â€“45% within 18 months.'}
                 </p>
               </div>
             </div>
 
-            {/* D4 — Board Summary */}
+            {/* D4 â€” Board Summary */}
             <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
               <div className="flex items-center gap-[10px] mb-[8px]">
                 <div className="w-[36px] h-[36px] rounded-full bg-[#1d1d1f] flex items-center justify-center">
@@ -829,12 +829,12 @@ export default function ResultsPage() {
 
               <div className="mt-[28px] bg-[#1d1d1f] rounded-[14px] p-[16px] sm:p-[28px] font-mono text-[11px] sm:text-[13px] text-[#e8e8ed] leading-[1.8] select-all overflow-x-auto">
                 <div className="text-[10px] text-[#86868b] uppercase tracking-widest mb-[16px] border-b border-[#3a3a3c] pb-[10px]">
-                  WorkScanAI — Executive Summary · {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                  WorkScanAI â€” Executive Summary Â· {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
                 </div>
                 <div><span className="text-[#86868b]">Workflow:</span> <span className="text-white font-bold">{analysisData.workflow.name}</span></div>
                 {analysisData.workflow.industry && <div><span className="text-[#86868b]">Industry:</span> <span className="text-white">{analysisData.workflow.industry}</span></div>}
                 <div><span className="text-[#86868b]">Automation potential:</span> <span className="text-[#0071e3] font-bold">{Math.round(analysisData.automation_score)}%</span> of workflow tasks</div>
-                <div><span className="text-[#86868b]">Annual savings:</span> <span className="text-green-400 font-bold">€{Math.round(analysisData.annual_savings).toLocaleString()}</span></div>
+                <div><span className="text-[#86868b]">Annual savings:</span> <span className="text-green-400 font-bold">â‚¬{Math.round(analysisData.annual_savings).toLocaleString()}</span></div>
                 <div><span className="text-[#86868b]">Hours reclaimed:</span> <span className="text-purple-400 font-bold">{Math.round(analysisData.hours_saved)}h/yr</span></div>
                 <div><span className="text-[#86868b]">FTE equivalent:</span> <span className="text-amber-400 font-bold">{(analysisData.hours_saved / 1800).toFixed(1)} roles</span></div>
                 <div><span className="text-[#86868b]">Quick wins available:</span> <span className="text-white font-bold">{quickWins} tasks</span> (implementable within 90 days)</div>
@@ -847,9 +847,9 @@ export default function ResultsPage() {
           </>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════
-            SECTION E — AI Readiness Score (all contexts)
-        ═══════════════════════════════════════════════════════════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            SECTION E â€” AI Readiness Score (all contexts)
+        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         {analysisData.readiness_score != null && (
           <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-[16px] mb-[24px]">
@@ -873,7 +873,7 @@ export default function ResultsPage() {
               ].map(({ label, val, desc }) => (
                 <div key={label} className="bg-[#fafafa] border border-[#e8e8ed] rounded-[14px] p-[16px]">
                   <div className={`text-[28px] font-bold mb-[4px] ${val == null ? 'text-[#86868b]' : val >= 70 ? 'text-green-600' : val >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>
-                    {val != null ? Math.round(val) : '—'}
+                    {val != null ? Math.round(val) : 'â€”'}
                   </div>
                   <div className="text-[12px] font-semibold text-[#1d1d1f]">{label}</div>
                   <div className="text-[10px] text-[#86868b] mt-[2px]">{desc}</div>
@@ -883,28 +883,29 @@ export default function ResultsPage() {
           </div>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════
-            ACTIONS
-        ═══════════════════════════════════════════════════════════════ */}
-        <div className="flex flex-wrap gap-[10px] pt-[8px]">
-          <button onClick={() => downloadReport('docx')} className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[20px] py-[11px] rounded-full font-semibold text-[14px] transition-all">
-            <Download className="h-[15px] w-[15px]" /> Download DOCX
-          </button>
-          <button onClick={() => downloadReport('pdf')} className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[20px] py-[11px] rounded-full font-semibold text-[14px] transition-all">
-            <Download className="h-[15px] w-[15px]" /> Download PDF
-          </button>
-          <button onClick={downloadN8nWorkflow} className="inline-flex items-center gap-[8px] bg-[#1d1d1f] hover:bg-[#3a3a3c] text-white px-[20px] py-[11px] rounded-full font-semibold text-[14px] transition-all">
-            <Download className="h-[15px] w-[15px]" /> n8n Workflow .json
-          </button>
-          <button onClick={handleShare} className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[20px] py-[11px] rounded-full font-medium text-[14px] text-[#1d1d1f] transition-all">
-            {copied ? <><Check className="h-[15px] w-[15px] text-green-600" /><span className="text-green-600">Copied!</span></> : <><Share2 className="h-[15px] w-[15px]" />Share Report</>}
-          </button>
-          <Link href={`/dashboard/results/${id}/roadmap`} className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[20px] py-[11px] rounded-full font-medium text-[14px] text-[#1d1d1f] transition-all">
-            <Map className="h-[15px] w-[15px]" /> View Roadmap
-          </Link>
-        </div>
 
-      </div>
+        {/* ── Actions ── */}
+        <div className="mt-[40px] sm:mt-[56px] pb-[8px]">
+          <div className="border-t border-[#e8e8ed] mb-[28px] sm:mb-[36px]" />
+          <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-widest mb-[16px]">Export &amp; Share</p>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-[12px]">
+            <button onClick={() => downloadReport('docx')} className="inline-flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm">
+              <Download className="h-[15px] w-[15px] shrink-0" /> Download DOCX
+            </button>
+            <button onClick={() => downloadReport('pdf')} className="inline-flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm">
+              <Download className="h-[15px] w-[15px] shrink-0" /> Download PDF
+            </button>
+            <button onClick={downloadN8nWorkflow} className="inline-flex items-center justify-center gap-[8px] bg-[#1d1d1f] hover:bg-[#3a3a3c] text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm">
+              <Download className="h-[15px] w-[15px] shrink-0" /> n8n Workflow .json
+            </button>
+            <button onClick={handleShare} className="inline-flex items-center justify-center gap-[8px] border border-[#d2d2d7] hover:border-[#0071e3] hover:bg-[#f0f7ff] px-[24px] py-[13px] rounded-full font-medium text-[14px] text-[#1d1d1f] transition-all">
+              {copied ? <><Check className="h-[15px] w-[15px] text-green-600 shrink-0" /><span className="text-green-600">Link copied!</span></> : <><Share2 className="h-[15px] w-[15px] shrink-0" /><span>Share Report</span></>}
+            </button>
+            <Link href={`/dashboard/results/${id}/roadmap`} className="inline-flex items-center justify-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] hover:bg-[#f5f5f7] px-[24px] py-[13px] rounded-full font-medium text-[14px] text-[#1d1d1f] transition-all">
+              <Map className="h-[15px] w-[15px] shrink-0" /> View Roadmap
+            </Link>
+          </div>
+        </div>
     </div>
   )
 }
