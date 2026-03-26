@@ -1,19 +1,19 @@
-﻿import { Metadata } from 'next'
+import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Brain, ShieldCheck, ShieldAlert, ShieldX, Search } from 'lucide-react'
 import ReportActions from './ReportActions'
 
-// â”€â”€ Recommendation renderer â€” splits on Option 1/2/3 and Decision layer â”€â”€â”€â”€â”€
+// Recommendation renderer — splits on Option 1/2/3 and Decision layer
 function RecommendationBlocks({ text }: { text: string }) {
   if (!text) return null
-  const segments = text.split(/(Option\s+\d+\s*[â€”â€“\-:]\s*|Decision\s+layer\s*[â€”â€“:\-]\s*)/i)
+  const segments = text.split(/(Option\s+\d+\s*[-:]\s*|Decision\s+layer\s*[:\-]\s*)/i)
   const blocks: { label: string; body: string; isDecision: boolean }[] = []
   for (let i = 0; i < segments.length; i++) {
     if (i % 2 === 0) {
       const body = segments[i].trim()
       if (body) blocks.push({ label: '', body, isDecision: false })
     } else {
-      const label = segments[i].trim().replace(/[â€”â€“\-:]\s*$/, '').trim()
+      const label = segments[i].trim().replace(/[-:]\s*$/, '').trim()
       const body = (segments[i + 1] || '').trim()
       const isDecision = /Decision\s+layer/i.test(label)
       if (body) blocks.push({ label, body, isDecision })
@@ -27,8 +27,7 @@ function RecommendationBlocks({ text }: { text: string }) {
         <div key={i} className={`text-[13px] leading-relaxed ${i > 0 ? 'border-t border-blue-200 pt-[10px] mt-[10px]' : ''} ${block.isDecision ? 'text-violet-800' : 'text-[#1d1d1f]'}`}>
           {block.label && (
             <span className={`font-bold mr-[6px] ${block.isDecision ? 'text-violet-700' : 'text-[#0071e3]'}`}>
-              {block.label}
-              {!/[â€”â€“\-:]$/.test(block.label) ? ' â€”' : ''}
+              {block.label}{!/[-:]$/.test(block.label) ? ' \u2014' : ''}
             </span>
           )}
           {block.body}
@@ -61,11 +60,6 @@ interface AnalysisData {
   results: TaskResult[]
 }
 
-const API_BASE = process.env.API_URL
-  || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-  || 'http://localhost:8000'
-
-// For server-side fetches on Vercel, route through the backend directly
 const BACKEND_BASE = process.env.API_URL || 'https://workscanai.onrender.com'
 
 async function getAnalysisByCode(code: string): Promise<AnalysisData | null> {
@@ -90,19 +84,17 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   const savings = Math.round(data.annual_savings).toLocaleString()
   const shareUrl = `https://workscanai.vercel.app/report/${code}`
   return {
-    title: `${data.workflow.name} â€” WorkScanAI Analysis`,
-    description: `Automation score: ${score}%. Potential annual savings: â‚¬${savings}. Powered by WorkScanAI.`,
+    title: `${data.workflow.name} \u2014 WorkScanAI Analysis`,
+    description: `Automation score: ${score}%. Potential annual savings: \u20ac${savings}. Powered by WorkScanAI.`,
     openGraph: {
-      title: `${data.workflow.name} â€” WorkScanAI`,
-      description: `${score}% automation potential Â· â‚¬${savings} annual savings`,
-      url: shareUrl,
-      siteName: 'WorkScanAI',
-      type: 'article',
+      title: `${data.workflow.name} \u2014 WorkScanAI`,
+      description: `${score}% automation potential \u00b7 \u20ac${savings} annual savings`,
+      url: shareUrl, siteName: 'WorkScanAI', type: 'article',
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${data.workflow.name} â€” WorkScanAI`,
-      description: `${score}% automation potential Â· â‚¬${savings} annual savings`,
+      title: `${data.workflow.name} \u2014 WorkScanAI`,
+      description: `${score}% automation potential \u00b7 \u20ac${savings} annual savings`,
     },
   }
 }
@@ -117,7 +109,10 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
   const quickWins = data.results.filter(r => r.difficulty === 'easy').length
   const shareUrl = `https://workscanai.vercel.app/report/${code}`
   const countdownMap: Record<string, string> = {
-    'now': 'âš¡ Automate NOW', '12-24': 'ðŸŸ  12â€“24 months', '24-48': 'ðŸŸ¡ 24â€“48 months', '48+': 'ðŸŸ¢ 48+ months',
+    'now': '\u26a1 Automate NOW',
+    '12-24': '\ud83d\udfe0 12\u201324 months',
+    '24-48': '\ud83d\udfe1 24\u201348 months',
+    '48+': '\ud83d\udd52 48+ months',
   }
 
   return (
@@ -131,7 +126,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
           </a>
           <span className="text-[12px] opacity-80 hidden sm:inline">AI-Powered Workflow Analysis</span>
           <a href="https://workscanai.vercel.app/dashboard/job-scanner" className="hidden sm:inline-flex items-center gap-[5px] text-[12px] font-semibold bg-white/20 hover:bg-white/30 px-[12px] py-[4px] rounded-full transition-all">
-            Try Job Scanner â†’
+            Try Job Scanner &rarr;
           </a>
           <span className="text-[11px] opacity-50 font-mono">#{code}</span>
         </div>
@@ -158,7 +153,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px] sm:gap-[16px] mb-[32px] sm:mb-[48px]">
           {[
             { label: 'Automation Score', value: `${Math.round(data.automation_score)}%`, color: 'text-[#0071e3]', sub: `${automationReady} of ${totalTasks} tasks ready` },
-            { label: 'Annual Savings', value: `â‚¬${Math.round(data.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: `${Math.round(data.hours_saved)} hours per year` },
+            { label: 'Annual Savings', value: `\u20ac${Math.round(data.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: `${Math.round(data.hours_saved)} hours per year` },
             { label: 'Quick Wins', value: `${quickWins}`, color: 'text-purple-600', sub: 'Tasks you can automate today' },
           ].map(card => (
             <div key={card.label} className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[20px] sm:p-[32px]">
@@ -198,7 +193,6 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
                     </div>
                   </div>
 
-                  {/* F1 sub-scores */}
                   {result.score_repeatability != null && (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-[6px] mb-[12px]">
                       {[
@@ -209,7 +203,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
                       ].map(({ label, val }) => (
                         <div key={label} className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[8px] p-[10px] text-center">
                           <div className={`text-[18px] font-bold mb-[2px] ${val == null ? 'text-[#86868b]' : val >= 70 ? 'text-green-600' : val >= 45 ? 'text-yellow-600' : 'text-red-500'}`}>
-                            {val != null ? Math.round(val) : 'â€”'}
+                            {val != null ? Math.round(val) : '\u2014'}
                           </div>
                           <div className="text-[10px] text-[#86868b] font-medium uppercase tracking-wide">{label}</div>
                         </div>
@@ -231,7 +225,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
                   )}
 
                   <div className="p-[14px] bg-blue-50 border border-blue-200 rounded-[8px] mb-[8px]">
-                    <div className="text-[13px] font-bold text-[#0071e3] mb-[6px]">ðŸ’¡ Recommendation</div>
+                    <div className="text-[13px] font-bold text-[#0071e3] mb-[6px]">&#128161; Recommendation</div>
                     <RecommendationBlocks text={result.recommendation} />
                   </div>
 
@@ -241,7 +235,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
                         PHASE {result.agent_phase}
                       </span>
                       <span className="font-semibold text-[#1d1d1f]">{result.agent_label}</span>
-                      {result.agent_milestone && <p className="text-[12px] text-[#6e6e73] mt-[4px]">ðŸŽ¯ {result.agent_milestone}</p>}
+                      {result.agent_milestone && <p className="text-[12px] text-[#6e6e73] mt-[4px]">&#127919; {result.agent_milestone}</p>}
                     </div>
                   )}
                 </div>
