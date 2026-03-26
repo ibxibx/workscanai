@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
@@ -40,12 +40,6 @@ export default function LandingPage() {
               >
                 Past Analyses
               </Link>
-              <Link
-                href="/dashboard/job-scanner"
-                className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
-              >
-                Job Scanner
-              </Link>
               <a
                 href="#analyze"
                 className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors whitespace-nowrap"
@@ -57,7 +51,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section — sits flush under the fixed nav, no gap */}
+      {/* Hero Section â€” sits flush under the fixed nav, no gap */}
       <section className="relative min-h-[580px]" style={{marginTop: '44px', marginBottom: 0}}>
         {/* Image covers the full section */}
         <img
@@ -86,7 +80,7 @@ export default function LandingPage() {
           <div className="max-w-[680px] mx-auto mt-[24px] sm:mt-[40px]">
             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[18px] p-[20px] sm:p-[32px]">
               <p className="text-[16px] sm:text-[21px] leading-[1.381] font-normal text-white/90 mb-[20px] sm:mb-[28px]">
-                Find out which of your tasks AI can automate <em>right now</em> and how — save your time and money.
+                Find out which of your tasks AI can automate <em>right now</em> and how â€” save your time and money.
               </p>
               <div className="flex gap-[16px] justify-center items-center flex-wrap">
                 <a
@@ -113,11 +107,11 @@ export default function LandingPage() {
               <div className="text-[10px] sm:text-[13px] text-white/60 mt-[4px]">to analyze</div>
             </div>
             <div className="text-center border-x border-white/20 px-[8px] sm:px-0 min-w-0">
-              <div className="text-[20px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight">0–100%</div>
+              <div className="text-[20px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight">0â€“100%</div>
               <div className="text-[10px] sm:text-[13px] text-white/60 mt-[4px]">automation score</div>
             </div>
             <div className="text-center min-w-0">
-              <div className="text-[20px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight">€28K+</div>
+              <div className="text-[20px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight">â‚¬28K+</div>
               <div className="text-[10px] sm:text-[13px] text-white/60 mt-[4px]">avg. savings</div>
             </div>
           </div>
@@ -167,7 +161,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Analyze Form Section ── */}
+      {/* â”€â”€ Analyze Form Section â”€â”€ */}
       <section
         id="analyze"
         ref={analyzeRef}
@@ -195,7 +189,7 @@ export default function LandingPage() {
               </h2>
             </div>
             <p className="text-[19px] text-[#6e6e73]">
-              Upload a document, use voice input, or enter tasks manually.
+              Enter a job title, upload a document, use voice, or type tasks manually.
             </p>
           </div>
 
@@ -217,7 +211,7 @@ export default function LandingPage() {
       <footer className="border-t border-[#d2d2d7]">
         <div className="max-w-[980px] mx-auto px-6 py-[32px]">
           <div className="flex justify-between items-center text-[12px] text-[#86868b]">
-            <div>© 2026 WorkScanAI</div>
+            <div>Â© 2026 WorkScanAI</div>
             <div className="flex gap-[24px]">
               <a href="https://ianworks.dev" target="_blank" rel="noopener noreferrer" className="hover:text-[#1d1d1f] transition-colors">
                 Ian Baumeister
