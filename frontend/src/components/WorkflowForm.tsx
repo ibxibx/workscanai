@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown,
-         CheckCircle2, Circle, X, RefreshCw, Linkedin, Building2, User, Search } from 'lucide-react'
+         CheckCircle2, Circle, X, RefreshCw, Linkedin, Building2, User, Search,
+         Mail, ArrowRight } from 'lucide-react'
 import { saveMyWorkflowId } from '@/app/dashboard/page'
+import { persistSession } from '@/lib/auth'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type AnalysisContext = 'individual' | 'team' | 'company'
@@ -168,6 +170,16 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<any>(null)
 
+  // Auth modal state
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authStep, setAuthStep] = useState<AuthStep>('email')
+  const [authEmail, setAuthEmailState] = useState('')
+  const [authCode, setAuthCode] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
+  const pendingSubmitRef = useRef<(() => void) | null>(null)
+  const codeInputRefs = useRef<(HTMLInputElement | null)[]>([])
+
   useEffect(() => { loadRecaptchaScript() }, [])
 
   // Listen for postMessage from the linkedin-receiver popup
@@ -252,12 +264,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       persistSession(d.email)
       window.dispatchEvent(new StorageEvent('storage', { key:'wsai_email', newValue:d.email }))
       setAuthStep('success')
-      setTimeout(() => { pendingSubmitRef.current = false; setShowAuthModal(false); runAnalysis(d.email) }, 1000)
+      setTimeout(() => { pendingSubmitRef.current = null; setShowAuthModal(false); runAnalysis(d.email) }, 1000)
     } catch (e: any) { setAuthError(e.message || 'Incorrect code. Please try again.') }
     finally { setAuthLoading(false) }
   }
 
-  const openAuthModal = () => { setShowAuthModal(true); setAuthStep('email'); setAuthEmailState(''); setAuthCode(''); setAuthError(''); pendingSubmitRef.current = true }
+  const openAuthModal = () => { setShowAuthModal(true); setAuthStep('email'); setAuthEmailState(''); setAuthCode(''); setAuthError(''); pendingSubmitRef.current = null }
 
   const startVoiceRecording = () => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
@@ -583,7 +595,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
               {authStep==='success'&&'Starting your analysis now…'}
             </p>
           </div>
-          {authStep!=='success'&&<button onClick={()=>{setShowAuthModal(false);pendingSubmitRef.current=false}} className="ml-[16px] shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-[#f5f5f7] transition-colors text-[#86868b] hover:text-[#1d1d1f]"><X className="w-[16px] h-[16px]"/></button>}
+          {authStep!=='success'&&<button onClick={()=>{setShowAuthModal(false);pendingSubmitRef.current=null}} className="ml-[16px] shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-[#f5f5f7] transition-colors text-[#86868b] hover:text-[#1d1d1f]"><X className="w-[16px] h-[16px]"/></button>}
         </div>
         <div className="px-[32px] py-[28px] space-y-[16px]">
           {authStep==='success'&&<div className="text-center py-[8px]"><div className="inline-flex items-center justify-center w-[64px] h-[64px] rounded-full bg-green-50 border border-green-200 mb-[16px]"><CheckCircle2 className="w-[32px] h-[32px] text-green-500"/></div><p className="text-[15px] text-[#6e6e73]">Analysis is starting…</p></div>}
@@ -604,7 +616,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                 {[0,1,2,3].map(i => (
                   <input
                     key={i}
-                    ref={codeInputRefs[i]}
+                    ref={el => { codeInputRefs.current[i] = el }}
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
@@ -617,28 +629,26 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                       const next = arr.join('').slice(0, 4)
                       setAuthCode(next)
                       setAuthError('')
-                      if (digit && i < 3) codeInputRefs[i + 1].current?.focus()
+                      if (digit && i < 3) codeInputRefs.current[i + 1]?.focus()
                     }}
                     onKeyDown={e => {
                       if (e.key === 'Backspace') {
                         e.preventDefault()
                         const arr = authCode.split('')
                         if (arr[i]) {
-                          // Current box has a digit — clear it and stay here
                           arr[i] = ''
                           setAuthCode(arr.join(''))
                         } else if (i > 0) {
-                          // Current box empty — clear previous and move focus left
                           arr[i - 1] = ''
                           setAuthCode(arr.join(''))
-                          codeInputRefs[i - 1].current?.focus()
+                          codeInputRefs.current[i - 1]?.focus()
                         }
                       } else if (e.key === 'ArrowLeft' && i > 0) {
                         e.preventDefault()
-                        codeInputRefs[i - 1].current?.focus()
+                        codeInputRefs.current[i - 1]?.focus()
                       } else if (e.key === 'ArrowRight' && i < 3) {
                         e.preventDefault()
-                        codeInputRefs[i + 1].current?.focus()
+                        codeInputRefs.current[i + 1]?.focus()
                       } else if (e.key === 'Enter' && authCode.length === 4) {
                         verifyAuthCode()
                       }
@@ -652,7 +662,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                         setAuthError('')
                         // Focus last filled box or box 3
                         const focusIdx = Math.min(pasted.length, 3)
-                        setTimeout(() => codeInputRefs[focusIdx].current?.focus(), 0)
+                        setTimeout(() => codeInputRefs.current[focusIdx]?.focus(), 0)
                         // Auto-submit if all 4 digits pasted
                         if (pasted.length === 4) setTimeout(() => verifyAuthCode(), 100)
                       }
