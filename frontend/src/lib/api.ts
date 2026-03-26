@@ -103,37 +103,52 @@ export const analysisAPI = {
   },
 }
 
-// Job Scanner API
-export interface JobScanRequest {
-  job_title: string
-  industry?: string
-  analysis_context?: string
-  hourly_rate?: number
+// Job Scanner API — two-step pipeline
+export interface TaskItem {
+  name: string
+  description?: string
+  frequency?: string
+  time_per_task?: number
+  category?: string
+  complexity?: string
 }
 
-export interface JobScanResponse {
+export interface ResearchResponse {
+  job_title: string
+  industry?: string
+  tasks: TaskItem[]
+  search_used: boolean
+}
+
+export interface AnalyzeResponse {
   workflow_id: number
   share_code: string
   job_title: string
   tasks_found: number
   n8n_workflow: Record<string, unknown>
-  search_used: boolean
   message: string
 }
 
 export const jobScanAPI = {
-  async scan(data: JobScanRequest, userEmail?: string): Promise<JobScanResponse> {
+  async research(jobTitle: string, industry?: string, context?: string, userEmail?: string): Promise<ResearchResponse> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     if (userEmail) headers['x-user-email'] = userEmail
-    const response = await fetch(`${API_BASE_URL}/api/job-scan`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data),
+    const r = await fetch(`${API_BASE_URL}/api/job-scan/research`, {
+      method: 'POST', headers,
+      body: JSON.stringify({ job_title: jobTitle, industry, analysis_context: context }),
     })
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}))
-      throw new Error(err.detail || 'Job scan failed')
-    }
-    return response.json()
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || `Research failed (${r.status})`) }
+    return r.json()
+  },
+
+  async analyze(jobTitle: string, tasks: TaskItem[], options: { industry?: string, context?: string, hourlyRate?: number }, userEmail?: string): Promise<AnalyzeResponse> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (userEmail) headers['x-user-email'] = userEmail
+    const r = await fetch(`${API_BASE_URL}/api/job-scan/analyze`, {
+      method: 'POST', headers,
+      body: JSON.stringify({ job_title: jobTitle, tasks, industry: options.industry, analysis_context: options.context, hourly_rate: options.hourlyRate }),
+    })
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || `Analysis failed (${r.status})`) }
+    return r.json()
   },
 }
