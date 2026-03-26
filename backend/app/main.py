@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.database import engine, Base
-from app.api.routes import workflows, extraction, reports, auth, admin
+from app.api.routes import workflows, extraction, reports, auth, admin, job_scan
 from mangum import Mangum
 from sqlalchemy import text
 
@@ -125,6 +125,7 @@ app.include_router(extraction.router, prefix="/api", tags=["extraction"])
 app.include_router(reports.router, prefix="/api", tags=["reports"])
 app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(admin.router, prefix="/api", tags=["admin"])
+app.include_router(job_scan.router, prefix="/api", tags=["job-scan"])
 
 # Vercel serverless handler
 handler = Mangum(app, lifespan="off")
