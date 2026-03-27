@@ -238,6 +238,53 @@ class AIAnalyzer:
             result.setdefault(k, v)
         return result
 
+    # ------------------------------------------------------------------
+    # TEXT SANITISATION
+    # ------------------------------------------------------------------
+
+    # Map common unicode symbols the LLM uses to safe ASCII equivalents
+    _UNICODE_REPLACEMENTS = [
+        ('\u2192', '->'),   # →
+        ('\u2190', '<-'),   # ←
+        ('\u2194', '<->'),  # ↔
+        ('\u21d2', '=>'),   # ⇒
+        ('\u2013', '-'),    # –
+        ('\u2014', '--'),   # —
+        ('\u2018', "'"),    # '
+        ('\u2019', "'"),    # '
+        ('\u201c', '"'),    # "
+        ('\u201d', '"'),    # "
+        ('\u2022', '-'),    # •
+        ('\u2026', '...'),  # …
+        ('\u00b7', '-'),    # ·
+        ('\u2713', 'v'),    # ✓
+        ('\u2714', 'v'),    # ✔
+        ('\u2716', 'x'),    # ✖
+        ('\u2718', 'x'),    # ✘
+        ('\u25b6', '>'),    # ▶
+        ('\u25cf', '-'),    # ●
+        ('\u00e2\u0082\xac', 'EUR'),  # mojibake €
+    ]
+
+    def _clean(self, text: str) -> str:
+        """
+        Strip emojis and replace unicode punctuation with ASCII equivalents.
+        Keeps the Euro sign € which is intentional in the output.
+        """
+        if not text:
+            return text
+        # Apply known symbol substitutions first
+        for char, replacement in self._UNICODE_REPLACEMENTS:
+            text = text.replace(char, replacement)
+        # Remove anything outside printable ASCII except € (U+20AC)
+        cleaned = ''.join(
+            c if (ord(c) < 128 or c == '\u20ac') else ' '
+            for c in text
+        )
+        # Collapse multiple spaces that may result from emoji removal
+        cleaned = re.sub(r'  +', ' ', cleaned).strip()
+        return cleaned
+
     def _assign_field(self, result: Dict, key: str, val: str):
         """Assign a parsed key/value into the result dict."""
         if key == 'SCORE_REPEATABILITY':
@@ -259,20 +306,20 @@ class AIAnalyzer:
             r = val.lower()
             result['risk_level'] = r if r in ['safe', 'caution', 'warning'] else 'safe'
         elif key == 'RISK_FLAG':
-            result['risk_flag'] = val
+            result['risk_flag'] = self._clean(val)
         elif key == 'RECOMMENDATION':
-            result['recommendation'] = val
+            result['recommendation'] = self._clean(val)
         elif key == 'DECISION_LAYER':
             dl = val.lower().strip()
             result['decision_layer'] = dl if dl in ['none', 'partial', 'full'] else 'partial'
         elif key == 'AGENT_PHASE':
             result['agent_phase'] = self._int(val)
         elif key == 'AGENT_LABEL':
-            result['agent_label'] = val
+            result['agent_label'] = self._clean(val)
         elif key == 'AGENT_MILESTONE':
-            result['agent_milestone'] = val
+            result['agent_milestone'] = self._clean(val)
         elif key == 'ORCHESTRATION':
-            result['orchestration'] = val
+            result['orchestration'] = self._clean(val)
         elif key == 'COUNTDOWN_WINDOW':
             cw = val.lower().strip()
             result['countdown_window'] = cw if cw in ['now', '12-24', '24-48', '48+'] else '24-48'
