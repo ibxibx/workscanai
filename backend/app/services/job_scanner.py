@@ -175,83 +175,458 @@ class JobScanner:
 
 
     # ------------------------------------------------------------------
-    # STEP 3 — n8n WORKFLOW GENERATION
+    # STEP 3 — n8n WORKFLOW GENERATION (template-based, always importable)
     # ------------------------------------------------------------------
 
-    def _generate_n8n_workflow(self, job_title: str, tasks: List[Dict]) -> Dict:
-        """Generate a valid importable n8n workflow JSON for the top automatable tasks."""
-
-        # Pick top 3 most automatable tasks (data_entry, reporting, scheduling)
-        priority_categories = ['data_entry', 'reporting', 'scheduling', 'analysis']
-        top_tasks = [t for t in tasks if t.get('category') in priority_categories][:3]
-        if not top_tasks:
-            top_tasks = tasks[:3]
-
-        task_desc = "\n".join(
-            f"- {t['name']}: {t.get('description', '')} ({t.get('frequency','weekly')})"
-            for t in top_tasks
-        )
-
-        prompt = (
-            f"Generate a valid n8n workflow JSON that automates these tasks for a {job_title}:\n"
-            f"{task_desc}\n\n"
-            f"Output ONLY valid JSON. No explanation, no markdown, no backticks.\n"
-            f"The JSON must follow n8n workflow format with these required top-level keys:\n"
-            f"  name, nodes, connections, active, settings, id\n\n"
-            f"Use real n8n node types like:\n"
-            f"  n8n-nodes-base.scheduleTrigger, n8n-nodes-base.httpRequest,\n"
-            f"  n8n-nodes-base.gmail, n8n-nodes-base.googleSheets,\n"
-            f"  n8n-nodes-base.slack, n8n-nodes-base.set, n8n-nodes-base.if\n\n"
-            f"Include 4-6 nodes. Each node needs: id, name, type, typeVersion, position, parameters.\n"
-            f"connections maps node names to their outputs.\n"
-            f"Make it practical and directly relevant to the tasks above."
-        )
-
-        try:
-            message = self.client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=2500,
-                messages=[{"role": "user", "content": prompt}],
-                timeout=30.0,
-            )
-            raw = message.content[0].text.strip()
-            # Strip any accidental markdown fences
-            raw = re.sub(r'^```(?:json)?\s*', '', raw, flags=re.MULTILINE)
-            raw = re.sub(r'\s*```$', '', raw, flags=re.MULTILINE)
-            return json.loads(raw)
-        except Exception as e:
-            print(f"n8n generation error: {e}")
-            return self._fallback_n8n_workflow(job_title, top_tasks)
-
-    def _fallback_n8n_workflow(self, job_title: str, tasks: List[Dict]) -> Dict:
-        """Minimal valid n8n workflow as fallback."""
-        return {
-            "name": f"{job_title} Automation Workflow",
-            "nodes": [
-                {
-                    "id": "node_trigger",
-                    "name": "Schedule Trigger",
-                    "type": "n8n-nodes-base.scheduleTrigger",
-                    "typeVersion": 1,
-                    "position": [240, 300],
-                    "parameters": {"rule": {"interval": [{"field": "hours", "hoursInterval": 24}]}},
+    # Real n8n node templates keyed by task category.
+    # Each entry is a list of nodes (excluding the trigger) that implement
+    # a practical automation for that category.  Position x offsets are
+    # relative — the assembler will re-space them across the canvas.
+    _CATEGORY_TEMPLATES: Dict[str, List[Dict]] = {
+        "reporting": [
+            {
+                "id": "tpl_sheets_read",
+                "name": "Read Report Data",
+                "type": "n8n-nodes-base.googleSheets",
+                "typeVersion": 4,
+                "position": [0, 0],
+                "parameters": {
+                    "operation": "getAll",
+                    "documentId": {"__rl": True, "mode": "id", "value": "YOUR_SPREADSHEET_ID"},
+                    "sheetName": {"__rl": True, "mode": "name", "value": "Sheet1"},
+                    "options": {},
                 },
-                {
-                    "id": "node_notify",
-                    "name": "Send Notification",
-                    "type": "n8n-nodes-base.slack",
-                    "typeVersion": 1,
-                    "position": [460, 300],
-                    "parameters": {
-                        "channel": "#automation",
-                        "text": f"Daily automation run for {job_title} tasks completed.",
+            },
+            {
+                "id": "tpl_set_summary",
+                "name": "Build Report Summary",
+                "type": "n8n-nodes-base.set",
+                "typeVersion": 3,
+                "position": [0, 0],
+                "parameters": {
+                    "mode": "manual",
+                    "assignments": {
+                        "assignments": [
+                            {"id": "field_report", "name": "reportText", "type": "string",
+                             "value": "=Weekly report generated on {{ $now.format('yyyy-MM-dd') }}. Total records: {{ $json.length }}"},
+                        ]
+                    },
+                    "options": {},
+                },
+            },
+            {
+                "id": "tpl_gmail_report",
+                "name": "Email Report",
+                "type": "n8n-nodes-base.gmail",
+                "typeVersion": 2,
+                "position": [0, 0],
+                "parameters": {
+                    "operation": "send",
+                    "sendTo": "YOUR_EMAIL@example.com",
+                    "subject": "=Weekly Report — {{ $now.format('yyyy-MM-dd') }}",
+                    "message": "={{ $('Build Report Summary').item.json.reportText }}",
+                    "options": {},
+                },
+            },
+        ],
+        "data_entry": [
+            {
+                "id": "tpl_gmail_trigger_de",
+                "name": "Watch Inbox for Submissions",
+                "type": "n8n-nodes-base.gmailTrigger",
+                "typeVersion": 1,
+                "position": [0, 0],
+                "parameters": {
+                    "pollTimes": {"item": [{"mode": "everyHour"}]},
+                    "filters": {"labelIds": ["INBOX"], "readStatus": "unread"},
+                    "options": {},
+                },
+            },
+            {
+                "id": "tpl_sheets_append",
+                "name": "Append Row to Sheet",
+                "type": "n8n-nodes-base.googleSheets",
+                "typeVersion": 4,
+                "position": [0, 0],
+                "parameters": {
+                    "operation": "append",
+                    "documentId": {"__rl": True, "mode": "id", "value": "YOUR_SPREADSHEET_ID"},
+                    "sheetName": {"__rl": True, "mode": "name", "value": "Submissions"},
+                    "columns": {
+                        "mappingMode": "autoMapInputData",
+                        "value": {},
+                        "matchingColumns": [],
+                        "schema": [],
+                    },
+                    "options": {"cellFormat": "USER_ENTERED"},
+                },
+            },
+            {
+                "id": "tpl_slack_confirm_de",
+                "name": "Notify Data Logged",
+                "type": "n8n-nodes-base.slack",
+                "typeVersion": 2,
+                "position": [0, 0],
+                "parameters": {
+                    "resource": "message",
+                    "operation": "post",
+                    "channel": {"__rl": True, "mode": "name", "value": "#data-ops"},
+                    "text": "=New entry logged from {{ $('Watch Inbox for Submissions').item.json.from.value[0].address }}",
+                    "otherOptions": {},
+                },
+            },
+        ],
+        "scheduling": [
+            {
+                "id": "tpl_sheets_read_sched",
+                "name": "Read Schedule Sheet",
+                "type": "n8n-nodes-base.googleSheets",
+                "typeVersion": 4,
+                "position": [0, 0],
+                "parameters": {
+                    "operation": "getAll",
+                    "documentId": {"__rl": True, "mode": "id", "value": "YOUR_SPREADSHEET_ID"},
+                    "sheetName": {"__rl": True, "mode": "name", "value": "Schedule"},
+                    "options": {},
+                },
+            },
+            {
+                "id": "tpl_if_today",
+                "name": "Check If Due Today",
+                "type": "n8n-nodes-base.if",
+                "typeVersion": 2,
+                "position": [0, 0],
+                "parameters": {
+                    "conditions": {
+                        "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict"},
+                        "conditions": [
+                            {
+                                "id": "cond_date",
+                                "leftValue": "={{ $json.dueDate }}",
+                                "rightValue": "={{ $now.format('yyyy-MM-dd') }}",
+                                "operator": {"type": "string", "operation": "equals"},
+                            }
+                        ],
+                        "combinator": "and",
+                    },
+                    "options": {},
+                },
+            },
+            {
+                "id": "tpl_gcal_event",
+                "name": "Create Calendar Event",
+                "type": "n8n-nodes-base.googleCalendar",
+                "typeVersion": 1,
+                "position": [0, 0],
+                "parameters": {
+                    "operation": "create",
+                    "calendar": {"__rl": True, "mode": "id", "value": "primary"},
+                    "start": "={{ $json.startTime }}",
+                    "end": "={{ $json.endTime }}",
+                    "additionalFields": {
+                        "summary": "={{ $json.title }}",
+                        "description": "Auto-scheduled via WorkScanAI n8n workflow",
                     },
                 },
-            ],
-            "connections": {"Schedule Trigger": {"main": [[{"node": "Send Notification", "type": "main", "index": 0}]]}},
+            },
+        ],
+        "communication": [
+            {
+                "id": "tpl_gmail_watch",
+                "name": "Monitor Inbox",
+                "type": "n8n-nodes-base.gmailTrigger",
+                "typeVersion": 1,
+                "position": [0, 0],
+                "parameters": {
+                    "pollTimes": {"item": [{"mode": "everyHour"}]},
+                    "filters": {"labelIds": ["INBOX"], "readStatus": "unread"},
+                    "options": {},
+                },
+            },
+            {
+                "id": "tpl_set_classify",
+                "name": "Classify Message",
+                "type": "n8n-nodes-base.set",
+                "typeVersion": 3,
+                "position": [0, 0],
+                "parameters": {
+                    "mode": "manual",
+                    "assignments": {
+                        "assignments": [
+                            {"id": "field_from", "name": "sender", "type": "string", "value": "={{ $json.from.value[0].address }}"},
+                            {"id": "field_subj", "name": "subject", "type": "string", "value": "={{ $json.subject }}"},
+                            {"id": "field_body", "name": "snippet", "type": "string", "value": "={{ $json.snippet }}"},
+                        ]
+                    },
+                    "options": {},
+                },
+            },
+            {
+                "id": "tpl_slack_comm",
+                "name": "Forward to Slack Channel",
+                "type": "n8n-nodes-base.slack",
+                "typeVersion": 2,
+                "position": [0, 0],
+                "parameters": {
+                    "resource": "message",
+                    "operation": "post",
+                    "channel": {"__rl": True, "mode": "name", "value": "#inbox-triage"},
+                    "text": "=*New email* from {{ $('Classify Message').item.json.sender }}\n*Subject:* {{ $('Classify Message').item.json.subject }}\n{{ $('Classify Message').item.json.snippet }}",
+                    "otherOptions": {},
+                },
+            },
+        ],
+        "analysis": [
+            {
+                "id": "tpl_sheets_read_an",
+                "name": "Fetch Data for Analysis",
+                "type": "n8n-nodes-base.googleSheets",
+                "typeVersion": 4,
+                "position": [0, 0],
+                "parameters": {
+                    "operation": "getAll",
+                    "documentId": {"__rl": True, "mode": "id", "value": "YOUR_SPREADSHEET_ID"},
+                    "sheetName": {"__rl": True, "mode": "name", "value": "Data"},
+                    "options": {},
+                },
+            },
+            {
+                "id": "tpl_set_metrics",
+                "name": "Compute Key Metrics",
+                "type": "n8n-nodes-base.set",
+                "typeVersion": 3,
+                "position": [0, 0],
+                "parameters": {
+                    "mode": "manual",
+                    "assignments": {
+                        "assignments": [
+                            {"id": "field_count", "name": "totalRecords", "type": "number", "value": "={{ $input.all().length }}"},
+                            {"id": "field_ts", "name": "analysisDate", "type": "string", "value": "={{ $now.format('yyyy-MM-dd') }}"},
+                        ]
+                    },
+                    "options": {},
+                },
+            },
+            {
+                "id": "tpl_slack_analysis",
+                "name": "Post Analysis Summary",
+                "type": "n8n-nodes-base.slack",
+                "typeVersion": 2,
+                "position": [0, 0],
+                "parameters": {
+                    "resource": "message",
+                    "operation": "post",
+                    "channel": {"__rl": True, "mode": "name", "value": "#analytics"},
+                    "text": "=*Analysis complete* ({{ $('Compute Key Metrics').item.json.analysisDate }})\nRecords processed: {{ $('Compute Key Metrics').item.json.totalRecords }}",
+                    "otherOptions": {},
+                },
+            },
+        ],
+        "research": [
+            {
+                "id": "tpl_rss",
+                "name": "Fetch RSS / Web Feed",
+                "type": "n8n-nodes-base.rssFeedRead",
+                "typeVersion": 1,
+                "position": [0, 0],
+                "parameters": {
+                    "url": "https://news.google.com/rss/search?q=YOUR+TOPIC&hl=en",
+                },
+            },
+            {
+                "id": "tpl_set_research",
+                "name": "Extract Article Data",
+                "type": "n8n-nodes-base.set",
+                "typeVersion": 3,
+                "position": [0, 0],
+                "parameters": {
+                    "mode": "manual",
+                    "assignments": {
+                        "assignments": [
+                            {"id": "field_title", "name": "title", "type": "string", "value": "={{ $json.title }}"},
+                            {"id": "field_link", "name": "link", "type": "string", "value": "={{ $json.link }}"},
+                            {"id": "field_date", "name": "publishedDate", "type": "string", "value": "={{ $json.pubDate }}"},
+                        ]
+                    },
+                    "options": {},
+                },
+            },
+            {
+                "id": "tpl_sheets_research",
+                "name": "Log Research Findings",
+                "type": "n8n-nodes-base.googleSheets",
+                "typeVersion": 4,
+                "position": [0, 0],
+                "parameters": {
+                    "operation": "append",
+                    "documentId": {"__rl": True, "mode": "id", "value": "YOUR_SPREADSHEET_ID"},
+                    "sheetName": {"__rl": True, "mode": "name", "value": "Research"},
+                    "columns": {
+                        "mappingMode": "autoMapInputData",
+                        "value": {},
+                        "matchingColumns": [],
+                        "schema": [],
+                    },
+                    "options": {"cellFormat": "USER_ENTERED"},
+                },
+            },
+        ],
+        "management": [
+            {
+                "id": "tpl_jira_fetch",
+                "name": "Fetch Open Issues",
+                "type": "n8n-nodes-base.jira",
+                "typeVersion": 1,
+                "position": [0, 0],
+                "parameters": {
+                    "operation": "getAll",
+                    "resource": "issue",
+                    "jql": "project = YOUR_PROJECT AND status != Done ORDER BY created DESC",
+                    "limit": 50,
+                },
+            },
+            {
+                "id": "tpl_if_overdue",
+                "name": "Flag Overdue Items",
+                "type": "n8n-nodes-base.if",
+                "typeVersion": 2,
+                "position": [0, 0],
+                "parameters": {
+                    "conditions": {
+                        "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict"},
+                        "conditions": [
+                            {
+                                "id": "cond_overdue",
+                                "leftValue": "={{ $json.fields.duedate }}",
+                                "rightValue": "={{ $now.format('yyyy-MM-dd') }}",
+                                "operator": {"type": "string", "operation": "smallerEqualThan"},
+                            }
+                        ],
+                        "combinator": "and",
+                    },
+                    "options": {},
+                },
+            },
+            {
+                "id": "tpl_slack_mgmt",
+                "name": "Alert Team on Overdue",
+                "type": "n8n-nodes-base.slack",
+                "typeVersion": 2,
+                "position": [0, 0],
+                "parameters": {
+                    "resource": "message",
+                    "operation": "post",
+                    "channel": {"__rl": True, "mode": "name", "value": "#project-alerts"},
+                    "text": "=:warning: Overdue task: *{{ $json.fields.summary }}* (due {{ $json.fields.duedate }})\nhttps://YOUR_JIRA.atlassian.net/browse/{{ $json.key }}",
+                    "otherOptions": {},
+                },
+            },
+        ],
+    }
+
+    # Trigger that fires at 9 AM every weekday — suitable for most office workflows
+    _SCHEDULE_TRIGGER = {
+        "id": "node_trigger",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1,
+        "position": [240, 300],
+        "parameters": {
+            "rule": {
+                "interval": [
+                    {
+                        "field": "cronExpression",
+                        "expression": "0 9 * * 1-5",
+                    }
+                ]
+            }
+        },
+    }
+
+    def _generate_n8n_workflow(self, job_title: str, tasks: List[Dict]) -> Dict:
+        """
+        Build a real, importable n8n workflow by assembling category-matched
+        templates.  No LLM call — deterministic and always valid JSON.
+        """
+        import copy, uuid
+
+        # Priority order: prefer the most automatable categories first
+        priority = ["data_entry", "reporting", "scheduling", "analysis", "research", "communication", "management"]
+        seen_categories: set = set()
+        selected_tasks = []
+        for cat in priority:
+            for t in tasks:
+                if t.get("category") == cat and cat not in seen_categories:
+                    selected_tasks.append(t)
+                    seen_categories.add(cat)
+                    break
+            if len(selected_tasks) == 3:
+                break
+        # Fill up to 3 with whatever remains
+        for t in tasks:
+            if len(selected_tasks) == 3:
+                break
+            if t not in selected_tasks:
+                selected_tasks.append(t)
+
+        all_nodes = [copy.deepcopy(self._SCHEDULE_TRIGGER)]
+        connections: Dict = {}
+        x = 460  # starting x for first task node
+        y_step = 200  # vertical spacing between task chains
+        prev_trigger_output = "Schedule Trigger"
+
+        for task_idx, task in enumerate(selected_tasks):
+            category = task.get("category", "reporting")
+            template_nodes = copy.deepcopy(
+                self._CATEGORY_TEMPLATES.get(category, self._CATEGORY_TEMPLATES["reporting"])
+            )
+
+            # Assign unique IDs and positions, rename first node after the task
+            chain_first_name = None
+            for node_idx, node in enumerate(template_nodes):
+                unique_id = f"node_{task_idx}_{node_idx}_{uuid.uuid4().hex[:6]}"
+                node["id"] = unique_id
+                node["position"] = [x + node_idx * 220, 300 + task_idx * y_step]
+
+                # Rename the first node of each chain to the actual task name (truncated)
+                if node_idx == 0:
+                    node["name"] = task["name"][:50]
+                    chain_first_name = node["name"]
+
+                all_nodes.append(node)
+
+            # Wire trigger → first node of this chain
+            if chain_first_name:
+                connections[prev_trigger_output] = {
+                    "main": [[{"node": chain_first_name, "type": "main", "index": 0}]]
+                }
+
+            # Wire nodes within the chain sequentially
+            for node_idx in range(len(template_nodes) - 1):
+                src_name = template_nodes[node_idx]["name"]
+                dst_name = template_nodes[node_idx + 1]["name"]
+                connections[src_name] = {
+                    "main": [[{"node": dst_name, "type": "main", "index": 0}]]
+                }
+
+            # If-node true branch also wires forward (for scheduling/management)
+            # already covered by sequential wiring above
+
+            x += 50  # slight x drift per chain keeps canvas readable
+
+        workflow_id = f"workscanai-{uuid.uuid4().hex[:8]}"
+        return {
+            "name": f"{job_title} — WorkScanAI Automation",
+            "nodes": all_nodes,
+            "connections": connections,
             "active": False,
-            "settings": {},
-            "id": "workscanai-generated",
+            "settings": {"executionOrder": "v1"},
+            "id": workflow_id,
+            "meta": {
+                "generatedBy": "WorkScanAI",
+                "templateVersion": "2.0",
+                "note": "Replace placeholder values (YOUR_SPREADSHEET_ID, YOUR_EMAIL@example.com, YOUR_PROJECT, etc.) with your actual credentials before activating.",
+            },
         }
 
     def _fallback_tasks(self, job_title: str) -> List[Dict]:
