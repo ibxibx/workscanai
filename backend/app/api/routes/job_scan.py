@@ -9,17 +9,56 @@ Step 2: POST /api/job-scan/analyze
   → Takes task list, runs batch AI analysis + n8n generation + saves to DB (~30-40s)
   → Returns workflow_id, share_code, n8n workflow JSON
 """
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import func as sqlfunc
 from typing import Optional, List
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, Field
 
 from app.core.database import get_db
+from app.core.security import get_client_ip
 from app.models.workflow import Workflow, Task, Analysis, AnalysisResult, User, _gen_share_code
 from app.services.job_scanner import JobScanner
 from app.services.ai_analyzer import AIAnalyzer
 
 router = APIRouter()
+
+DAILY_ANALYSIS_LIMIT = 5
+
+
+def _get_ip_daily_count(ip: str, db: Session) -> int:
+    """Count analyses in the last 24 h for this IP across ALL workflow types."""
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    return (
+        db.query(sqlfunc.count(Analysis.id))
+        .join(Workflow, Analysis.workflow_id == Workflow.id)
+        .filter(Workflow.client_ip == ip)
+        .filter(Analysis.created_at >= since)
+        .scalar() or 0
+    )
+
+
+def _get_email_daily_count(email: str, db: Session) -> int:
+    """Count analyses in the last 24 h for this email across ALL workflow types."""
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    return (
+        db.query(sqlfunc.count(Analysis.id))
+        .join(Workflow, Analysis.workflow_id == Workflow.id)
+        .filter(Workflow.user_email == email)
+        .filter(Analysis.created_at >= since)
+        .scalar() or 0
+    )
+
+
+_RATE_LIMIT_DETAIL = lambda limit: {
+    "error": "rate_limit",
+    "message": (
+        f"You've used all {limit} free analyses in the last 24 hours. "
+        f"The limit resets on a rolling 24-hour basis — try again tomorrow!"
+    ),
+    "retry_after_seconds": 86400,
+}
 
 
 # ------------------------------------------------------------------
@@ -74,11 +113,15 @@ class AnalyzeResponse(BaseModel):
 # ------------------------------------------------------------------
 
 @router.post("/job-scan/research", response_model=ResearchResponse)
-async def job_scan_research(request: ResearchRequest):
+async def job_scan_research(request: ResearchRequest, http_request: Request, db: Session = Depends(get_db)):
     """
     Web-search the job title and extract a structured task list.
-    Fast — ~15-20s. No DB writes.
+    Fast — ~15-20s. No DB writes. IP rate-limited (shared quota with analyze).
     """
+    client_ip = get_client_ip(http_request)
+    if _get_ip_daily_count(client_ip, db) >= DAILY_ANALYSIS_LIMIT:
+        raise HTTPException(status_code=429, detail=_RATE_LIMIT_DETAIL(DAILY_ANALYSIS_LIMIT))
+
     try:
         scanner = JobScanner()
         result = scanner.scan_job(
@@ -108,6 +151,7 @@ async def job_scan_research(request: ResearchRequest):
 @router.post("/job-scan/analyze", response_model=AnalyzeResponse, status_code=201)
 async def job_scan_analyze(
     request: AnalyzeRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     x_user_email: Optional[str] = Header(None),
 ):
@@ -115,10 +159,20 @@ async def job_scan_analyze(
     Takes a task list from Step 1, runs full AI analysis,
     generates n8n workflow JSON, saves everything to DB.
     Fast — ~30-40s. Returns workflow_id for redirect.
+    IP + email rate-limited (shared 5/24h quota).
     """
     tasks = request.tasks
     if not tasks:
         raise HTTPException(status_code=422, detail="No tasks provided")
+
+    # ── Rate limiting ─────────────────────────────────────────────
+    client_ip = get_client_ip(http_request)
+    if _get_ip_daily_count(client_ip, db) >= DAILY_ANALYSIS_LIMIT:
+        raise HTTPException(status_code=429, detail=_RATE_LIMIT_DETAIL(DAILY_ANALYSIS_LIMIT))
+    if x_user_email:
+        email_lc = x_user_email.lower().strip()
+        if _get_email_daily_count(email_lc, db) >= DAILY_ANALYSIS_LIMIT:
+            raise HTTPException(status_code=429, detail=_RATE_LIMIT_DETAIL(DAILY_ANALYSIS_LIMIT))
 
     # --- Persist user ---
     if x_user_email:
@@ -138,6 +192,7 @@ async def job_scan_analyze(
         analysis_context=request.analysis_context or "individual",
         industry=request.industry,
         user_email=x_user_email.lower().strip() if x_user_email else None,
+        client_ip=client_ip,
     )
     db.add(workflow)
     db.flush()
