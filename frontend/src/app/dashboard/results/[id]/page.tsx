@@ -27,6 +27,17 @@ interface TaskResult {
  decision_layer?: string // 'none'|'partial'|'full'
 }
 
+interface SuggestedTemplate {
+ id: number
+ name: string
+ description: string
+ url: string
+ relevance_reason: string
+ node_count: number
+ nodes_preview: string[]
+ workflow_json: Record<string, unknown>
+}
+
 interface AnalysisData {
  id: number; workflow_id: number
  workflow: {
@@ -105,6 +116,7 @@ export default function ResultsPage() {
  const [loading, setLoading] = useState(true)
  const [error, setError] = useState<string | null>(null)
  const [copied, setCopied] = useState(false)
+ const [suggestedTemplates, setSuggestedTemplates] = useState<SuggestedTemplate[]>([])
 
  const handleShare = useCallback(async () => {
  const shareCode = analysisData?.workflow?.share_code || id
@@ -177,47 +189,50 @@ export default function ResultsPage() {
  } catch { alert(`Failed to generate ${fmt.toUpperCase()} report.`) }
  }
 
- const downloadN8nWorkflow = () => {
- // Build a basic n8n workflow JSON from the top automatable tasks
- const topTasks = [...analysisData.results]
- .sort((a, b) => b.ai_readiness_score - a.ai_readiness_score)
- .slice(0, 3)
- const nodes = [
- {
- id: 'node_trigger', name: 'Schedule Trigger',
- type: 'n8n-nodes-base.scheduleTrigger', typeVersion: 1,
- position: [240, 300],
- parameters: { rule: { interval: [{ field: 'hours', hoursInterval: 24 }] } },
- },
- ...topTasks.map((r, i) => ({
- id: `node_task_${i}`,
- name: r.task?.name || `Task ${i + 1}`,
- type: 'n8n-nodes-base.httpRequest',
- typeVersion: 3,
- position: [460 + i * 220, 300],
- parameters: { method: 'POST', url: 'https://example.com/webhook', jsonParameters: true },
- notes: r.recommendation?.slice(0, 200) || '',
- })),
- ]
- const connections: Record<string, unknown> = {}
- connections['Schedule Trigger'] = {
- main: [[{ node: topTasks[0]?.task?.name || 'Task 1', type: 'main', index: 0 }]],
- }
- const workflow = {
- name: `${analysisData.workflow.name} -- WorkScanAI Automation`,
- nodes,
- connections,
- active: false,
- settings: { executionOrder: 'v1' },
- id: `workscanai-${analysisData.workflow_id}`,
- meta: { generatedBy: 'WorkScanAI', reportUrl: window.location.href },
- }
- const blob = new Blob([JSON.stringify(workflow, null, 2)], { type: 'application/json' })
+ const downloadN8nWorkflow = async () => {
+ // If we already have suggested templates, download the top one
+ if (suggestedTemplates.length > 0) {
+ const tpl = suggestedTemplates[0]
+ const blob = new Blob([JSON.stringify(tpl.workflow_json, null, 2)], { type: 'application/json' })
  const url = URL.createObjectURL(blob)
  const a = document.createElement('a')
  a.href = url
- a.download = `${analysisData.workflow.name.replace(/\s+/g, '_')}_n8n_workflow.json`
+ a.download = `${analysisData!.workflow.name.replace(/\s+/g, '_')}_n8n_template_${tpl.id}.json`
  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
+ return
+ }
+ // Fallback: fetch suggested templates from backend, then download
+ try {
+ const RENDER_URL = process.env.NEXT_PUBLIC_RENDER_URL || 'https://workscanai.onrender.com'
+ const jobTitle = analysisData!.workflow.name.replace(' -- Job Scanner', '').trim()
+ const taskDicts = analysisData!.results.map(r => ({
+ name: r.task?.name || '',
+ category: 'general',
+ frequency: 'weekly',
+ }))
+ const res = await fetch(`${RENDER_URL}/api/job-scan/n8n-templates`, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ job_title: jobTitle, tasks: taskDicts }),
+ })
+ if (res.ok) {
+ const data = await res.json()
+ const templates: SuggestedTemplate[] = data.suggested_templates || []
+ if (templates.length > 0) {
+ setSuggestedTemplates(templates)
+ const tpl = templates[0]
+ const blob = new Blob([JSON.stringify(tpl.workflow_json, null, 2)], { type: 'application/json' })
+ const url = URL.createObjectURL(blob)
+ const a = document.createElement('a')
+ a.href = url
+ a.download = `${jobTitle.replace(/\s+/g, '_')}_n8n_template_${tpl.id}.json`
+ document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
+ return
+ }
+ }
+ } catch { /* fall through to assembled workflow */ }
+ // Last resort: assembled template workflow (still better than example.com placeholders)
+ alert('Could not fetch community templates. Please use the Job Scanner page to get importable n8n workflows.')
  }
 
  return (
@@ -883,6 +898,60 @@ export default function ResultsPage() {
  </div>
  )}
 
+
+ {/* n8n Community Templates — shown for job-scan workflows or when templates loaded */}
+ {(isJobScan || suggestedTemplates.length > 0) && suggestedTemplates.length > 0 && (
+ <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
+ <div className="flex items-center gap-[10px] mb-[6px]">
+ <div className="w-[36px] h-[36px] rounded-full bg-[#0071e3] flex items-center justify-center">
+ <Download className="h-[18px] w-[18px] text-white" />
+ </div>
+ <h2 className="text-[22px] font-semibold italic tracking-tight">Recommended n8n Workflows</h2>
+ </div>
+ <p className="text-[13px] text-[#86868b] mb-[20px]">
+ Real community-tested automations for this role. Import directly into n8n.
+ </p>
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
+ {suggestedTemplates.map(tpl => (
+ <div key={tpl.id} className="border border-[#e8e8ed] rounded-[14px] p-[18px] bg-[#fafafa] flex flex-col gap-[10px]">
+ <div className="flex items-start justify-between gap-[8px]">
+ <p className="text-[13px] font-semibold text-[#1d1d1f] leading-snug">{tpl.name}</p>
+ <a href={tpl.url} target="_blank" rel="noopener noreferrer"
+ className="text-[#0071e3] hover:text-[#0077ed] shrink-0 mt-[1px]"
+ title="View on n8n.io">
+ <ArrowRight className="h-[14px] w-[14px]" />
+ </a>
+ </div>
+ {tpl.relevance_reason && (
+ <p className="text-[12px] text-[#6e6e73]">{tpl.relevance_reason}</p>
+ )}
+ {tpl.nodes_preview.length > 0 && (
+ <div className="flex flex-wrap gap-[6px]">
+ {tpl.nodes_preview.slice(0, 5).map((n, i) => (
+ <span key={i} className="text-[10px] font-semibold px-[8px] py-[3px] rounded-full bg-[#f0f7ff] text-[#0071e3] border border-[#cce0ff]">
+ {n.replace('n8n-nodes-base.', '')}
+ </span>
+ ))}
+ </div>
+ )}
+ <button
+ onClick={() => {
+ const blob = new Blob([JSON.stringify(tpl.workflow_json, null, 2)], { type: 'application/json' })
+ const url = URL.createObjectURL(blob)
+ const a = document.createElement('a')
+ a.href = url
+ a.download = `${analysisData!.workflow.name.replace(/\s+/g, '_')}_n8n_${tpl.id}.json`
+ document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
+ }}
+ className="mt-auto flex items-center justify-center gap-[6px] w-full bg-[#f5f5f7] hover:bg-[#e8e8ed] text-[#1d1d1f] text-[12px] font-semibold px-[12px] py-[8px] rounded-[8px] transition border border-[#d2d2d7]"
+ >
+ <Download className="h-[13px] w-[13px]" /> Import into n8n
+ </button>
+ </div>
+ ))}
+ </div>
+ </div>
+ )}
 
  {/* Actions */}
  <div className="mt-[40px] sm:mt-[56px] pb-[8px]">

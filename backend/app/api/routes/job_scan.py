@@ -108,6 +108,33 @@ class AnalyzeResponse(BaseModel):
         from_attributes = True
 
 
+class TemplateRequest(BaseModel):
+    job_title: str
+    tasks: List[TaskItem] = []
+
+
+@router.post("/job-scan/n8n-templates")
+async def get_n8n_templates(request: TemplateRequest):
+    """
+    Lightweight endpoint: fetch + curate real n8n community templates
+    for any job title + task list. Used by the results dashboard download button.
+    No DB writes, no rate limit (template fetching is free).
+    """
+    try:
+        import os
+        from app.services.n8n_template_client import N8nTemplateClient
+        api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        client = N8nTemplateClient(anthropic_api_key=api_key)
+        task_dicts = [t.dict() for t in request.tasks]
+        templates = client.get_curated_templates(
+            job_title=request.job_title,
+            tasks=task_dicts,
+        )
+        return {"suggested_templates": templates}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Template fetch failed: {str(e)}")
+
+
 # ------------------------------------------------------------------
 # Step 1 — Research
 # ------------------------------------------------------------------
@@ -284,18 +311,28 @@ async def job_scan_analyze(
     db.commit()
 
     # --- Generate n8n workflow + fetch community templates ---
-    # Done after DB commit so a timeout here doesn't block saving
+    # Use already-extracted tasks — do NOT re-run scan_job() which wastes
+    # Tavily + Claude tokens re-doing work that Step 1 already did.
     try:
+        import os
+        from app.services.n8n_template_client import N8nTemplateClient
+        from app.services.job_scanner import JobScanner
+
+        top_task_dicts = [t.dict() for t in tasks[:5]]
+
+        # 1. Assembled category-template workflow (deterministic, always works)
         scanner = JobScanner()
-        top_tasks = [t.dict() for t in tasks[:5]]
-        scan_result = scanner.scan_job(
+        n8n_workflow = scanner._generate_n8n_workflow(request.job_title, top_task_dicts)
+
+        # 2. Real community templates from n8n API (curated by LLM)
+        api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        client = N8nTemplateClient(anthropic_api_key=api_key)
+        suggested_templates = client.get_curated_templates(
             job_title=request.job_title,
-            industry=request.industry,
-            analysis_context=request.analysis_context or "individual",
+            tasks=top_task_dicts,
         )
-        n8n_workflow = scan_result.get("n8n_workflow", {})
-        suggested_templates = scan_result.get("suggested_templates", [])
-    except Exception:
+    except Exception as exc:
+        print(f"[n8n] workflow/template generation error: {exc}")
         n8n_workflow = {"name": f"{request.job_title} Workflow", "nodes": [], "connections": {}}
         suggested_templates = []
 
