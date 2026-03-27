@@ -1,12 +1,16 @@
 """
 Job Scanner service — researches a job title via Tavily web search,
-extracts a structured task list, then generates an n8n workflow JSON.
+extracts a structured task list, then surfaces real n8n community
+templates via N8nTemplateClient (Benedikt MVP architecture) plus a
+locally-assembled fallback workflow from category templates.
 """
 import os
 import json
 import re
 from anthropic import Anthropic
 from typing import List, Dict, Optional
+
+from app.services.n8n_template_client import N8nTemplateClient
 
 
 class JobScanner:
@@ -39,7 +43,11 @@ class JobScanner:
         # Step 2: Extract structured tasks from search results
         tasks = self._extract_tasks(job_title, raw_search, analysis_context)
 
-        # Step 3: Generate n8n workflow JSON for top automatable tasks
+        # Step 3: Fetch real n8n community templates (Benedikt MVP)
+        suggested_templates = self._fetch_suggested_templates(job_title, tasks)
+
+        # Step 4: Also generate a locally-assembled fallback workflow
+        # (useful if n8n API is down or user wants a single merged file)
         n8n_workflow = self._generate_n8n_workflow(job_title, tasks)
 
         return {
@@ -47,8 +55,21 @@ class JobScanner:
             "industry": industry,
             "tasks": tasks,
             "n8n_workflow": n8n_workflow,
+            "suggested_templates": suggested_templates,
             "search_used": self.tavily_api_key is not None,
         }
+
+    def _fetch_suggested_templates(
+        self, job_title: str, tasks: List[Dict]
+    ) -> List[Dict]:
+        """Call N8nTemplateClient to get real, importable community templates."""
+        try:
+            api_key = os.getenv("ANTHROPIC_API_KEY", "")
+            client = N8nTemplateClient(anthropic_api_key=api_key)
+            return client.get_curated_templates(job_title=job_title, tasks=tasks)
+        except Exception as exc:
+            print(f"[suggested_templates] error: {exc}")
+            return []
 
 
     # ------------------------------------------------------------------
