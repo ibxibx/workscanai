@@ -37,8 +37,8 @@ _CATEGORY_QUERIES: Dict[str, List[str]] = {
 
 _N8N_TEMPLATE_BASE = "https://api.n8n.io"
 _HEADERS = {"User-Agent": "WorkScanAI/2.0 (workscanai.vercel.app)"}
-_SEARCH_RESULTS_PER_QUERY = 4   # fetch N results per query term
-_MAX_TEMPLATES_TO_CURATE = 12   # cap sent to LLM to keep prompt size sane
+_SEARCH_RESULTS_PER_QUERY = 5   # fetch N results per query term
+_MAX_TEMPLATES_TO_CURATE = 20   # wider net before LLM culls
 _FINAL_TEMPLATES_TO_RETURN = 5  # how many the LLM selects for the user
 
 
@@ -104,15 +104,18 @@ class N8nTemplateClient:
     ) -> List[Dict]:
         """
         Run multiple search queries and deduplicate results.
-        Returns a flat list of candidate metadata dicts.
+        Category queries first (most relevant), job title last.
         """
         seen_ids: set = set()
         candidates: List[Dict] = []
 
-        # Always include a direct job-title query
-        all_queries: List[str] = [job_title]
+        # Category-derived queries first — most likely to be relevant
+        all_queries: List[str] = []
         for cat in categories:
             all_queries.extend(_CATEGORY_QUERIES.get(cat, _CATEGORY_QUERIES["general"]))
+
+        # Job title query last — often returns generic/trendy results
+        all_queries.append(job_title)
 
         for query in all_queries:
             try:
@@ -182,26 +185,35 @@ class N8nTemplateClient:
             for c in candidates
         )
 
+        json_example = '[{"id": 123, "reason": "Automates weekly report generation and email delivery"}, {"id": 456, "reason": "Sends Slack alerts from Google Sheets data"}]'
+
         prompt = (
             f"You are a workflow automation consultant helping a {job_title}.\n\n"
             f"THEIR TASKS:\n{task_summary}\n\n"
             f"AVAILABLE n8n COMMUNITY TEMPLATES:\n{candidate_lines}\n\n"
             f"Select the {_FINAL_TEMPLATES_TO_RETURN} most useful templates for this role.\n"
-            f"Output ONLY a JSON array of objects with keys 'id' (integer) and 'reason' (max 15 words).\n"
-            f"Example: [{{'id': 123, 'reason': 'Automates weekly report generation and email delivery'}}]\n"
-            f"No markdown, no explanation, only the JSON array."
+            f"Output ONLY a JSON array. Each object has exactly two keys:\n"
+            f"  'id': integer template ID\n"
+            f"  'reason': string, max 15 words explaining relevance\n\n"
+            f"Example output: {json_example}\n\n"
+            f"Rules: output ONLY the JSON array, no markdown fences, no explanation."
         )
 
         try:
             msg = self._claude.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=400,
+                max_tokens=500,
                 messages=[{"role": "user", "content": prompt}],
                 timeout=20.0,
             )
             raw = msg.content[0].text.strip()
-            # Strip accidental markdown fences
+            # Strip any markdown fences and leading/trailing noise
             raw = raw.replace("```json", "").replace("```", "").strip()
+            # Extract just the JSON array if there's surrounding text
+            import re as _re
+            arr_match = _re.search(r'\[.*\]', raw, _re.DOTALL)
+            if arr_match:
+                raw = arr_match.group(0)
             picks = json.loads(raw)
 
             # Attach reason back to candidate metadata and return ordered IDs
@@ -216,7 +228,7 @@ class N8nTemplateClient:
 
         except Exception as exc:
             print(f"[n8n curation] LLM error: {exc}")
-            # Fallback: just return first N candidates in order
+            # Fallback: return first N candidates in order
             return [c["id"] for c in candidates[:_FINAL_TEMPLATES_TO_RETURN]]
 
     # ------------------------------------------------------------------
