@@ -118,6 +118,8 @@ class AIAnalyzer:
             f'PIVOT_SKILLS: ["skill1","skill2","skill3","skill4","skill5","skill6"]\n'
             f'PIVOT_ROLES: [{{"role":"X","risk":"low","pivot_distance":"easy","automation_score_pct":38}},'
             f'{{"role":"Y","risk":"low","pivot_distance":"medium","automation_score_pct":42}}]\n\n'
+            f"CRITICAL: You MUST output EXACTLY {n} task blocks — one ---TASK_[N]--- block per task. "
+            f"Do not stop early. If context is tight, shorten RECOMMENDATION but include ALL {n} blocks.\n\n"
             f"Final rules: vary scores meaningfully across tasks — identical scores signal lazy analysis. "
             f"COMPOSITE=R*0.3+D*0.3+E*0.2+I*0.2. "
             f"'warning' risk level only for PII/financial/legal/medical data. "
@@ -129,7 +131,7 @@ class AIAnalyzer:
         try:
             message = self.client.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=min(500 * n + 400, 6000),
+                max_tokens=min(700 * n + 600, 8000),
                 messages=[{"role": "user", "content": prompt}],
                 timeout=90.0,
             )
