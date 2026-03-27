@@ -967,7 +967,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
               </div>
               <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Job Scanner</h3>
               <p className="text-[15px] text-[#6e6e73] max-w-[440px] mx-auto">
-                Enter any job title — AI researches the role online, extracts real tasks, scores automation potential, and generates an n8n workflow.
+                Enter any job title — AI researches the role online, extracts real tasks, scores automation potential, and surfaces real n8n community workflows you can import instantly.
               </p>
             </div>
             {jobScanStep==='idle'&&(
