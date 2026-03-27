@@ -62,6 +62,7 @@ class AnalyzeResponse(BaseModel):
     job_title: str
     tasks_found: int
     n8n_workflow: dict
+    suggested_templates: List[dict] = []
     message: str
 
     class Config:
@@ -227,14 +228,21 @@ async def job_scan_analyze(
 
     db.commit()
 
-    # --- Generate n8n workflow ---
+    # --- Generate n8n workflow + fetch community templates ---
     # Done after DB commit so a timeout here doesn't block saving
     try:
         scanner = JobScanner()
         top_tasks = [t.dict() for t in tasks[:5]]
-        n8n_workflow = scanner._generate_n8n_workflow(request.job_title, top_tasks)
+        scan_result = scanner.scan_job(
+            job_title=request.job_title,
+            industry=request.industry,
+            analysis_context=request.analysis_context or "individual",
+        )
+        n8n_workflow = scan_result.get("n8n_workflow", {})
+        suggested_templates = scan_result.get("suggested_templates", [])
     except Exception:
         n8n_workflow = {"name": f"{request.job_title} Workflow", "nodes": [], "connections": {}}
+        suggested_templates = []
 
     return AnalyzeResponse(
         workflow_id=workflow.id,
@@ -242,5 +250,6 @@ async def job_scan_analyze(
         job_title=request.job_title,
         tasks_found=len(tasks),
         n8n_workflow=n8n_workflow,
+        suggested_templates=suggested_templates,
         message=f"Analysis complete — {len(tasks)} tasks saved.",
     )
