@@ -265,7 +265,7 @@ class AIAnalyzer:
         ('\u2718', 'x'),    # ✘
         ('\u25b6', '>'),    # ▶
         ('\u25cf', '-'),    # ●
-        ('\u00e2\u0082\xac', 'EUR'),  # mojibake €
+        ('\u00e2\u0082\xac', '\u20ac'),  # mojibake € → keep as €
     ]
 
     def _clean(self, text: str) -> str:
