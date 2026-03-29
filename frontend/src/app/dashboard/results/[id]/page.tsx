@@ -55,7 +55,7 @@ interface AnalysisData {
  results: TaskResult[]
 }
 
-// --EUR--EUR Recommendation renderer -- splits on Option 1/2/3 and Decision layer --EUR--EUR--EUR--EUR--EUR
+// -- Recommendation renderer -- splits on Option 1/2/3 and Decision layer --
 function RecommendationBlocks({ text }: { text: string }) {
  if (!text) return null
  // Split on every "Option N" or "Decision layer" boundary
@@ -92,7 +92,7 @@ function RecommendationBlocks({ text }: { text: string }) {
  )
 }
 
-// --EUR--EUR Countdown badge --EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR
+// -- Countdown badge --
 function CountdownBadge({ window: w }: { window?: string }) {
  const map: Record<string, { label: string; color: string; dot: string }> = {
  'now': { label: 'NOW Automatable NOW', color: 'bg-red-50 border-red-200 text-red-700', dot: 'bg-red-500' },
@@ -232,14 +232,14 @@ export default function ResultsPage() {
  }
  } catch { /* fall through to assembled workflow */ }
  // Last resort: assembled template workflow (still better than example.com placeholders)
- alert('Could not fetch community templates. Please use the Job Scanner page to get importable n8n workflows.')
+ console.warn('Could not fetch community templates, using assembled workflow')
  }
 
  return (
  <div className="min-h-screen bg-[#fafafa] text-[#1d1d1f] pt-[88px] pb-[80px]">
  <div className="max-w-[980px] mx-auto px-6">
 
- {/* --EUR--EUR Header --EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR */}
+ {/* -- Header -- */}
  <div className="mb-[40px]">
  <div className="flex items-center gap-[10px] mb-[16px]">
  <div className={`w-[32px] h-[32px] rounded-full bg-gradient-to-br ${contextGradient} flex items-center justify-center text-white`}>
@@ -264,11 +264,11 @@ export default function ResultsPage() {
  <p className="text-[14px] text-[#86868b]">Analysis ID: {id} - {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
  </div>
 
- {/* --EUR--EUR Hero KPI Cards --EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR--EUR */}
+ {/* -- Hero KPI Cards -- */}
  <div className="grid grid-cols-2 md:grid-cols-4 gap-[12px] mb-[40px]">
  {[
  { label: 'Automation Score', value: `${Math.round(analysisData.automation_score)}%`, color: 'text-[#0071e3]', sub: `${automationReady} of ${totalTasks} tasks ready` },
- { label: 'Annual Savings', value: `EUR${Math.round(analysisData.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: `${Math.round(analysisData.hours_saved)} hours/yr` },
+ { label: 'Annual Savings', value: `€${Math.round(analysisData.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: `${Math.round(analysisData.hours_saved)} hours/yr` },
  { label: 'Quick Wins', value: `${quickWins}`, color: 'text-purple-600', sub: 'Automatable today' },
  { label: 'Human Edge', value: `${Math.round(avgHumanEdge)}%`, color: 'text-amber-600', sub: 'Irreplaceable value' },
  ].map(card => (
@@ -280,7 +280,7 @@ export default function ResultsPage() {
  ))}
  </div>
 
- {/* --EUR--EUR Section padding -- reduce on mobile throughout --EUR--EUR */}
+ {/* -- Section padding -- reduce on mobile throughout -- */}
  {/* SECTION A -- TASK BREAKDOWN */}
  <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
  <div className="flex items-center gap-[10px] mb-[8px]">
@@ -455,7 +455,7 @@ export default function ResultsPage() {
 
  <div className="mt-[20px] p-[16px] bg-[#f5f5f7] border border-[#e8e8ed] rounded-[12px]">
  <p className="text-[13px] text-[#6e6e73] leading-relaxed">
- <span className="font-semibold text-[#1d1d1f]">The 900-Day Window:</span> Emad Mostaque (founder of Stability AI) warns that within 900 days, any job done on a screen can be replaced by AI for under EUR1,000/year. Your tasks in the red zone are at immediate risk as agentic AI tools arrive in 2025-2026.
+ <span className="font-semibold text-[#1d1d1f]">The 900-Day Window:</span> Emad Mostaque (founder of Stability AI) warns that within 900 days, any job done on a screen can be replaced by AI for under €1,000/year. Your tasks in the red zone are at immediate risk as agentic AI tools arrive in 2025-2026.
  </p>
  </div>
  </div>
@@ -646,7 +646,7 @@ export default function ResultsPage() {
  {[
  { label: 'Hours freed / yr', value: `${Math.round(analysisData.hours_saved)}h`, color: 'text-[#0071e3]', sub: 'Available for product & growth' },
  { label: 'FTE equivalent', value: `${(analysisData.hours_saved / 1800).toFixed(1)}`, color: 'text-emerald-600', sub: 'Roles redeployable to strategic work' },
- { label: 'Cost saved / yr', value: `EUR${Math.round(analysisData.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: 'At your team\'s hourly rate' },
+ { label: 'Cost saved / yr', value: `€${Math.round(analysisData.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: 'At your team\'s hourly rate' },
  ].map(card => (
  <div key={card.label} className="bg-emerald-50 border border-emerald-100 rounded-[14px] p-[16px] sm:p-[20px] text-center min-w-0">
  <div className={`text-[24px] sm:text-[32px] font-bold mb-[4px] ${card.color} truncate`}>{card.value}</div>
@@ -743,9 +743,9 @@ export default function ResultsPage() {
 
  <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px] mt-[28px] mb-[24px]">
  {[
- { label: 'If you automate now', value: `EUR${Math.round(analysisData.annual_savings).toLocaleString()}/yr`, sub: 'Your annual advantage', color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
- { label: 'If you wait 12 months', value: `EUR${Math.round(analysisData.annual_savings * 0.35).toLocaleString()}/yr`, sub: '65% of advantage lost to delayed adoption', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-100' },
- { label: 'AI-first competitor edge', value: `EUR${Math.round(analysisData.annual_savings * 1.4).toLocaleString()}/yr`, sub: 'Over you if they move first', color: 'text-red-600', bg: 'bg-red-50 border-red-100' },
+ { label: 'If you automate now', value: `€${Math.round(analysisData.annual_savings).toLocaleString()}/yr`, sub: 'Your annual advantage', color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
+ { label: 'If you wait 12 months', value: `€${Math.round(analysisData.annual_savings * 0.35).toLocaleString()}/yr`, sub: '65% of advantage lost to delayed adoption', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-100' },
+ { label: 'AI-first competitor edge', value: `€${Math.round(analysisData.annual_savings * 1.4).toLocaleString()}/yr`, sub: 'Over you if they move first', color: 'text-red-600', bg: 'bg-red-50 border-red-100' },
  ].map(card => (
  <div key={card.label} className={`rounded-[14px] border p-[16px] sm:p-[20px] min-w-0 ${card.bg}`}>
  <div className={`text-[20px] sm:text-[26px] font-bold mb-[4px] ${card.color} truncate`}>{card.value}</div>
@@ -779,7 +779,7 @@ export default function ResultsPage() {
  {[
  { label: 'Hours freed / yr', value: `${Math.round(analysisData.hours_saved)}h`, note: 'Total across all tasks', color: 'text-[#0071e3]' },
  { label: 'FTE equivalent', value: `${(analysisData.hours_saved / 1800).toFixed(1)}`, note: 'At 1,800 working hrs/yr', color: 'text-purple-600' },
- { label: 'Saved per FTE', value: `EUR${Math.round(analysisData.annual_savings / Math.max(analysisData.hours_saved / 1800, 0.1)).toLocaleString()}`, note: 'Annual cost per role', color: 'text-green-600' },
+ { label: 'Saved per FTE', value: `€${Math.round(analysisData.annual_savings / Math.max(analysisData.hours_saved / 1800, 0.1)).toLocaleString()}`, note: 'Annual cost per role', color: 'text-green-600' },
  ].map(item => (
  <div key={item.label} className="bg-[#fafafa] border border-[#e8e8ed] rounded-[14px] p-[16px] sm:p-[20px] text-center min-w-0">
  <div className={`text-[24px] sm:text-[36px] font-bold mb-[6px] ${item.color} truncate`}>{item.value}</div>
@@ -849,7 +849,7 @@ export default function ResultsPage() {
  <div><span className="text-[#86868b]">Workflow:</span> <span className="text-white font-bold">{analysisData.workflow.name}</span></div>
  {analysisData.workflow.industry && <div><span className="text-[#86868b]">Industry:</span> <span className="text-white">{analysisData.workflow.industry}</span></div>}
  <div><span className="text-[#86868b]">Automation potential:</span> <span className="text-[#0071e3] font-bold">{Math.round(analysisData.automation_score)}%</span> of workflow tasks</div>
- <div><span className="text-[#86868b]">Annual savings:</span> <span className="text-green-400 font-bold">EUR{Math.round(analysisData.annual_savings).toLocaleString()}</span></div>
+ <div><span className="text-[#86868b]">Annual savings:</span> <span className="text-green-400 font-bold">€{Math.round(analysisData.annual_savings).toLocaleString()}</span></div>
  <div><span className="text-[#86868b]">Hours reclaimed:</span> <span className="text-purple-400 font-bold">{Math.round(analysisData.hours_saved)}h/yr</span></div>
  <div><span className="text-[#86868b]">FTE equivalent:</span> <span className="text-amber-400 font-bold">{(analysisData.hours_saved / 1800).toFixed(1)} roles</span></div>
  <div><span className="text-[#86868b]">Quick wins available:</span> <span className="text-white font-bold">{quickWins} tasks</span> (implementable within 90 days)</div>
