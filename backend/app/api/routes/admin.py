@@ -21,6 +21,60 @@ def _require_admin(x_admin_secret: Optional[str] = Header(None)):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
+@router.post("/admin/backfill-n8n/{workflow_id}")
+async def backfill_n8n_canvas(
+    workflow_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(_require_admin),
+):
+    """
+    Regenerate and store the merged n8n canvas for a specific workflow
+    using the new per-task N8nTemplateClient. Admin-only.
+    """
+    import json as _json
+
+    workflow = db.query(Workflow).filter(Workflow.id == workflow_id).first()
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    tasks = db.query(Task).filter(Task.workflow_id == workflow_id).all()
+    if not tasks:
+        raise HTTPException(status_code=422, detail="No tasks found for this workflow")
+
+    task_dicts = [
+        {"name": t.name, "category": t.category or "general", "frequency": t.frequency or "weekly"}
+        for t in tasks
+    ]
+    job_title = workflow.name.replace(" \u2013 Job Scanner", "").replace(" \u2014 Job Scanner", "").replace("-- Job Scanner", "").strip()
+
+    from app.services.n8n_template_client import N8nTemplateClient
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    client = N8nTemplateClient(anthropic_api_key=api_key)
+
+    suggested = client.get_curated_templates(job_title=job_title, tasks=task_dicts)
+    if not suggested:
+        raise HTTPException(status_code=422, detail="No templates found for this workflow")
+
+    merged = client.build_merged_canvas(job_title=job_title, suggested_templates=suggested)
+    n8n_json_str = _json.dumps(merged)
+
+    # Write directly via raw SQL (avoids session detachment issue)
+    from sqlalchemy import text as _text
+    db.execute(_text("UPDATE workflows SET n8n_workflow_json = :j WHERE id = :i"),
+               {"j": n8n_json_str, "i": workflow_id})
+    db.commit()
+
+    return {
+        "ok": True,
+        "workflow_id": workflow_id,
+        "job_title": job_title,
+        "templates_used": len(suggested),
+        "node_count": len(merged.get("nodes", [])),
+        "canvas_name": merged.get("name"),
+        "templates": [{"task": t.get("task_name"), "template": t.get("name"), "reason": t.get("relevance_reason")} for t in suggested],
+    }
+
+
 @router.get("/admin/stats")
 def get_admin_stats(db: Session = Depends(get_db), _=Depends(_require_admin)):
     # ── Totals ─────────────────────────────────────────────────────────────
