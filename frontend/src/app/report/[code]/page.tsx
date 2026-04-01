@@ -54,7 +54,7 @@ interface TaskResult {
 
 interface AnalysisData {
   id: number; workflow_id: number
-  workflow: { id: number; share_code?: string; name: string; description: string; tasks: WorkflowTask[]; input_mode?: string }
+  workflow: { id: number; share_code?: string; name: string; description: string; tasks: WorkflowTask[]; input_mode?: string; n8n_workflow_json?: string }
   automation_score: number; hours_saved: number; annual_savings: number
   readiness_score?: number
   results: TaskResult[]
@@ -251,6 +251,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
           shareUrl={shareUrl}
           shareCode={code}
           isJobScan={data.workflow.input_mode === 'job_scan'}
+          n8nWorkflowJson={data.workflow.n8n_workflow_json}
           topTaskResults={[...data.results]
             .sort((a, b) => b.ai_readiness_score - a.ai_readiness_score)
             .slice(0, 3)

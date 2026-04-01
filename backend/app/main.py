@@ -45,6 +45,7 @@ try:
             "ALTER TABLE analyses ADD COLUMN readiness_process_docs REAL",
             "ALTER TABLE analyses ADD COLUMN readiness_tool_maturity REAL",
             "ALTER TABLE analyses ADD COLUMN readiness_team_skills REAL",
+            "ALTER TABLE workflows ADD COLUMN n8n_workflow_json TEXT",
         ]:
             try:
                 conn.execute(text(ddl))
