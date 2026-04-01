@@ -34,10 +34,12 @@ _CATEGORY_QUERIES: Dict[str, List[str]] = {
     "reporting":     ["automated report slack email", "weekly metrics report google sheets"],
     "scheduling":    ["calendar meeting scheduling automation", "automated calendar invite reminder"],
     "communication": ["email triage classification automation", "slack inbox notification automation"],
-    "analysis":      ["metrics kpi dashboard automation", "data analysis monitoring alert"],
+    "analysis":      ["github pull request review automation", "code review notification slack"],
     "research":      ["web scraping content research automation", "rss news feed aggregation"],
     "management":    ["jira trello task management automation", "project status update slack"],
     "general":       ["business process automation workflow", "productivity automation trigger"],
+    "testing":       ["automated testing github actions", "unit test ci cd pipeline"],
+    "documentation": ["documentation generation automation", "confluence notion auto update"],
 }
 
 _N8N_TEMPLATE_BASE = "https://api.n8n.io"
@@ -328,12 +330,14 @@ class N8nTemplateClient:
             tid = pick.get("id")
             reason = pick.get("reason", "")
             if tid is None:
-                return None, ""
+                # LLM rejected all candidates — use best by node count as fallback
+                best = max(candidates, key=lambda c: c.get("node_count", 0))
+                return best["id"], "Best available automation template"
             return int(tid), reason
         except Exception as exc:
             print(f"[n8n curation] task='{task_name}' LLM error: {exc}")
-            # Fallback: first candidate
-            return (candidates[0]["id"], "Best available match") if candidates else (None, "")
+            best = max(candidates, key=lambda c: c.get("node_count", 0))
+            return (best["id"], "Best available match") if candidates else (None, "")
 
     # ------------------------------------------------------------------
     # STEP 3 — FETCH IMPORTABLE WORKFLOW JSON (with cache)
