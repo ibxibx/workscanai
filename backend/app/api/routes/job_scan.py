@@ -318,13 +318,9 @@ async def job_scan_analyze(
         from app.services.n8n_template_client import N8nTemplateClient
         from app.services.job_scanner import JobScanner
 
-        top_task_dicts = [t.dict() for t in tasks[:5]]
+        top_task_dicts = [t.dict() for t in tasks[:6]]
 
-        # 1. Assembled category-template workflow (deterministic, always works)
-        scanner = JobScanner()
-        n8n_workflow = scanner._generate_n8n_workflow(request.job_title, top_task_dicts)
-
-        # 2. Real community templates from n8n API (curated by LLM)
+        # 1. Per-task community template curation
         api_key = os.getenv("ANTHROPIC_API_KEY", "")
         client = N8nTemplateClient(anthropic_api_key=api_key)
         suggested_templates = client.get_curated_templates(
@@ -332,7 +328,18 @@ async def job_scan_analyze(
             tasks=top_task_dicts,
         )
 
-        # 3. Persist n8n workflow JSON — direct connection bypasses session state
+        # 2. Merge all per-task templates into one importable canvas
+        if suggested_templates:
+            n8n_workflow = client.build_merged_canvas(
+                job_title=request.job_title,
+                suggested_templates=suggested_templates,
+            )
+        else:
+            # Fallback: assembled skeleton if no templates found
+            from app.services.job_scanner import JobScanner as _JS
+            n8n_workflow = _JS()._generate_n8n_workflow(request.job_title, top_task_dicts)
+
+        # 3. Persist merged canvas — direct connection bypasses session state
         import json as _json
         from app.core.config import settings as _settings
         _n8n_str = _json.dumps(n8n_workflow)
@@ -347,7 +354,6 @@ async def job_scan_analyze(
             finally:
                 _conn.close()
         else:
-            # Local SQLite fallback
             from app.core.database import engine as _engine
             from sqlalchemy import text as _text
             with _engine.connect() as _c:
