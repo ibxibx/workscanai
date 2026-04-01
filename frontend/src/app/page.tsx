@@ -18,9 +18,12 @@ export default function LandingPage() {
     setSpotlightPos({ x, y })
   }, [])
 
-  const handleAnalysisComplete = (workflowId: number) => {
-    // Use hard navigation so the overlay stays visible during the transition
-    window.location.href = `/dashboard/results/${workflowId}`
+  const handleAnalysisComplete = (workflowId: number, shareCode?: string) => {
+    // Job Scanner returns a share_code — go to the public report URL directly
+    // Other modes only have a workflow ID — use the dashboard results route
+    window.location.href = shareCode
+      ? `/report/${shareCode}`
+      : `/dashboard/results/${workflowId}`
   }
 
   return (

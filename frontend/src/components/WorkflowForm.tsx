@@ -16,7 +16,7 @@ interface Task {
 }
 
 interface WorkflowFormProps {
-  onAnalysisComplete: (workflowId: number) => void
+  onAnalysisComplete: (workflowId: number, shareCode?: string) => void
   onError: (error: string) => void
 }
 
@@ -478,7 +478,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       if (!r2.ok) { const e = await r2.json().catch(()=>({})); throw new Error(e.detail || `Analysis failed (${r2.status})`) }
       const d2 = await r2.json()
       setJobScanStep('done')
-      onAnalysisComplete(d2.workflow_id)
+      onAnalysisComplete(d2.workflow_id, d2.share_code)
     } catch (err: any) {
       setJobScanError(err.message || 'Job scan failed. Please try again.')
       setJobScanStep('idle')
