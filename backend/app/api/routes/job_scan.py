@@ -334,7 +334,11 @@ async def job_scan_analyze(
 
         # 3. Persist n8n workflow JSON so share/report pages can download it
         import json as _json
-        workflow.n8n_workflow_json = _json.dumps(n8n_workflow)
+        from sqlalchemy import text as _text
+        db.execute(
+            _text("UPDATE workflows SET n8n_workflow_json = :j WHERE id = :i"),
+            {"j": _json.dumps(n8n_workflow), "i": workflow.id}
+        )
         db.commit()
     except Exception as exc:
         print(f"[n8n] workflow/template generation error: {exc}")
