@@ -125,8 +125,8 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
             WorkScanAI
           </a>
           <span className="text-[12px] opacity-80 hidden sm:inline">AI-Powered Workflow Analysis</span>
-          <a href="https://workscanai.vercel.app/dashboard/job-scanner" className="hidden sm:inline-flex items-center gap-[5px] text-[12px] font-semibold bg-white/20 hover:bg-white/30 px-[12px] py-[4px] rounded-full transition-all">
-            Try Job Scanner &rarr;
+          <a href="https://workscanai.vercel.app/#analyze" className="hidden sm:inline-flex items-center gap-[5px] text-[12px] font-semibold bg-white/20 hover:bg-white/30 px-[12px] py-[4px] rounded-full transition-all">
+            Analyse your workflow &rarr;
           </a>
           <span className="text-[11px] opacity-50 font-mono">#{code}</span>
         </div>
@@ -269,8 +269,8 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
             WorkScanAI identifies automation opportunities and calculates ROI in minutes &mdash; not months.
           </p>
           <div className="flex flex-col sm:flex-row gap-[12px] justify-center items-center">
-            <a href="https://workscanai.vercel.app" className="inline-flex items-center justify-center bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[15px] transition-all w-full sm:w-auto shadow-md">
-              Try WorkScanAI free &rarr;
+            <a href="https://workscanai.vercel.app/#analyze" className="inline-flex items-center justify-center bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[15px] transition-all w-full sm:w-auto shadow-md">
+              Analyse your workflow free &rarr;
             </a>
             <div className="inline-flex items-center justify-center border border-[#424245] text-[#86868b] px-[16px] py-[13px] rounded-full text-[11px] font-mono w-full sm:w-auto overflow-hidden max-w-[280px]">
               <span className="truncate">{shareUrl}</span>
