@@ -740,7 +740,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
             { mode:'document' as const,  icon:Upload,   label:'Upload Document',  sublabel:'PDF, Word, CV, Excel…' },
             { mode:'jobscan' as const,   icon:Search,   label:'Job Scanner',      sublabel:'Auto-scan any job title' },
           ]).map(({mode,icon:Icon,label,sublabel}) => (
-            <button key={mode} type="button" onClick={()=>setInputMode(mode)}
+            <button key={mode} type="button" onClick={()=>{
+                setInputMode(mode)
+                // Auto-select Solo when Job Scanner is clicked (user can change before submitting)
+                if (mode === 'jobscan' && !analysisContext) setAnalysisContext('individual')
+              }}
               className={`flex-1 flex items-center justify-center gap-[10px] px-[16px] py-[14px] rounded-[14px] font-semibold transition-all ${inputMode===mode?'bg-white text-[#1d1d1f] shadow-md':'text-white/60 hover:text-white hover:bg-white/10'}`}>
               <Icon className="h-[18px] w-[18px] shrink-0"/>
               <div className="text-left hidden sm:block">
@@ -983,6 +987,37 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                   />
                 </div>
                 {jobScanError&&<div className="bg-red-50 border border-red-200 rounded-[10px] px-[14px] py-[10px] text-[13px] text-red-600">{jobScanError}</div>}
+
+                {/* Inline context selector — auto-set to Solo, user can change */}
+                <div>
+                  <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-[10px]">Analysing as</label>
+                  <div className="grid grid-cols-3 gap-[8px]">
+                    {CONTEXT_OPTIONS.map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => { setAnalysisContext(opt.value); setContextError(false) }}
+                        className={`flex flex-col items-center gap-[6px] px-[10px] py-[12px] rounded-[12px] border-2 transition-all ${
+                          analysisContext === opt.value
+                            ? 'border-[#0071e3] bg-blue-50'
+                            : 'border-[#e8e8ed] bg-white hover:border-[#b8b8bd]'
+                        }`}
+                      >
+                        <div className={`w-[36px] h-[36px] rounded-full bg-gradient-to-br ${opt.gradient} flex items-center justify-center shrink-0`}>
+                          {opt.icon}
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[12px] font-semibold text-[#1d1d1f] leading-tight">{opt.label}</div>
+                          <div className="text-[10px] text-[#86868b]">{opt.desc}</div>
+                        </div>
+                        {analysisContext === opt.value && (
+                          <CheckCircle2 className="h-[14px] w-[14px] text-[#0071e3]" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <button type="button" onClick={handleJobScan} disabled={!jobTitle.trim()}
                   className="w-full flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-[17px] py-[14px] rounded-full transition-all">
                   <Search className="h-[18px] w-[18px]"/>Scan This Job
