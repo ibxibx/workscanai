@@ -47,7 +47,8 @@ class WorkflowResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime]
     tasks: List[TaskResponse] = []
-    
+    n8n_workflow_json: Optional[str] = None
+
     class Config:
         from_attributes = True
 

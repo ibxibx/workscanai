@@ -9,6 +9,7 @@ interface ReportActionsProps {
   shareUrl: string
   shareCode: string
   isJobScan: boolean
+  n8nWorkflowJson?: string
   topTaskResults: Array<{
     taskName: string
     score: number
@@ -21,6 +22,7 @@ export default function ReportActions({
   workflowName,
   shareUrl,
   isJobScan,
+  n8nWorkflowJson,
   topTaskResults,
 }: ReportActionsProps) {
   const [copied, setCopied] = useState(false)
@@ -56,30 +58,43 @@ export default function ReportActions({
   }
 
   const downloadN8n = () => {
-    const nodes = [
-      {
-        id: 'node_trigger', name: 'Schedule Trigger',
-        type: 'n8n-nodes-base.scheduleTrigger', typeVersion: 1,
-        position: [240, 300],
-        parameters: { rule: { interval: [{ field: 'hours', hoursInterval: 24 }] } },
-      },
-      ...topTaskResults.slice(0, 3).map((r, i) => ({
-        id: `node_task_${i}`, name: r.taskName,
-        type: 'n8n-nodes-base.httpRequest', typeVersion: 3,
-        position: [460 + i * 220, 300],
-        parameters: { method: 'POST', url: 'https://example.com/webhook' },
-        notes: r.recommendation?.slice(0, 200) || '',
-      })),
-    ]
-    const workflow = {
-      name: `${workflowName} — WorkScanAI Automation`,
-      nodes,
-      connections: { 'Schedule Trigger': { main: [[{ node: topTaskResults[0]?.taskName || 'Task 1', type: 'main', index: 0 }]] } },
-      active: false, settings: { executionOrder: 'v1' },
-      id: `workscanai-${workflowId}`,
-      meta: { generatedBy: 'WorkScanAI', reportUrl: shareUrl },
+    let workflowObj: object
+
+    if (n8nWorkflowJson) {
+      // Use the real AI-generated workflow stored at analysis time
+      try {
+        workflowObj = JSON.parse(n8nWorkflowJson)
+      } catch {
+        workflowObj = JSON.parse(n8nWorkflowJson) // will throw and be caught below
+      }
+    } else {
+      // Fallback: build a minimal skeleton from task names
+      const nodes = [
+        {
+          id: 'node_trigger', name: 'Schedule Trigger',
+          type: 'n8n-nodes-base.scheduleTrigger', typeVersion: 1,
+          position: [240, 300],
+          parameters: { rule: { interval: [{ field: 'hours', hoursInterval: 24 }] } },
+        },
+        ...topTaskResults.slice(0, 3).map((r, i) => ({
+          id: `node_task_${i}`, name: r.taskName,
+          type: 'n8n-nodes-base.httpRequest', typeVersion: 3,
+          position: [460 + i * 220, 300],
+          parameters: { method: 'POST', url: 'https://example.com/webhook' },
+        })),
+      ]
+      workflowObj = {
+        name: `${workflowName} \u2014 WorkScanAI Automation`,
+        nodes,
+        connections: {},
+        active: false,
+        settings: { executionOrder: 'v1' },
+        id: `workscanai-${workflowId}`,
+        meta: { generatedBy: 'WorkScanAI', reportUrl: shareUrl },
+      }
     }
-    const blob = new Blob([JSON.stringify(workflow, null, 2)], { type: 'application/json' })
+
+    const blob = new Blob([JSON.stringify(workflowObj, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

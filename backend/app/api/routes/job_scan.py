@@ -331,6 +331,11 @@ async def job_scan_analyze(
             job_title=request.job_title,
             tasks=top_task_dicts,
         )
+
+        # 3. Persist n8n workflow JSON so share/report pages can download it
+        import json as _json
+        workflow.n8n_workflow_json = _json.dumps(n8n_workflow)
+        db.commit()
     except Exception as exc:
         print(f"[n8n] workflow/template generation error: {exc}")
         n8n_workflow = {"name": f"{request.job_title} Workflow", "nodes": [], "connections": {}}
