@@ -36,6 +36,7 @@ interface SuggestedTemplate {
  node_count: number
  nodes_preview: string[]
  workflow_json: Record<string, unknown>
+ task_name?: string
 }
 
 interface AnalysisData {
@@ -47,6 +48,7 @@ interface AnalysisData {
  analysis_context?: string
  team_size?: string; industry?: string
  input_mode?: string
+ n8n_workflow_json?: string
  }
  automation_score: number; hours_saved: number; annual_savings: number
  readiness_score?: number; readiness_data_quality?: number
@@ -198,27 +200,29 @@ export default function ResultsPage() {
  }
 
  const downloadN8nWorkflow = async () => {
- // If we already have suggested templates, download the top one
- if (suggestedTemplates.length > 0) {
- const tpl = suggestedTemplates[0]
- const blob = new Blob([JSON.stringify(tpl.workflow_json, null, 2)], { type: 'application/json' })
+ const jobTitle = analysisData!.workflow.name.replace(/\s*[-\u2014]+\s*Job Scanner/i, '').trim()
+ const fileName = `${jobTitle.replace(/\s+/g, '_')}_n8n_canvas.json`
+
+ // 1. Best: use stored merged canvas from DB
+ if (analysisData!.workflow.n8n_workflow_json) {
+ try {
+ const parsed = JSON.parse(analysisData!.workflow.n8n_workflow_json)
+ const blob = new Blob([JSON.stringify(parsed, null, 2)], { type: 'application/json' })
  const url = URL.createObjectURL(blob)
- const a = document.createElement('a')
- a.href = url
- a.download = `${analysisData!.workflow.name.replace(/\s+/g, '_')}_n8n_template_${tpl.id}.json`
+ const a = document.createElement('a'); a.href = url; a.download = fileName
  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
  return
+ } catch { /* fall through */ }
  }
- // Fallback: fetch suggested templates from backend, then download
+
+ // 2. Fallback: fetch fresh per-task templates and build merged canvas on the fly
  try {
- const jobTitle = analysisData!.workflow.name.replace(/\s*[-\u2014]+\s*Job Scanner/i, '').trim()
  const taskDicts = analysisData!.results.map(r => ({
  name: r.task?.name || '',
  category: 'general',
  frequency: 'weekly',
  }))
- // Route through Vercel proxy to avoid CORS
- const res = await fetch(`/api/job-scan/n8n-templates`, {
+ const res = await fetch('/api/job-scan/n8n-templates', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({ job_title: jobTitle, tasks: taskDicts }),
@@ -228,19 +232,18 @@ export default function ResultsPage() {
  const templates: SuggestedTemplate[] = data.suggested_templates || []
  if (templates.length > 0) {
  setSuggestedTemplates(templates)
+ // Download top template as fallback
  const tpl = templates[0]
  const blob = new Blob([JSON.stringify(tpl.workflow_json, null, 2)], { type: 'application/json' })
  const url = URL.createObjectURL(blob)
- const a = document.createElement('a')
- a.href = url
- a.download = `${jobTitle.replace(/\s+/g, '_')}_n8n_template_${tpl.id}.json`
+ const a = document.createElement('a'); a.href = url
+ a.download = `${jobTitle.replace(/\s+/g, '_')}_n8n_${tpl.id}.json`
  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
  return
  }
  }
- } catch { /* fall through to assembled workflow */ }
- // Last resort: assembled template workflow (still better than example.com placeholders)
- console.warn('Could not fetch community templates, using assembled workflow')
+ } catch { /* fall through */ }
+ console.warn('No n8n workflow available for download')
  }
 
  return (
@@ -922,6 +925,11 @@ export default function ResultsPage() {
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
  {suggestedTemplates.map(tpl => (
  <div key={tpl.id} className="border border-[#e8e8ed] rounded-[14px] p-[18px] bg-[#fafafa] flex flex-col gap-[10px]">
+ {tpl.task_name && (
+ <div className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest border-b border-[#e8e8ed] pb-[8px]">
+ Task: {tpl.task_name}
+ </div>
+ )}
  <div className="flex items-start justify-between gap-[8px]">
  <p className="text-[13px] font-semibold text-[#1d1d1f] leading-snug">{tpl.name}</p>
  <a href={tpl.url} target="_blank" rel="noopener noreferrer"
@@ -973,7 +981,7 @@ export default function ResultsPage() {
  <Download className="h-[15px] w-[15px] shrink-0" /> Download PDF
  </button>
  <button onClick={downloadN8nWorkflow} className="inline-flex items-center justify-center gap-[8px] bg-[#1d1d1f] hover:bg-[#3a3a3c] text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm">
- <Download className="h-[15px] w-[15px] shrink-0" /> n8n Workflow .json
+ <Download className="h-[15px] w-[15px] shrink-0" /> n8n Canvas .json
  </button>
  <button onClick={handleShare} className="inline-flex items-center justify-center gap-[8px] border border-[#d2d2d7] hover:border-[#0071e3] hover:bg-[#f0f7ff] px-[24px] py-[13px] rounded-full font-medium text-[14px] text-[#1d1d1f] transition-all">
  {copied ? <><Check className="h-[15px] w-[15px] text-green-600 shrink-0" /><span className="text-green-600">Link copied!</span></> : <><Share2 className="h-[15px] w-[15px] shrink-0" /><span>Share Report</span></>}
