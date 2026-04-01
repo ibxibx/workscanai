@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 
 // Pings the Render backend to prevent free-tier spin-down (sleeps after ~15 min idle).
-// Cron schedule: every 5 days at 09:00 UTC (see vercel.json).
-// Previously pointed at Supabase — updated after migration to SQLite on Render.
+// Cron schedule: every 14 minutes (see vercel.json) — keeps Render warm at all times.
 export async function GET() {
   const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
 
