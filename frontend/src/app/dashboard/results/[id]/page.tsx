@@ -163,7 +163,15 @@ export default function ResultsPage() {
  return () => controller.abort()
  }, [id])
 
- if (loading) return <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]"><div className="max-w-[980px] mx-auto px-6 text-center"><div className="text-[24px] text-[#86868b]">Loading analysis...</div></div></div>
+ if (loading) return (
+  <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]">
+    <div className="max-w-[980px] mx-auto px-6 text-center pt-[80px]">
+      <div className="w-[48px] h-[48px] rounded-full border-[3px] border-[#e8e8ed] border-t-[#0071e3] animate-spin mx-auto mb-[24px]" />
+      <div className="text-[20px] font-semibold text-[#1d1d1f] mb-[8px]">Loading your analysis…</div>
+      <div className="text-[14px] text-[#86868b]">This may take a few seconds if the server is warming up.</div>
+    </div>
+  </div>
+ )
  if (error || !analysisData) return <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]"><div className="max-w-[980px] mx-auto px-6 text-center"><div className="text-[24px] text-red-600 mb-4">{error || 'No analysis data found'}</div><a href="/" className="text-[#0071e3] hover:underline">Go back to home</a></div></div>
 
  const context = analysisData.workflow.analysis_context || 'individual'
@@ -203,14 +211,14 @@ export default function ResultsPage() {
  }
  // Fallback: fetch suggested templates from backend, then download
  try {
- const RENDER_URL = process.env.NEXT_PUBLIC_RENDER_URL || 'https://workscanai.onrender.com'
- const jobTitle = analysisData!.workflow.name.replace(' -- Job Scanner', '').trim()
+ const jobTitle = analysisData!.workflow.name.replace(/\s*[-\u2014]+\s*Job Scanner/i, '').trim()
  const taskDicts = analysisData!.results.map(r => ({
  name: r.task?.name || '',
  category: 'general',
  frequency: 'weekly',
  }))
- const res = await fetch(`${RENDER_URL}/api/job-scan/n8n-templates`, {
+ // Route through Vercel proxy to avoid CORS
+ const res = await fetch(`/api/job-scan/n8n-templates`, {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({ job_title: jobTitle, tasks: taskDicts }),
