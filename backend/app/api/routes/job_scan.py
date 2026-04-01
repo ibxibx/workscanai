@@ -332,14 +332,27 @@ async def job_scan_analyze(
             tasks=top_task_dicts,
         )
 
-        # 3. Persist n8n workflow JSON so share/report pages can download it
+        # 3. Persist n8n workflow JSON — direct connection bypasses session state
         import json as _json
-        from sqlalchemy import text as _text
-        db.execute(
-            _text("UPDATE workflows SET n8n_workflow_json = :j WHERE id = :i"),
-            {"j": _json.dumps(n8n_workflow), "i": workflow.id}
-        )
-        db.commit()
+        from app.core.config import settings as _settings
+        _n8n_str = _json.dumps(n8n_workflow)
+        _wf_id = workflow.id
+        if _settings.TURSO_DATABASE_URL and _settings.TURSO_AUTH_TOKEN:
+            from app.core.turso_dbapi import connect as _tc
+            _conn = _tc(_settings.TURSO_DATABASE_URL, _settings.TURSO_AUTH_TOKEN)
+            try:
+                _cur = _conn.cursor()
+                _cur.execute("UPDATE workflows SET n8n_workflow_json = ? WHERE id = ?", (_n8n_str, _wf_id))
+                _conn.commit()
+            finally:
+                _conn.close()
+        else:
+            # Local SQLite fallback
+            from app.core.database import engine as _engine
+            from sqlalchemy import text as _text
+            with _engine.connect() as _c:
+                _c.execute(_text("UPDATE workflows SET n8n_workflow_json = :j WHERE id = :i"), {"j": _n8n_str, "i": _wf_id})
+                _c.commit()
     except Exception as exc:
         print(f"[n8n] workflow/template generation error: {exc}")
         n8n_workflow = {"name": f"{request.job_title} Workflow", "nodes": [], "connections": {}}
