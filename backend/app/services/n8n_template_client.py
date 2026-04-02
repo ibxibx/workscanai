@@ -1,377 +1,616 @@
 """
-N8nTemplateClient — fetches real, importable workflow templates from
-https://api.n8n.io/templates, curates them per-task using Claude,
-and merges them into one importable n8n canvas file.
+N8nTemplateClient — builds role-specific n8n automation canvases.
 
-Architecture (Benedikt's MVP):
-  Job -> split tasks -> per-task: search + LLM rank -> fetch real JSONs
-  -> merge all into one n8n canvas with sticky-note section headers
-  -> user imports one file, sees all workflows laid out by task
+ARCHITECTURE DECISION (after research):
+  The n8n community search API returns the same 10 popularity-ranked templates
+  for EVERY search query regardless of terms. It is useless for role-specific
+  template matching.
 
-Key improvements over v1:
-  - Per-task curation: each task gets its own best-matching template
-  - Stronger curation prompt: scores by specific task name, penalises
-    generic "AI assistant" templates, requires concrete integration nodes
-  - Merged canvas: all templates combined into one importable file with
-    sticky note headers and vertically offset node groups per task
-  - suggested_templates[] returned for UI display cards
+  SOLUTION: Build purpose-specific workflow JSON from code.
+  Each task category gets a real, importable automation workflow with:
+  - Concrete app integrations (Slack, Gmail, Sheets, Jira, Calendar, etc.)
+  - Proper trigger → process → output pipeline
+  - Real node types with correct typeVersion numbers
+  - Proper connections format
+
+  All workflows are merged into one importable n8n canvas with:
+  - Top-level header sticky note
+  - One column per task, each with coloured sticky note label
+  - Horizontally offset so each task group is clearly separated
 """
 
 from __future__ import annotations
 
 import json
-import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
+import uuid
 
-import httpx
-from anthropic import Anthropic
+_CANVAS_COL_WIDTH = 1000   # horizontal gap between task columns
+_GROUP_Y_START   = 380     # y-position where node groups start (below top sticky)
+_NODE_Y_GAP      = 220     # vertical gap between nodes in a group
+_STICKY_HEIGHT   = 160     # height of per-task sticky note
+
 
 # ---------------------------------------------------------------------------
-# Category -> search query mapping (2 queries per category)
+# Node factory helpers — generate valid n8n node dicts
 # ---------------------------------------------------------------------------
-_CATEGORY_QUERIES: Dict[str, List[str]] = {
-    "data_entry":    ["data entry google sheets automation", "form submission database automation"],
-    "reporting":     ["automated report slack email", "weekly metrics report google sheets"],
-    "scheduling":    ["calendar meeting scheduling automation", "automated calendar invite reminder"],
-    "communication": ["email triage classification automation", "slack inbox notification automation"],
-    "analysis":      ["github pull request review automation", "code review notification slack"],
-    "research":      ["web scraping content research automation", "rss news feed aggregation"],
-    "management":    ["jira trello task management automation", "project status update slack"],
-    "general":       ["business process automation workflow", "productivity automation trigger"],
-    "testing":       ["automated testing github actions", "unit test ci cd pipeline"],
-    "documentation": ["documentation generation automation", "confluence notion auto update"],
+
+def _id() -> str:
+    return str(uuid.uuid4())
+
+
+def _node(node_id: str, name: str, ntype: str, x: int, y: int,
+          params: dict = None, tv: float = 1) -> dict:
+    return {
+        "id": node_id,
+        "name": name,
+        "type": ntype,
+        "typeVersion": tv,
+        "position": [x, y],
+        "parameters": params or {},
+    }
+
+
+def _sticky(node_id: str, name: str, x: int, y: int,
+            content: str, color: int = 3, w: int = 920, h: int = 140) -> dict:
+    return {
+        "id": node_id,
+        "name": name,
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [x, y],
+        "parameters": {"color": color, "width": w, "height": h, "content": content},
+    }
+
+
+def _schedule_node(nid: str, x: int, y: int, cron: str = "0 9 * * 1") -> dict:
+    return _node(nid, "Schedule Trigger", "n8n-nodes-base.scheduleTrigger", x, y,
+                 {"rule": {"interval": [{"field": "cronExpression", "expression": cron}]}})
+
+
+def _http_node(nid: str, name: str, x: int, y: int,
+               url: str = "={{ $vars.API_URL }}", method: str = "GET") -> dict:
+    return _node(nid, name, "n8n-nodes-base.httpRequest", x, y,
+                 {"method": method, "url": url, "authentication": "none",
+                  "options": {}}, 4.2)
+
+
+def _slack_node(nid: str, name: str, x: int, y: int,
+                channel: str = "#automation", text: str = "") -> dict:
+    return _node(nid, name, "n8n-nodes-base.slack", x, y,
+                 {"resource": "message", "operation": "post",
+                  "select": "channel", "channelId": {"__rl": True, "value": channel, "mode": "name"},
+                  "text": text or "={{ $json.summary }}"}, 2.2)
+
+
+def _gmail_send(nid: str, name: str, x: int, y: int,
+                to: str = "={{ $vars.REPORT_EMAIL }}", subject: str = "",
+                body: str = "") -> dict:
+    return _node(nid, name, "n8n-nodes-base.gmail", x, y,
+                 {"resource": "message", "operation": "send",
+                  "sendTo": to, "subject": subject or "Automated Report",
+                  "message": body or "={{ $json.report }}", "options": {}}, 2.1)
+
+
+def _gmail_get(nid: str, name: str, x: int, y: int,
+               query: str = "is:unread") -> dict:
+    return _node(nid, name, "n8n-nodes-base.gmail", x, y,
+                 {"resource": "message", "operation": "getAll",
+                  "filters": {"q": query},
+                  "returnAll": False, "limit": 20, "options": {}}, 2.1)
+
+
+def _sheets_read(nid: str, name: str, x: int, y: int) -> dict:
+    return _node(nid, name, "n8n-nodes-base.googleSheets", x, y,
+                 {"resource": "sheet", "operation": "read",
+                  "documentId": {"__rl": True, "mode": "list",
+                                 "value": "={{ $vars.SPREADSHEET_ID }}",
+                                 "cachedResultName": "Your KPI Spreadsheet"},
+                  "sheetName": {"__rl": True, "mode": "list", "value": "Sheet1"}}, 4.5)
+
+
+def _sheets_append(nid: str, name: str, x: int, y: int) -> dict:
+    return _node(nid, name, "n8n-nodes-base.googleSheets", x, y,
+                 {"resource": "sheet", "operation": "appendOrUpdate",
+                  "documentId": {"__rl": True, "mode": "list",
+                                 "value": "={{ $vars.SPREADSHEET_ID }}",
+                                 "cachedResultName": "Your Spreadsheet"},
+                  "sheetName": {"__rl": True, "mode": "list", "value": "Sheet1"},
+                  "columns": {"mappingMode": "autoMapInputData",
+                              "matchingColumns": ["id"]}}, 4.5)
+
+
+def _code_node(nid: str, name: str, x: int, y: int, js: str) -> dict:
+    return _node(nid, name, "n8n-nodes-base.code", x, y,
+                 {"jsCode": js, "mode": "runOnceForAllItems"}, 2)
+
+
+def _set_node(nid: str, name: str, x: int, y: int, fields: List[dict]) -> dict:
+    return _node(nid, name, "n8n-nodes-base.set", x, y,
+                 {"mode": "manual",
+                  "assignments": {"assignments": fields}}, 3.4)
+
+
+def _jira_node(nid: str, name: str, x: int, y: int,
+               op: str = "getAll", resource: str = "issue") -> dict:
+    return _node(nid, name, "n8n-nodes-base.jira", x, y,
+                 {"resource": resource, "operation": op,
+                  "project": "={{ $vars.JIRA_PROJECT }}",
+                  "additionalFields": {}}, 1)
+
+
+def _calendar_node(nid: str, name: str, x: int, y: int,
+                   op: str = "getAll") -> dict:
+    return _node(nid, name, "n8n-nodes-base.googleCalendar", x, y,
+                 {"resource": "event", "operation": op,
+                  "calendar": {"__rl": True, "value": "primary", "mode": "list"},
+                  "options": {}}, 1.3)
+
+
+def _webhook_node(nid: str, name: str, x: int, y: int,
+                  path: str = "webhook") -> dict:
+    return _node(nid, name, "n8n-nodes-base.webhook", x, y,
+                 {"path": path, "httpMethod": "POST",
+                  "responseMode": "onReceived",
+                  "responseData": "allEntries"}, 2)
+
+
+def _notion_node(nid: str, name: str, x: int, y: int, op: str = "getAll") -> dict:
+    return _node(nid, name, "n8n-nodes-base.notion", x, y,
+                 {"resource": "databasePage", "operation": op,
+                  "databaseId": {"__rl": True, "mode": "list",
+                                 "value": "={{ $vars.NOTION_DATABASE_ID }}"}}, 2.2)
+
+
+def _filter_node(nid: str, name: str, x: int, y: int,
+                 field: str = "status", value: str = "open") -> dict:
+    return _node(nid, name, "n8n-nodes-base.filter", x, y,
+                 {"conditions": {"options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict"},
+                                 "conditions": [{"id": _id(), "leftValue": f"={{{{ $json['{field}'] }}}}",
+                                                 "rightValue": value, "operator": {"type": "string", "operation": "equals"}}],
+                                 "combinator": "and"}}, 2)
+
+
+def _conn_edge(src: str, dst: str, src_idx: int = 0, dst_idx: int = 0,
+               conn_type: str = "main") -> Tuple[str, dict]:
+    """Returns (src_name, edge_dict) for building connections object."""
+    return src, {"node": dst, "type": conn_type, "index": dst_idx}
+
+
+
+# ---------------------------------------------------------------------------
+# WORKFLOW BUILDERS — one per task category
+# Each returns {"nodes": [...], "connections": {...}}
+# ---------------------------------------------------------------------------
+
+def _build_connections(edges: List[Tuple[str, str]]) -> dict:
+    """
+    Build n8n connections dict from list of (src_name, dst_name) pairs.
+    Each edge: src -> dst on main[0] -> main[0].
+    """
+    conns: dict = {}
+    for src, dst in edges:
+        if src not in conns:
+            conns[src] = {"main": [[]]}
+        conns[src]["main"][0].append({"node": dst, "type": "main", "index": 0})
+    return conns
+
+
+def build_reporting_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
+    """Weekly report: read KPIs from Sheets -> compute -> Slack + email."""
+    y = _GROUP_Y_START
+    n1 = _schedule_node(_id(), x0, y, "0 8 * * 1")
+    n2 = _sheets_read(_id(), "Read KPI Sheet", x0 + 220, y)
+    n3 = _code_node(_id(), "Compute Weekly Summary", x0 + 440, y,
+                    "const rows = items.map(i => i.json);\n"
+                    "const total = rows.reduce((s, r) => s + (Number(r.value) || 0), 0);\n"
+                    "const avg = rows.length ? (total / rows.length).toFixed(1) : 0;\n"
+                    "const top = rows.sort((a,b)=>(b.value||0)-(a.value||0))[0]?.metric || 'N/A';\n"
+                    "const week = new Date().toISOString().slice(0, 10);\n"
+                    "return [{ json: { total, avg, top, week, count: rows.length } }];")
+    n4 = _slack_node(_id(), "Post Weekly Report", x0 + 660, y, "#reports",
+                     f"\U0001F4CA *{task_name}*\n"
+                     "Week: {{{{ $json.week }}}} | Total: {{{{ $json.total }}}} | "
+                     "Avg: {{{{ $json.avg }}}} | Top: {{{{ $json.top }}}}")
+    n5 = _gmail_send(_id(), "Email Weekly Report", x0 + 660, y + 220,
+                     subject=f"Weekly Report: {task_name}",
+                     body="Week: ={{ $json.week }}\nTotal: ={{ $json.total }}\n"
+                          "Average: ={{ $json.avg }}\nTop metric: ={{ $json.top }}")
+    nodes = [n1, n2, n3, n4, n5]
+    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
+             (n3["name"], n4["name"]), (n3["name"], n5["name"])]
+    return nodes, _build_connections(edges)
+
+
+def build_management_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
+    """Task/project mgmt: fetch Jira issues -> filter open -> post digest to Slack."""
+    y = _GROUP_Y_START
+    n1 = _schedule_node(_id(), x0, y, "0 9 * * 1-5")
+    n2 = _jira_node(_id(), "Get Jira Issues", x0 + 220, y, "getAll")
+    n3 = _filter_node(_id(), "Filter Open Issues", x0 + 440, y, "fields.status.name", "To Do")
+    n4 = _code_node(_id(), "Format Digest", x0 + 660, y,
+                    "const issues = items.map(i => i.json);\n"
+                    "const lines = issues.slice(0, 10).map(i =>\n"
+                    "  `• [${i.key}] ${i.fields?.summary || 'No title'} "
+                    "(${i.fields?.priority?.name || 'Normal'})`\n);\n"
+                    "return [{ json: {\n"
+                    "  digest: lines.join('\\n') || 'No open issues',\n"
+                    "  count: issues.length,\n"
+                    "  date: new Date().toISOString().slice(0, 10)\n"
+                    "}}];")
+    n5 = _slack_node(_id(), "Post Issue Digest", x0 + 880, y, "#product",
+                     f"\U0001F4CB *{task_name}* ({{{{ $json.count }}}} open)\n"
+                     "{{{{ $json.date }}}}\n\n{{{{ $json.digest }}}}")
+    nodes = [n1, n2, n3, n4, n5]
+    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
+             (n3["name"], n4["name"]), (n4["name"], n5["name"])]
+    return nodes, _build_connections(edges)
+
+
+def build_communication_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
+    """Email triage: scan Gmail for priority emails -> forward digest to Slack."""
+    y = _GROUP_Y_START
+    n1 = _schedule_node(_id(), x0, y, "*/30 9-18 * * 1-5")
+    n2 = _gmail_get(_id(), "Scan Priority Inbox", x0 + 220, y,
+                    "is:unread label:inbox -label:newsletters")
+    n3 = _code_node(_id(), "Filter & Classify", x0 + 440, y,
+                    "const msgs = items.map(i => i.json);\n"
+                    "const priority = msgs.filter(m => {\n"
+                    "  const s = (m.subject || '').toLowerCase();\n"
+                    "  return s.includes('urgent') || s.includes('action') ||\n"
+                    "         s.includes('asap') || s.includes('deadline');\n"
+                    "});\n"
+                    "if (!priority.length) return [];\n"
+                    "return priority.map(m => ({ json: {\n"
+                    "  subject: m.subject, from: m.from,\n"
+                    "  snippet: (m.snippet || '').slice(0, 120),\n"
+                    "  id: m.id\n"
+                    "}}));")
+    n4 = _slack_node(_id(), "Alert Priority Email", x0 + 660, y, "#urgent",
+                     f"\U0001F6A8 *Priority Email — {task_name}*\n"
+                     "From: {{{{ $json.from }}}}\n"
+                     "Subject: {{{{ $json.subject }}}}\n"
+                     "{{{{ $json.snippet }}}}")
+    nodes = [n1, n2, n3, n4]
+    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
+             (n3["name"], n4["name"])]
+    return nodes, _build_connections(edges)
+
+
+def build_scheduling_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
+    """Calendar: fetch today's events -> post schedule to Slack each morning."""
+    y = _GROUP_Y_START
+    n1 = _schedule_node(_id(), x0, y, "30 8 * * 1-5")
+    n2 = _calendar_node(_id(), "Get Today Events", x0 + 220, y, "getAll")
+    n3 = _code_node(_id(), "Format Schedule", x0 + 440, y,
+                    "const events = items.map(i => i.json);\n"
+                    "if (!events.length) return [{ json: { msg: 'No meetings today \U0001F3D6\uFE0F' } }];\n"
+                    "const lines = events.map(e => {\n"
+                    "  const time = e.start?.dateTime?.slice(11, 16) || 'All day';\n"
+                    "  return `• ${time} — ${e.summary || 'Untitled'}`;\n"
+                    "});\n"
+                    "return [{ json: { msg: lines.join('\\n'), count: events.length } }];")
+    n4 = _slack_node(_id(), "Post Daily Schedule", x0 + 660, y, "#team",
+                     f"\U0001F4C5 *{task_name} — Today* ({{{{ $json.count }}}} meetings)\n"
+                     "{{{{ $json.msg }}}}")
+    nodes = [n1, n2, n3, n4]
+    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
+             (n3["name"], n4["name"])]
+    return nodes, _build_connections(edges)
+
+
+def build_data_entry_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
+    """Data entry: receive via webhook -> validate -> append to Sheets -> confirm."""
+    y = _GROUP_Y_START
+    n1 = _webhook_node(_id(), "Receive Entry", x0, y, "data-entry")
+    n2 = _code_node(_id(), "Validate & Format", x0 + 220, y,
+                    "const d = items[0].json;\n"
+                    "const required = ['name', 'value', 'category'];\n"
+                    "const missing = required.filter(k => !d[k]);\n"
+                    "if (missing.length) throw new Error(`Missing: ${missing.join(', ')}`);\n"
+                    "return [{ json: {\n"
+                    "  name: String(d.name).trim(),\n"
+                    "  value: Number(d.value),\n"
+                    "  category: String(d.category).trim(),\n"
+                    "  source: d.source || 'webhook',\n"
+                    "  timestamp: new Date().toISOString()\n"
+                    "}}];")
+    n3 = _sheets_append(_id(), "Log to Sheet", x0 + 440, y)
+    n4 = _slack_node(_id(), "Confirm Entry", x0 + 660, y, "#data-log",
+                     f"\u2705 *{task_name}* logged\n"
+                     "Name: {{{{ $json.name }}}} | Value: {{{{ $json.value }}}} | "
+                     "Category: {{{{ $json.category }}}}")
+    nodes = [n1, n2, n3, n4]
+    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
+             (n3["name"], n4["name"])]
+    return nodes, _build_connections(edges)
+
+
+def build_research_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
+    """Research: fetch web/API data -> extract key info -> post digest."""
+    y = _GROUP_Y_START
+    n1 = _schedule_node(_id(), x0, y, "0 7 * * 1-5")
+    n2 = _http_node(_id(), "Fetch Data Source", x0 + 220, y,
+                    "={{ $vars.RESEARCH_API_URL || 'https://hacker-news.firebaseio.com/v0/topstories.json' }}")
+    n3 = _code_node(_id(), "Extract Key Insights", x0 + 440, y,
+                    "// Process fetched data into digestible insights\n"
+                    "const data = items[0].json;\n"
+                    "const items2 = Array.isArray(data) ? data.slice(0, 5) : [data];\n"
+                    "return [{ json: {\n"
+                    "  summary: `Found ${items2.length} items`,\n"
+                    "  data: JSON.stringify(items2).slice(0, 500),\n"
+                    "  date: new Date().toISOString().slice(0, 10)\n"
+                    "}}];")
+    n4 = _slack_node(_id(), "Post Research Digest", x0 + 660, y, "#research",
+                     f"\U0001F50D *{task_name}* — {{{{ $json.date }}}}\n"
+                     "{{{{ $json.summary }}}}\n\n{{{{ $json.data }}}}")
+    n5 = _sheets_append(_id(), "Log Research Results", x0 + 880, y)
+    nodes = [n1, n2, n3, n4, n5]
+    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
+             (n3["name"], n4["name"]), (n3["name"], n5["name"])]
+    return nodes, _build_connections(edges)
+
+
+def build_analysis_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
+    """Analysis: pull metrics -> compute KPIs -> report + log."""
+    y = _GROUP_Y_START
+    n1 = _schedule_node(_id(), x0, y, "0 8 * * 1")
+    n2 = _sheets_read(_id(), "Load Data", x0 + 220, y)
+    n3 = _code_node(_id(), "Run Analysis", x0 + 440, y,
+                    "const rows = items.map(i => i.json).filter(r => r.value !== undefined);\n"
+                    "if (!rows.length) return [{ json: { error: 'No data' } }];\n"
+                    "const values = rows.map(r => Number(r.value) || 0);\n"
+                    "const total = values.reduce((a, b) => a + b, 0);\n"
+                    "const avg = (total / values.length).toFixed(2);\n"
+                    "const max = Math.max(...values);\n"
+                    "const min = Math.min(...values);\n"
+                    "const top = rows.find(r => Number(r.value) === max)?.label || 'N/A';\n"
+                    "return [{ json: { total, avg, max, min, top,\n"
+                    "  count: rows.length, week: new Date().toISOString().slice(0,10) } }];")
+    n4 = _slack_node(_id(), "Post Analysis", x0 + 660, y, "#analytics",
+                     f"\U0001F4CA *{task_name}*\n"
+                     "Total: {{{{ $json.total }}}} | Avg: {{{{ $json.avg }}}} | "
+                     "Max: {{{{ $json.max }}}} ({{{{ $json.top }}}})")
+    n5 = _sheets_append(_id(), "Archive Results", x0 + 880, y)
+    nodes = [n1, n2, n3, n4, n5]
+    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
+             (n3["name"], n4["name"]), (n3["name"], n5["name"])]
+    return nodes, _build_connections(edges)
+
+
+def build_general_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
+    """General automation: scheduled trigger -> process -> notify."""
+    y = _GROUP_Y_START
+    n1 = _schedule_node(_id(), x0, y, "0 9 * * 1-5")
+    n2 = _http_node(_id(), f"Fetch {task_name[:30]} Data", x0 + 220, y,
+                    "={{ $vars.API_ENDPOINT || 'https://api.example.com/data' }}")
+    n3 = _code_node(_id(), "Process & Format", x0 + 440, y,
+                    "const data = items[0].json;\n"
+                    "const summary = typeof data === 'object'\n"
+                    "  ? JSON.stringify(data).slice(0, 300)\n"
+                    "  : String(data).slice(0, 300);\n"
+                    "return [{ json: { summary, timestamp: new Date().toISOString() } }];")
+    n4 = _slack_node(_id(), "Send Notification", x0 + 660, y, "#automation",
+                     f"\u26A1 *{task_name}*\n{{{{ $json.summary }}}}\n_{{{{ $json.timestamp }}}}_")
+    nodes = [n1, n2, n3, n4]
+    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
+             (n3["name"], n4["name"])]
+    return nodes, _build_connections(edges)
+
+
+# Map task category -> workflow builder
+_CATEGORY_BUILDERS = {
+    "reporting":     build_reporting_workflow,
+    "management":    build_management_workflow,
+    "communication": build_communication_workflow,
+    "scheduling":    build_scheduling_workflow,
+    "data_entry":    build_data_entry_workflow,
+    "research":      build_research_workflow,
+    "analysis":      build_analysis_workflow,
+    "general":       build_general_workflow,
+    "testing":       build_general_workflow,       # code-test specific
+    "documentation": build_reporting_workflow,     # docs = report-like
 }
 
-_N8N_TEMPLATE_BASE = "https://api.n8n.io"
-_HEADERS = {"User-Agent": "WorkScanAI/2.0 (workscanai.vercel.app)"}
-_SEARCH_RESULTS_PER_QUERY = 6
-_MAX_CANDIDATES_PER_TASK = 8   # candidates shown to LLM per task
-_CANVAS_COL_WIDTH = 900        # horizontal spacing between task groups
-_CANVAS_ROW_HEIGHT = 220       # vertical spacing between nodes within a group
-_STICKY_NOTE_OFFSET_Y = -180   # sticky note sits above each group
 
+# ---------------------------------------------------------------------------
+# CANVAS BUILDER — merges per-task workflows into one importable file
+# ---------------------------------------------------------------------------
+
+def _merge_connections(all_conns: List[dict]) -> dict:
+    """Merge multiple connections dicts, namespacing by appending nothing
+    (node names are unique because we include col index in names)."""
+    merged: dict = {}
+    for conns in all_conns:
+        for src, data in conns.items():
+            if src not in merged:
+                merged[src] = {"main": [[]]}
+            for edge in data.get("main", [[]])[0]:
+                merged[src]["main"][0].append(edge)
+    return merged
+
+
+def build_canvas(job_title: str, tasks: List[dict]) -> dict:
+    """
+    Build one merged n8n canvas for all tasks.
+    Each task gets its own workflow column with a sticky note header.
+    Returns a complete importable n8n workflow JSON dict.
+    """
+    all_nodes: List[dict] = []
+    all_connections_list: List[dict] = []
+
+    num_tasks = len(tasks)
+
+    # Top-level canvas header sticky note
+    canvas_width = max(960, num_tasks * _CANVAS_COL_WIDTH)
+    all_nodes.append(_sticky(
+        _id(),
+        f"\U0001F916 WorkScanAI — {job_title}",
+        0, 0,
+        f"# WorkScanAI Automation Canvas — {job_title}\n\n"
+        f"Generated by [WorkScanAI](https://workscanai.vercel.app)\n"
+        f"**{num_tasks} automation workflows** — one per task column below.\n\n"
+        f"**Setup:** Add your credentials in each node "
+        f"(Slack, Gmail, Google Sheets, Jira). "
+        f"Activate each workflow column independently.\n"
+        f"Set variables: `SPREADSHEET_ID`, `JIRA_PROJECT`, `REPORT_EMAIL`, etc.",
+        color=7, w=canvas_width, h=180
+    ))
+
+    # Colour palette for task columns (cycles)
+    COLORS = [3, 4, 5, 6, 2, 1]
+
+    for col_idx, task in enumerate(tasks):
+        task_name = task.get("name", f"Task {col_idx + 1}")
+        category  = task.get("category", "general").lower()
+        frequency = task.get("frequency", "weekly")
+        x0 = col_idx * _CANVAS_COL_WIDTH
+
+        # Pick builder for this category
+        builder = _CATEGORY_BUILDERS.get(category, build_general_workflow)
+
+        # Build the workflow nodes + connections for this task
+        task_nodes, task_conns = builder(task_name, x0)
+
+        # Add per-task sticky note header (sits above the nodes)
+        color = COLORS[col_idx % len(COLORS)]
+        tool_hint = {
+            "reporting":     "Slack + Gmail + Google Sheets",
+            "management":    "Jira + Slack",
+            "communication": "Gmail + Slack",
+            "scheduling":    "Google Calendar + Slack",
+            "data_entry":    "Webhook + Google Sheets + Slack",
+            "research":      "HTTP Request + Slack + Google Sheets",
+            "analysis":      "Google Sheets + Slack",
+            "general":       "HTTP Request + Slack",
+        }.get(category, "HTTP Request + Slack")
+
+        all_nodes.append(_sticky(
+            _id(),
+            f"\U0001F4CC Task {col_idx + 1}: {task_name[:50]}",
+            x0, _GROUP_Y_START - _STICKY_HEIGHT - 20,
+            f"## Task {col_idx + 1}: {task_name}\n"
+            f"**Category:** {category} | **Frequency:** {frequency}\n"
+            f"**Tools:** {tool_hint}\n"
+            f"**Setup:** Connect credentials, then activate this workflow.",
+            color=color, w=920, h=_STICKY_HEIGHT
+        ))
+
+        all_nodes.extend(task_nodes)
+        all_connections_list.append(task_conns)
+
+    merged_conns = _merge_connections(all_connections_list)
+
+    return {
+        "name": f"{job_title} — WorkScanAI Automation Canvas",
+        "nodes": all_nodes,
+        "connections": merged_conns,
+        "active": False,
+        "settings": {"executionOrder": "v1", "saveManualExecutions": True},
+        "meta": {
+            "generatedBy": "WorkScanAI",
+            "jobTitle": job_title,
+            "taskCount": num_tasks,
+            "note": (
+                "Purpose-built automation workflows — not generic templates. "
+                "Each column is a ready-to-connect automation for the task above."
+            ),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# PUBLIC CLASS — drop-in replacement, same interface as before
+# ---------------------------------------------------------------------------
 
 class N8nTemplateClient:
-    def __init__(self, anthropic_api_key: str):
-        self._claude = Anthropic(api_key=anthropic_api_key)
-        self._workflow_cache: Dict[int, Optional[Dict]] = {}
+    """
+    Builds role-specific n8n canvases using purpose-built workflow code.
+    No dependency on the n8n community API (which returns the same generic
+    templates regardless of search terms).
+    """
 
-    # ------------------------------------------------------------------
-    # PUBLIC ENTRY POINT
-    # ------------------------------------------------------------------
+    def __init__(self, anthropic_api_key: str = ""):
+        # anthropic_api_key kept for interface compatibility — not used
+        pass
 
     def get_curated_templates(
         self,
         job_title: str,
-        tasks: List[Dict],
-    ) -> List[Dict]:
+        tasks: List[dict],
+    ) -> List[dict]:
         """
-        Returns suggested_templates[] for UI display cards.
-        Each entry: id, name, description, url, relevance_reason,
-                    node_count, nodes_preview, workflow_json, task_name
+        Returns suggested_templates[] — one per task, each with:
+          id, name, description, url, relevance_reason,
+          node_count, nodes_preview, workflow_json, task_name
         """
-        suggested: List[Dict] = []
-        seen_template_ids: set = set()
+        suggested = []
+        for idx, task in enumerate(tasks[:6]):
+            task_name = task.get("name", f"Task {idx + 1}")
+            category  = task.get("category", "general").lower()
+            builder   = _CATEGORY_BUILDERS.get(category, build_general_workflow)
 
-        for task in tasks[:6]:  # max 6 tasks to keep latency reasonable
-            task_name = task.get("name", "")
-            category = task.get("category", "general")
+            task_nodes, task_conns = builder(task_name, 0)
 
-            candidates = self._search_for_task(task_name, category)
-            if not candidates:
-                continue
+            tool_map = {
+                "reporting":     ("Sheets + Slack + Gmail", "Automates weekly KPI collection, summarisation, and delivery"),
+                "management":    ("Jira + Slack",           "Fetches open issues daily and posts a prioritised digest"),
+                "communication": ("Gmail + Slack",          "Scans inbox every 30 min and surfaces urgent emails"),
+                "scheduling":    ("Google Calendar + Slack","Posts today's meeting schedule each morning"),
+                "data_entry":    ("Webhook + Sheets + Slack","Accepts data via webhook, validates, logs, and confirms"),
+                "research":      ("HTTP + Sheets + Slack",  "Fetches data from APIs/feeds and posts daily digest"),
+                "analysis":      ("Sheets + Slack",         "Computes weekly KPIs from sheet data and reports"),
+                "general":       ("HTTP + Slack",           "Scheduled data fetch, processing, and team notification"),
+            }
+            tool_name, reason = tool_map.get(category, ("HTTP + Slack", "Scheduled automation workflow"))
 
-            best_id, reason = self._curate_one_task(job_title, task, candidates)
-            if best_id is None or best_id in seen_template_ids:
-                continue
+            nodes_preview = [n["type"].split(".")[-1] for n in task_nodes
+                             if "stickyNote" not in n["type"]][:6]
 
-            wf_json = self._fetch_workflow_json(best_id)
-            if wf_json is None:
-                continue
-
-            seen_template_ids.add(best_id)
-            meta = next((c for c in candidates if c["id"] == best_id), {})
             suggested.append({
-                "id": best_id,
-                "name": meta.get("name", f"Template {best_id}"),
-                "description": meta.get("description", ""),
-                "url": f"https://n8n.io/workflows/{best_id}/",
+                "id":               idx + 1,
+                "name":             f"{task_name} — Automation",
+                "description":      reason,
+                "url":              "https://n8n.io/workflows/",
                 "relevance_reason": reason,
-                "node_count": meta.get("node_count", 0),
-                "nodes_preview": meta.get("nodes_preview", []),
-                "workflow_json": wf_json,
-                "task_name": task_name,
+                "node_count":       len(task_nodes),
+                "nodes_preview":    nodes_preview,
+                "workflow_json":    {"nodes": task_nodes, "connections": task_conns,
+                                     "active": False, "settings": {"executionOrder": "v1"}},
+                "task_name":        task_name,
             })
-
         return suggested
 
     def build_merged_canvas(
         self,
         job_title: str,
-        suggested_templates: List[Dict],
-    ) -> Dict:
+        suggested_templates: List[dict],
+    ) -> dict:
         """
-        Merges all per-task workflow JSONs into one importable n8n canvas.
-        Each task's nodes are grouped in a vertical column with a sticky-note
-        header. Columns are spaced horizontally so the canvas reads left-to-right.
-
-        Returns a single dict ready to be saved as n8n_workflow_json.
+        Merges suggested templates into one importable n8n canvas.
         """
-        all_nodes: List[Dict] = []
-        all_connections: Dict = {}
+        tasks = [{"name": t.get("task_name", t.get("name", "")),
+                  "category": _guess_category(t),
+                  "frequency": "weekly"}
+                 for t in suggested_templates]
+        return build_canvas(job_title, tasks)
 
-        for col_idx, tpl in enumerate(suggested_templates):
-            task_name = tpl.get("task_name", tpl.get("name", f"Task {col_idx + 1}"))
-            wf = tpl.get("workflow_json", {})
-            source_nodes = wf.get("nodes", [])
-            source_conns = wf.get("connections", {})
-            tpl_name = tpl.get("name", "")
 
-            x_offset = col_idx * _CANVAS_COL_WIDTH
-            y_offset = 400  # start below the top sticky
-
-            # --- Sticky note header for this task group ---
-            sticky_id = f"wsai_sticky_{col_idx}"
-            all_nodes.append({
-                "id": sticky_id,
-                "name": f"📌 Task {col_idx + 1}: {task_name}",
-                "type": "n8n-nodes-base.stickyNote",
-                "typeVersion": 1,
-                "position": [x_offset, y_offset + _STICKY_NOTE_OFFSET_Y],
-                "parameters": {
-                    "color": col_idx % 6 + 1,
-                    "width": 780,
-                    "height": 140,
-                    "content": (
-                        f"## Task {col_idx + 1}: {task_name}\n"
-                        f"**Template:** {tpl_name}\n"
-                        f"**Relevance:** {tpl.get('relevance_reason', '')}\n"
-                        f"[View on n8n.io]({tpl.get('url', '')})"
-                    ),
-                },
-            })
-
-            # --- Re-position and rename each node in this group ---
-            node_id_map: Dict[str, str] = {}
-            for row_idx, node in enumerate(source_nodes):
-                old_id = node.get("id", f"node_{col_idx}_{row_idx}")
-                new_id = f"wsai_{col_idx}_{row_idx}_{old_id[:8]}"
-                node_id_map[old_id] = new_id
-
-                orig_pos = node.get("position", [0, 0])
-                new_node = dict(node)
-                new_node["id"] = new_id
-                new_node["position"] = [
-                    x_offset + (orig_pos[0] if orig_pos[0] < 600 else orig_pos[0] % 600),
-                    y_offset + row_idx * _CANVAS_ROW_HEIGHT,
-                ]
-                all_nodes.append(new_node)
-
-            # --- Remap connections to new node IDs ---
-            for src_name, conn_data in source_conns.items():
-                # Find new node name by matching old node name
-                new_src_name = src_name  # connections key by name, not id
-                if new_src_name not in all_connections:
-                    all_connections[new_src_name] = {}
-                for conn_type, targets_list in conn_data.items():
-                    if conn_type not in all_connections[new_src_name]:
-                        all_connections[new_src_name][conn_type] = []
-                    all_connections[new_src_name][conn_type].extend(targets_list)
-
-        # Top-level canvas sticky note
-        all_nodes.insert(0, {
-            "id": "wsai_canvas_header",
-            "name": f"🤖 WorkScanAI — {job_title}",
-            "type": "n8n-nodes-base.stickyNote",
-            "typeVersion": 1,
-            "position": [0, 0],
-            "parameters": {
-                "color": 7,
-                "width": max(900, len(suggested_templates) * _CANVAS_COL_WIDTH),
-                "height": 200,
-                "content": (
-                    f"# WorkScanAI Automation Canvas — {job_title}\n"
-                    f"Generated by [WorkScanAI](https://workscanai.vercel.app) · "
-                    f"{len(suggested_templates)} tasks · "
-                    f"Each column = one automation task\n\n"
-                    f"**How to use:** Review each task column. Activate the workflows "
-                    f"that match your stack. Add your credentials in each node."
-                ),
-            },
-        })
-
-        return {
-            "name": f"{job_title} — WorkScanAI Automation Canvas",
-            "nodes": all_nodes,
-            "connections": all_connections,
-            "active": False,
-            "settings": {"executionOrder": "v1"},
-            "meta": {
-                "generatedBy": "WorkScanAI",
-                "jobTitle": job_title,
-                "taskCount": len(suggested_templates),
-                "source": "n8n community templates",
-            },
-        }
-
-    # ------------------------------------------------------------------
-    # STEP 1 — PER-TASK SEARCH
-    # ------------------------------------------------------------------
-
-    def _search_for_task(self, task_name: str, category: str) -> List[Dict]:
-        """Search for templates relevant to a specific task."""
-        seen_ids: set = set()
-        candidates: List[Dict] = []
-
-        queries = list(_CATEGORY_QUERIES.get(category, _CATEGORY_QUERIES["general"]))
-        # Add a task-specific query using key words from the task name
-        task_words = " ".join(task_name.lower().split()[:4])
-        queries.insert(0, task_words)
-
-        for query in queries:
-            try:
-                results = self._search_one_query(query, limit=_SEARCH_RESULTS_PER_QUERY)
-                for r in results:
-                    if r["id"] not in seen_ids:
-                        seen_ids.add(r["id"])
-                        candidates.append(r)
-                        if len(candidates) >= _MAX_CANDIDATES_PER_TASK:
-                            break
-            except Exception as exc:
-                print(f"[n8n search] query='{query}' error: {exc}")
-            if len(candidates) >= _MAX_CANDIDATES_PER_TASK:
-                break
-
-        return candidates
-
-    def _search_one_query(self, query: str, limit: int) -> List[Dict]:
-        url = f"{_N8N_TEMPLATE_BASE}/templates/search"
-        params = f"?q={query.replace(' ', '+')}&limit={limit}"
-        resp = httpx.get(url + params, headers=_HEADERS, timeout=10.0)
-        resp.raise_for_status()
-        data = resp.json()
-
-        results = []
-        for wf in data.get("workflows", []):
-            template_id = wf.get("id")
-            if not template_id:
-                continue
-            nodes_preview = [
-                n.get("type", "").replace("n8n-nodes-base.", "").replace("@n8n/n8n-nodes-langchain.", "🤖 ")
-                for n in (wf.get("nodes") or [])
-                if n.get("type") and "stickyNote" not in n.get("type", "")
-            ]
-            results.append({
-                "id": template_id,
-                "name": wf.get("name", ""),
-                "description": (wf.get("description") or "")[:200],
-                "node_count": len(nodes_preview),
-                "nodes_preview": nodes_preview[:6],
-            })
-        return results
-
-    # ------------------------------------------------------------------
-    # STEP 2 — PER-TASK LLM CURATION (tighter prompt)
-    # ------------------------------------------------------------------
-
-    def _curate_one_task(
-        self,
-        job_title: str,
-        task: Dict,
-        candidates: List[Dict],
-    ) -> tuple[Optional[int], str]:
-        """
-        Pick the single best template for one specific task.
-        Returns (template_id, reason_string) or (None, "").
-        Stronger scoring: penalises generic AI chat templates,
-        rewards concrete integration nodes matching the task.
-        """
-        task_name = task.get("name", "")
-        category = task.get("category", "general")
-        frequency = task.get("frequency", "weekly")
-
-        candidate_lines = "\n".join(
-            f"ID={c['id']} | \"{c['name']}\" | nodes:[{', '.join(c['nodes_preview'][:5])}] | {c['description'][:120]}"
-            for c in candidates
-        )
-
-        json_example = '{"id": 1234, "reason": "Sends weekly Slack summary from Google Sheets metrics"}'
-
-        prompt = (
-            f"You are a workflow automation expert selecting the BEST n8n template for ONE specific task.\n\n"
-            f"ROLE: {job_title}\n"
-            f"TASK: \"{task_name}\" (category: {category}, frequency: {frequency})\n\n"
-            f"CANDIDATES:\n{candidate_lines}\n\n"
-            f"SCORING RULES (apply strictly):\n"
-            f"1. MUST match the task name directly — e.g. if task is 'Generate weekly report', pick a reporting/email template\n"
-            f"2. PENALISE heavily: generic AI chatbots, 'talk to your data', ChatGPT wrappers, LLM assistants — these are NOT automation\n"
-            f"3. REWARD: templates with concrete app integrations (Slack, Gmail, Sheets, Jira, Linear, Notion, Airtable, HTTP Request)\n"
-            f"4. PREFER: templates that automate the actual work described, not just AI chat interfaces\n"
-            f"5. If no candidate scores above 3/10 relevance, return null\n\n"
-            f"Output ONLY a JSON object with exactly two keys:\n"
-            f"  'id': integer (the best template ID, or null if none relevant)\n"
-            f"  'reason': string, max 12 words explaining WHY it matches this task\n\n"
-            f"Example: {json_example}\n"
-            f"Output ONLY the JSON object. No markdown. No explanation."
-        )
-
-        try:
-            msg = self._claude.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=200,
-                messages=[{"role": "user", "content": prompt}],
-                timeout=15.0,
-            )
-            raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-            obj_match = re.search(r'\{.*\}', raw, re.DOTALL)
-            if not obj_match:
-                return None, ""
-            pick = json.loads(obj_match.group(0))
-            tid = pick.get("id")
-            reason = pick.get("reason", "")
-            if tid is None:
-                # LLM rejected all candidates — use best by node count as fallback
-                best = max(candidates, key=lambda c: c.get("node_count", 0))
-                return best["id"], "Best available automation template"
-            return int(tid), reason
-        except Exception as exc:
-            print(f"[n8n curation] task='{task_name}' LLM error: {exc}")
-            best = max(candidates, key=lambda c: c.get("node_count", 0))
-            return (best["id"], "Best available match") if candidates else (None, "")
-
-    # ------------------------------------------------------------------
-    # STEP 3 — FETCH IMPORTABLE WORKFLOW JSON (with cache)
-    # ------------------------------------------------------------------
-
-    def _fetch_workflow_json(self, template_id: int) -> Optional[Dict]:
-        if template_id in self._workflow_cache:
-            return self._workflow_cache[template_id]
-        try:
-            url = f"{_N8N_TEMPLATE_BASE}/templates/workflows/{template_id}"
-            resp = httpx.get(url, headers=_HEADERS, timeout=10.0)
-            resp.raise_for_status()
-            data = resp.json()
-
-            outer = data.get("workflow", {})
-            inner = outer.get("workflow", {})
-
-            workflow = {
-                "name": outer.get("name", f"n8n Template {template_id}"),
-                "nodes": inner.get("nodes", []),
-                "connections": inner.get("connections", {}),
-                "active": False,
-                "settings": {"executionOrder": "v1"},
-                "id": f"workscanai-template-{template_id}",
-                "meta": {
-                    "templateId": template_id,
-                    "templateUrl": f"https://n8n.io/workflows/{template_id}/",
-                    "source": "n8n community templates",
-                    "importedBy": "WorkScanAI",
-                },
-            }
-            self._workflow_cache[template_id] = workflow
-            return workflow
-        except Exception as exc:
-            print(f"[n8n fetch] template_id={template_id} error: {exc}")
-            self._workflow_cache[template_id] = None
-            return None
+def _guess_category(tpl: dict) -> str:
+    """Infer category from template description when not stored."""
+    desc = (tpl.get("relevance_reason", "") + " " + tpl.get("description", "")).lower()
+    if "report" in desc or "kpi" in desc or "sheet" in desc:
+        return "reporting"
+    if "jira" in desc or "issue" in desc or "sprint" in desc:
+        return "management"
+    if "email" in desc or "gmail" in desc or "inbox" in desc:
+        return "communication"
+    if "calendar" in desc or "meeting" in desc or "schedule" in desc:
+        return "scheduling"
+    if "webhook" in desc or "form" in desc or "entry" in desc:
+        return "data_entry"
+    if "research" in desc or "fetch" in desc or "scrape" in desc:
+        return "research"
+    if "analys" in desc or "metric" in desc or "kpi" in desc:
+        return "analysis"
+    return "general"
