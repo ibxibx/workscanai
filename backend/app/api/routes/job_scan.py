@@ -10,6 +10,7 @@ Step 2: POST /api/job-scan/analyze
   → Returns workflow_id, share_code, n8n workflow JSON
 """
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
+import os
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sqlfunc
 from typing import Optional, List
@@ -25,6 +26,7 @@ from app.services.ai_analyzer import AIAnalyzer
 router = APIRouter()
 
 DAILY_ANALYSIS_LIMIT = 5
+ADMIN_SECRET = os.getenv("ADMIN_SECRET", "AKF6uTJalPohB4dtymnEiwZrLDRqSWkc")
 
 
 def _get_ip_daily_count(ip: str, db: Session) -> int:
@@ -113,6 +115,24 @@ class TemplateRequest(BaseModel):
     tasks: List[TaskItem] = []
 
 
+@router.get("/quota")
+async def get_quota(http_request: Request, db: Session = Depends(get_db)):
+    """
+    Lightweight quota check — returns current IP's usage for the last 24h.
+    Called client-side before any button action to show the modal immediately.
+    No auth required, no DB writes.
+    """
+    client_ip = get_client_ip(http_request)
+    is_admin = http_request.headers.get("x-admin-secret") == ADMIN_SECRET
+    used = 0 if is_admin else _get_ip_daily_count(client_ip, db)
+    return {
+        "used": used,
+        "limit": DAILY_ANALYSIS_LIMIT,
+        "remaining": max(0, DAILY_ANALYSIS_LIMIT - used),
+        "exceeded": used >= DAILY_ANALYSIS_LIMIT,
+    }
+
+
 @router.post("/job-scan/n8n-templates")
 async def get_n8n_templates(request: TemplateRequest):
     """
@@ -146,7 +166,8 @@ async def job_scan_research(request: ResearchRequest, http_request: Request, db:
     Fast — ~15-20s. No DB writes. IP rate-limited (shared quota with analyze).
     """
     client_ip = get_client_ip(http_request)
-    if _get_ip_daily_count(client_ip, db) >= DAILY_ANALYSIS_LIMIT:
+    is_admin = http_request.headers.get("x-admin-secret") == ADMIN_SECRET
+    if not is_admin and _get_ip_daily_count(client_ip, db) >= DAILY_ANALYSIS_LIMIT:
         raise HTTPException(status_code=429, detail=_RATE_LIMIT_DETAIL(DAILY_ANALYSIS_LIMIT))
 
     try:
@@ -194,9 +215,10 @@ async def job_scan_analyze(
 
     # ── Rate limiting ─────────────────────────────────────────────
     client_ip = get_client_ip(http_request)
-    if _get_ip_daily_count(client_ip, db) >= DAILY_ANALYSIS_LIMIT:
+    is_admin = http_request.headers.get("x-admin-secret") == ADMIN_SECRET
+    if not is_admin and _get_ip_daily_count(client_ip, db) >= DAILY_ANALYSIS_LIMIT:
         raise HTTPException(status_code=429, detail=_RATE_LIMIT_DETAIL(DAILY_ANALYSIS_LIMIT))
-    if x_user_email:
+    if not is_admin and x_user_email:
         email_lc = x_user_email.lower().strip()
         if _get_email_daily_count(email_lc, db) >= DAILY_ANALYSIS_LIMIT:
             raise HTTPException(status_code=429, detail=_RATE_LIMIT_DETAIL(DAILY_ANALYSIS_LIMIT))

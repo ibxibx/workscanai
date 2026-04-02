@@ -271,7 +271,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
   const openAuthModal = () => { setShowAuthModal(true); setAuthStep('email'); setAuthEmailState(''); setAuthCode(''); setAuthError(''); pendingSubmitRef.current = null }
 
-  const startVoiceRecording = () => {
+  const startVoiceRecording = async () => {
+    if (await checkQuota()) return
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) { onError('Speech recognition is not supported. Please use Chrome or Edge.'); return }
     const recognition = new SR()
@@ -301,6 +302,10 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
+    if (await checkQuota()) {
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
     setIsUploading(true); setUploadProgress(0); setUploadStage('Reading file…'); onError('')
     let fakeProgress = 0
     const STAGES = [{at:5,label:'Reading file…'},{at:20,label:'Extracting text…'},{at:45,label:'Parsing document structure…'},{at:65,label:'Running AI analysis…'},{at:82,label:'Populating tasks…'},{at:91,label:'Almost done…'}]
@@ -419,6 +424,25 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     try { return JSON.parse(text) } catch { return { detail: text || `HTTP ${res.status}` } }
   }
 
+  // Pre-flight quota check — called immediately on every button press.
+  // Returns true if the user is over the limit (modal is shown), false if they can proceed.
+  const checkQuota = async (): Promise<boolean> => {
+    try {
+      const r = await fetch('/api/quota')
+      if (!r.ok) return false // on error, let the server enforce
+      const d = await r.json()
+      if (d.exceeded) {
+        setRateLimitMessage(
+          `You've used all ${d.limit} free analyses in the last 24 hours. The limit resets on a rolling 24-hour basis — try again tomorrow!`
+        )
+        return true
+      }
+      return false
+    } catch {
+      return false // network error — let the server enforce
+    }
+  }
+
   const runAnalysis = async (userEmail: string) => {
     onError(''); setStepError(null)
 
@@ -459,6 +483,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   // ── Job Scanner handler ──────────────────────────────────────────────────
   const handleJobScan = async () => {
     if (!jobTitle.trim()) return
+    if (await checkQuota()) return
     setJobScanError(''); setJobScanTasks([]); setJobScanStep('researching')
     try {
       // Step 1: research via Vercel proxy (~15s)
@@ -506,7 +531,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       document.getElementById('context-selector')?.scrollIntoView({ behavior:'smooth', block:'center' })
       return
     }
-    // No auth required — use guest ID for workflow ownership + rate limiting
+    if (await checkQuota()) return
     const guestId = getGuestId()
     await runAnalysis(guestId)
   }
