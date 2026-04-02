@@ -1537,8 +1537,32 @@ def build_canvas(job_title: str, tasks: List[dict]) -> dict:
         ))
 
         task_nodes, task_conns = builder(name, x0)
+
+        # ── PREFIX all working node names with T{n}: so names are unique ──
+        # n8n connections are keyed by node name, so duplicate names across
+        # columns cause cross-wiring. Prefixing isolates each column cleanly.
+        prefix = f"T{idx+1}"
+        name_map: dict = {}
+        for node in task_nodes:
+            if "stickyNote" not in node["type"]:
+                old = node["name"]
+                new = f"{prefix}: {old}"
+                name_map[old] = new
+                node["name"] = new
+
+        # Remap connection keys and target node references
+        prefixed_conns: dict = {}
+        for src, data in task_conns.items():
+            new_src = name_map.get(src, src)
+            new_targets = [
+                {**edge, "node": name_map.get(edge["node"], edge["node"])}
+                for edge in data["main"][0]
+            ]
+            prefixed_conns[new_src] = {"main": [new_targets]}
+        # ───────────────────────────────────────────────────────────────────
+
         all_nodes.extend(task_nodes)
-        all_conns.append(task_conns)
+        all_conns.append(prefixed_conns)
 
     return {
         "name": f"{job_title} \u2014 WorkScanAI Automation Canvas",
