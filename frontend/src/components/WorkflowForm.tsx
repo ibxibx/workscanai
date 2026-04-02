@@ -424,7 +424,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     try { return JSON.parse(text) } catch { return { detail: text || `HTTP ${res.status}` } }
   }
 
-  // Pre-flight quota check — called immediately on every button press.
+  // Pre-flight quota check v2 — called immediately on every button press before any work.
   // Returns true if the user is over the limit (modal is shown), false if they can proceed.
   const checkQuota = async (): Promise<boolean> => {
     try {
