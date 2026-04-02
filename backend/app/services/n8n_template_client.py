@@ -1,522 +1,544 @@
 """
 N8nTemplateClient — builds role-specific n8n automation canvases.
 
-ARCHITECTURE DECISION (after research):
-  The n8n community search API returns the same 10 popularity-ranked templates
-  for EVERY search query regardless of terms. It is useless for role-specific
-  template matching.
+STRATEGY (definitive):
+  The n8n community API is abandoned for template selection.
+  It always returns the same popularity-ranked generic templates
+  ("Build your first AI agent") regardless of search terms.
 
-  SOLUTION: Build purpose-specific workflow JSON from code.
-  Each task category gets a real, importable automation workflow with:
-  - Concrete app integrations (Slack, Gmail, Sheets, Jira, Calendar, etc.)
-  - Proper trigger → process → output pipeline
-  - Real node types with correct typeVersion numbers
-  - Proper connections format
+  Instead, we maintain a CURATED LIBRARY of real, importable
+  n8n workflow templates, one per task category. Each is a
+  complete, working mini-workflow with concrete app integrations.
 
-  All workflows are merged into one importable n8n canvas with:
-  - Top-level header sticky note
-  - One column per task, each with coloured sticky note label
-  - Horizontally offset so each task group is clearly separated
+  Per scan:
+    1. Map each task's category to a curated template
+    2. Personalise node names / messages with the actual task name
+    3. Merge all templates into one n8n canvas JSON with
+       sticky-note section headers per task
+    4. User imports one file, sees N task columns side-by-side
+
+  Result: always relevant, always importable, zero dependency on
+  an external search API that doesn't have what we need.
 """
 
 from __future__ import annotations
 
+import copy
 import json
-from typing import Dict, List, Optional, Tuple
 import uuid
+from typing import Dict, List, Optional, Tuple
 
-_CANVAS_COL_WIDTH = 1000   # horizontal gap between task columns
-_GROUP_Y_START   = 380     # y-position where node groups start (below top sticky)
-_NODE_Y_GAP      = 220     # vertical gap between nodes in a group
-_STICKY_HEIGHT   = 160     # height of per-task sticky note
+# ---------------------------------------------------------------------------
+# Canvas layout constants
+# ---------------------------------------------------------------------------
+_COL_WIDTH   = 1000   # horizontal gap between task columns (px)
+_ROW_HEIGHT  = 220    # vertical gap between nodes within a column (px)
+_COL_START_Y = 380    # y where the first real node of a column starts
+_STICKY_H    = 160    # height of per-task sticky note
+_STICKY_Y    = _COL_START_Y - _STICKY_H - 30  # sticky sits above nodes
+
+# ---------------------------------------------------------------------------
+# Colour palette for sticky notes (n8n colour IDs 1-7)
+# ---------------------------------------------------------------------------
+_COLORS = [3, 4, 5, 6, 2, 1]   # green, purple, orange, red, yellow, blue
 
 
 # ---------------------------------------------------------------------------
-# Node factory helpers — generate valid n8n node dicts
+# NODE FACTORY HELPERS
 # ---------------------------------------------------------------------------
 
-def _id() -> str:
+def _uid() -> str:
     return str(uuid.uuid4())
 
 
-def _node(node_id: str, name: str, ntype: str, x: int, y: int,
-          params: dict = None, tv: float = 1) -> dict:
+def _schedule_node(name: str, cron: str = "0 9 * * 1") -> dict:
     return {
-        "id": node_id,
-        "name": name,
-        "type": ntype,
-        "typeVersion": tv,
-        "position": [x, y],
-        "parameters": params or {},
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2,
+        "position": [0, 0],
+        "parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": cron}]}}
     }
 
 
-def _sticky(node_id: str, name: str, x: int, y: int,
-            content: str, color: int = 3, w: int = 920, h: int = 140) -> dict:
+def _webhook_node(name: str, path: str) -> dict:
     return {
-        "id": node_id,
-        "name": name,
-        "type": "n8n-nodes-base.stickyNote",
-        "typeVersion": 1,
-        "position": [x, y],
-        "parameters": {"color": color, "width": w, "height": h, "content": content},
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.webhook", "typeVersion": 2,
+        "position": [0, 0],
+        "parameters": {"path": path, "httpMethod": "POST", "responseMode": "onReceived"}
     }
 
 
-def _schedule_node(nid: str, x: int, y: int, cron: str = "0 9 * * 1") -> dict:
-    return _node(nid, "Schedule Trigger", "n8n-nodes-base.scheduleTrigger", x, y,
-                 {"rule": {"interval": [{"field": "cronExpression", "expression": cron}]}})
+def _http_node(name: str, url: str, method: str = "GET") -> dict:
+    return {
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2,
+        "position": [0, 0],
+        "parameters": {"method": method, "url": url, "authentication": "none"}
+    }
 
 
-def _http_node(nid: str, name: str, x: int, y: int,
-               url: str = "={{ $vars.API_URL }}", method: str = "GET") -> dict:
-    return _node(nid, name, "n8n-nodes-base.httpRequest", x, y,
-                 {"method": method, "url": url, "authentication": "none",
-                  "options": {}}, 4.2)
+def _code_node(name: str, js: str) -> dict:
+    return {
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.code", "typeVersion": 2,
+        "position": [0, 0],
+        "parameters": {"jsCode": js}
+    }
 
 
-def _slack_node(nid: str, name: str, x: int, y: int,
-                channel: str = "#automation", text: str = "") -> dict:
-    return _node(nid, name, "n8n-nodes-base.slack", x, y,
-                 {"resource": "message", "operation": "post",
-                  "select": "channel", "channelId": {"__rl": True, "value": channel, "mode": "name"},
-                  "text": text or "={{ $json.summary }}"}, 2.2)
+def _set_node(name: str, fields: List[Tuple[str, str]]) -> dict:
+    assignments = [{"id": _uid(), "name": k, "value": v, "type": "string"} for k, v in fields]
+    return {
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.set", "typeVersion": 3.4,
+        "position": [0, 0],
+        "parameters": {"mode": "manual", "assignments": {"assignments": assignments}}
+    }
 
 
-def _gmail_send(nid: str, name: str, x: int, y: int,
-                to: str = "={{ $vars.REPORT_EMAIL }}", subject: str = "",
-                body: str = "") -> dict:
-    return _node(nid, name, "n8n-nodes-base.gmail", x, y,
-                 {"resource": "message", "operation": "send",
-                  "sendTo": to, "subject": subject or "Automated Report",
-                  "message": body or "={{ $json.report }}", "options": {}}, 2.1)
+def _slack_node(name: str, channel: str, text: str) -> dict:
+    return {
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.slack", "typeVersion": 2.2,
+        "position": [0, 0],
+        "parameters": {
+            "resource": "message", "operation": "post",
+            "select": "channel", "channelId": {"__rl": True, "value": channel, "mode": "name"},
+            "text": text, "otherOptions": {}
+        }
+    }
 
 
-def _gmail_get(nid: str, name: str, x: int, y: int,
-               query: str = "is:unread") -> dict:
-    return _node(nid, name, "n8n-nodes-base.gmail", x, y,
-                 {"resource": "message", "operation": "getAll",
-                  "filters": {"q": query},
-                  "returnAll": False, "limit": 20, "options": {}}, 2.1)
+def _gmail_send_node(name: str, to: str, subject: str, body: str) -> dict:
+    return {
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.gmail", "typeVersion": 2.1,
+        "position": [0, 0],
+        "parameters": {
+            "resource": "message", "operation": "send",
+            "sendTo": to, "subject": subject, "emailType": "text", "message": body
+        }
+    }
 
 
-def _sheets_read(nid: str, name: str, x: int, y: int) -> dict:
-    return _node(nid, name, "n8n-nodes-base.googleSheets", x, y,
-                 {"resource": "sheet", "operation": "read",
-                  "documentId": {"__rl": True, "mode": "list",
-                                 "value": "={{ $vars.SPREADSHEET_ID }}",
-                                 "cachedResultName": "Your KPI Spreadsheet"},
-                  "sheetName": {"__rl": True, "mode": "list", "value": "Sheet1"}}, 4.5)
+def _sheets_read_node(name: str) -> dict:
+    return {
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.googleSheets", "typeVersion": 4.5,
+        "position": [0, 0],
+        "parameters": {
+            "resource": "spreadsheet", "operation": "readRows",
+            "documentId": {"__rl": True, "value": "YOUR_SPREADSHEET_ID", "mode": "id"},
+            "sheetName": {"__rl": True, "value": "Sheet1", "mode": "name"},
+            "filtersUI": {}, "combineFilters": "AND", "options": {}
+        }
+    }
 
 
-def _sheets_append(nid: str, name: str, x: int, y: int) -> dict:
-    return _node(nid, name, "n8n-nodes-base.googleSheets", x, y,
-                 {"resource": "sheet", "operation": "appendOrUpdate",
-                  "documentId": {"__rl": True, "mode": "list",
-                                 "value": "={{ $vars.SPREADSHEET_ID }}",
-                                 "cachedResultName": "Your Spreadsheet"},
-                  "sheetName": {"__rl": True, "mode": "list", "value": "Sheet1"},
-                  "columns": {"mappingMode": "autoMapInputData",
-                              "matchingColumns": ["id"]}}, 4.5)
+def _sheets_append_node(name: str) -> dict:
+    return {
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.googleSheets", "typeVersion": 4.5,
+        "position": [0, 0],
+        "parameters": {
+            "resource": "spreadsheet", "operation": "appendOrUpdate",
+            "documentId": {"__rl": True, "value": "YOUR_SPREADSHEET_ID", "mode": "id"},
+            "sheetName": {"__rl": True, "value": "Sheet1", "mode": "name"},
+            "columns": {"mappingMode": "autoMapInputData", "value": {}, "matchingColumns": [], "schema": []},
+            "options": {}
+        }
+    }
 
 
-def _code_node(nid: str, name: str, x: int, y: int, js: str) -> dict:
-    return _node(nid, name, "n8n-nodes-base.code", x, y,
-                 {"jsCode": js, "mode": "runOnceForAllItems"}, 2)
+def _jira_node(name: str, op: str = "getAll") -> dict:
+    return {
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.jira", "typeVersion": 1,
+        "position": [0, 0],
+        "parameters": {
+            "resource": "issue", "operation": op,
+            "projectKey": "YOUR_PROJECT",
+            **({"additionalFields": {}} if op == "getAll" else {})
+        }
+    }
 
 
-def _set_node(nid: str, name: str, x: int, y: int, fields: List[dict]) -> dict:
-    return _node(nid, name, "n8n-nodes-base.set", x, y,
-                 {"mode": "manual",
-                  "assignments": {"assignments": fields}}, 3.4)
+def _notion_node(name: str, op: str = "getAll") -> dict:
+    return {
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.notion", "typeVersion": 2.2,
+        "position": [0, 0],
+        "parameters": {
+            "resource": "databasePage", "operation": op,
+            "databaseId": {"__rl": True, "value": "YOUR_NOTION_DB_ID", "mode": "id"}
+        }
+    }
 
 
-def _jira_node(nid: str, name: str, x: int, y: int,
-               op: str = "getAll", resource: str = "issue") -> dict:
-    return _node(nid, name, "n8n-nodes-base.jira", x, y,
-                 {"resource": resource, "operation": op,
-                  "project": "={{ $vars.JIRA_PROJECT }}",
-                  "additionalFields": {}}, 1)
+def _gcal_node(name: str) -> dict:
+    return {
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.googleCalendar", "typeVersion": 1.3,
+        "position": [0, 0],
+        "parameters": {
+            "resource": "event", "operation": "getAll",
+            "calendarId": {"__rl": True, "value": "primary", "mode": "list"},
+            "timeMin": "={{ $today.toISO() }}",
+            "timeMax": "={{ $today.plus({days:1}).toISO() }}"
+        }
+    }
 
 
-def _calendar_node(nid: str, name: str, x: int, y: int,
-                   op: str = "getAll") -> dict:
-    return _node(nid, name, "n8n-nodes-base.googleCalendar", x, y,
-                 {"resource": "event", "operation": op,
-                  "calendar": {"__rl": True, "value": "primary", "mode": "list"},
-                  "options": {}}, 1.3)
-
-
-def _webhook_node(nid: str, name: str, x: int, y: int,
-                  path: str = "webhook") -> dict:
-    return _node(nid, name, "n8n-nodes-base.webhook", x, y,
-                 {"path": path, "httpMethod": "POST",
-                  "responseMode": "onReceived",
-                  "responseData": "allEntries"}, 2)
-
-
-def _notion_node(nid: str, name: str, x: int, y: int, op: str = "getAll") -> dict:
-    return _node(nid, name, "n8n-nodes-base.notion", x, y,
-                 {"resource": "databasePage", "operation": op,
-                  "databaseId": {"__rl": True, "mode": "list",
-                                 "value": "={{ $vars.NOTION_DATABASE_ID }}"}}, 2.2)
-
-
-def _filter_node(nid: str, name: str, x: int, y: int,
-                 field: str = "status", value: str = "open") -> dict:
-    return _node(nid, name, "n8n-nodes-base.filter", x, y,
-                 {"conditions": {"options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict"},
-                                 "conditions": [{"id": _id(), "leftValue": f"={{{{ $json['{field}'] }}}}",
-                                                 "rightValue": value, "operator": {"type": "string", "operation": "equals"}}],
-                                 "combinator": "and"}}, 2)
-
-
-def _conn_edge(src: str, dst: str, src_idx: int = 0, dst_idx: int = 0,
-               conn_type: str = "main") -> Tuple[str, dict]:
-    """Returns (src_name, edge_dict) for building connections object."""
-    return src, {"node": dst, "type": conn_type, "index": dst_idx}
-
+def _filter_node(name: str, condition_js: str) -> dict:
+    return {
+        "id": _uid(), "name": name,
+        "type": "n8n-nodes-base.filter", "typeVersion": 2,
+        "position": [0, 0],
+        "parameters": {
+            "conditions": {
+                "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{"leftValue": "={{ " + condition_js + " }}", "rightValue": True, "operator": {"type": "boolean", "operation": "true"}}],
+                "combinator": "and"
+            }
+        }
+    }
 
 
 # ---------------------------------------------------------------------------
-# WORKFLOW BUILDERS — one per task category
-# Each returns {"nodes": [...], "connections": {...}}
+# WORKFLOW BUILDER — returns {"nodes": [...], "connections": {...}}
+# connections use node NAMES as keys (how n8n works)
 # ---------------------------------------------------------------------------
 
-def _build_connections(edges: List[Tuple[str, str]]) -> dict:
-    """
-    Build n8n connections dict from list of (src_name, dst_name) pairs.
-    Each edge: src -> dst on main[0] -> main[0].
-    """
-    conns: dict = {}
-    for src, dst in edges:
-        if src not in conns:
-            conns[src] = {"main": [[]]}
-        conns[src]["main"][0].append({"node": dst, "type": "main", "index": 0})
-    return conns
+def _chain(nodes: list) -> dict:
+    """Build a simple linear connection map from a list of nodes."""
+    connections = {}
+    for i in range(len(nodes) - 1):
+        src = nodes[i]["name"]
+        dst = nodes[i + 1]["name"]
+        connections[src] = {"main": [[{"node": dst, "type": "main", "index": 0}]]}
+    return connections
 
 
-def build_reporting_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
-    """Weekly report: read KPIs from Sheets -> compute -> Slack + email."""
-    y = _GROUP_Y_START
-    n1 = _schedule_node(_id(), x0, y, "0 8 * * 1")
-    n2 = _sheets_read(_id(), "Read KPI Sheet", x0 + 220, y)
-    n3 = _code_node(_id(), "Compute Weekly Summary", x0 + 440, y,
-                    "const rows = items.map(i => i.json);\n"
-                    "const total = rows.reduce((s, r) => s + (Number(r.value) || 0), 0);\n"
-                    "const avg = rows.length ? (total / rows.length).toFixed(1) : 0;\n"
-                    "const top = rows.sort((a,b)=>(b.value||0)-(a.value||0))[0]?.metric || 'N/A';\n"
-                    "const week = new Date().toISOString().slice(0, 10);\n"
-                    "return [{ json: { total, avg, top, week, count: rows.length } }];")
-    n4 = _slack_node(_id(), "Post Weekly Report", x0 + 660, y, "#reports",
-                     f"\U0001F4CA *{task_name}*\n"
-                     "Week: {{{{ $json.week }}}} | Total: {{{{ $json.total }}}} | "
-                     "Avg: {{{{ $json.avg }}}} | Top: {{{{ $json.top }}}}")
-    n5 = _gmail_send(_id(), "Email Weekly Report", x0 + 660, y + 220,
-                     subject=f"Weekly Report: {task_name}",
-                     body="Week: ={{ $json.week }}\nTotal: ={{ $json.total }}\n"
-                          "Average: ={{ $json.avg }}\nTop metric: ={{ $json.top }}")
-    nodes = [n1, n2, n3, n4, n5]
-    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
-             (n3["name"], n4["name"]), (n3["name"], n5["name"])]
-    return nodes, _build_connections(edges)
+def _build_reporting(task_name: str) -> dict:
+    """Weekly KPI report: read Sheets → compute → Slack + email."""
+    trigger  = _schedule_node(f"Weekly Schedule", "0 8 * * 1")
+    read     = _sheets_read_node("Read KPI Sheet")
+    compute  = _code_node("Compute KPIs",
+        "const rows = items.map(i => i.json);\n"
+        "const total = rows.reduce((s, r) => s + (parseFloat(r.value) || 0), 0);\n"
+        "const avg   = rows.length ? (total / rows.length).toFixed(2) : 0;\n"
+        "const week  = new Date().toISOString().slice(0, 10);\n"
+        "return [{ json: { total, avg, count: rows.length, week } }];"
+    )
+    slack    = _slack_node("Post KPI to Slack", "#reports",
+        f"\U0001f4ca *{task_name}* — Week {{{{$json.week}}}}\n"
+        "Entries: {{{{$json.count}}}} | Total: {{{{$json.total}}}} | Avg: {{{{$json.avg}}}}")
+    email    = _gmail_send_node("Email KPI Report", "team@example.com",
+        f"{task_name} — Weekly KPI Report",
+        "Week: {{{{$json.week}}}}\nTotal: {{{{$json.total}}}}\nAvg: {{{{$json.avg}}}}\nCount: {{{{$json.count}}}}")
+    log      = _sheets_append_node("Log Results")
+
+    nodes = [trigger, read, compute, slack, email, log]
+    conns = _chain([trigger, read, compute])
+    # compute fans out to slack, email, log
+    conns[compute["name"]] = {"main": [[
+        {"node": slack["name"],  "type": "main", "index": 0},
+        {"node": email["name"],  "type": "main", "index": 0},
+        {"node": log["name"],    "type": "main", "index": 0},
+    ]]}
+    return {"nodes": nodes, "connections": conns}
 
 
-def build_management_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
-    """Task/project mgmt: fetch Jira issues -> filter open -> post digest to Slack."""
-    y = _GROUP_Y_START
-    n1 = _schedule_node(_id(), x0, y, "0 9 * * 1-5")
-    n2 = _jira_node(_id(), "Get Jira Issues", x0 + 220, y, "getAll")
-    n3 = _filter_node(_id(), "Filter Open Issues", x0 + 440, y, "fields.status.name", "To Do")
-    n4 = _code_node(_id(), "Format Digest", x0 + 660, y,
-                    "const issues = items.map(i => i.json);\n"
-                    "const lines = issues.slice(0, 10).map(i =>\n"
-                    "  `• [${i.key}] ${i.fields?.summary || 'No title'} "
-                    "(${i.fields?.priority?.name || 'Normal'})`\n);\n"
-                    "return [{ json: {\n"
-                    "  digest: lines.join('\\n') || 'No open issues',\n"
-                    "  count: issues.length,\n"
-                    "  date: new Date().toISOString().slice(0, 10)\n"
-                    "}}];")
-    n5 = _slack_node(_id(), "Post Issue Digest", x0 + 880, y, "#product",
-                     f"\U0001F4CB *{task_name}* ({{{{ $json.count }}}} open)\n"
-                     "{{{{ $json.date }}}}\n\n{{{{ $json.digest }}}}")
-    nodes = [n1, n2, n3, n4, n5]
-    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
-             (n3["name"], n4["name"]), (n4["name"], n5["name"])]
-    return nodes, _build_connections(edges)
+def _build_management(task_name: str) -> dict:
+    """Daily Jira digest: fetch open issues → format → Slack."""
+    trigger  = _schedule_node("Daily Digest Schedule", "0 9 * * 1-5")
+    jira     = _jira_node("Get Open Issues", "getAll")
+    format_  = _code_node("Format Issue Digest",
+        "const issues = items.map(i => i.json);\n"
+        "const lines = issues.slice(0, 10).map(i =>\n"
+        "  `• [${i.key || i.id}] ${(i.fields?.summary || i.summary || 'No title').slice(0, 80)}`);\n"
+        "return [{ json: {\n"
+        "  digest: lines.join('\\n') || 'No open issues \u2705',\n"
+        "  count: issues.length\n"
+        "} }];"
+    )
+    slack    = _slack_node("Post Jira Digest", "#product",
+        f"\U0001f4cb *{task_name}* — {{{{$json.count}}}} open issues\n{{{{$json.digest}}}}")
+    nodes = [trigger, jira, format_, slack]
+    return {"nodes": nodes, "connections": _chain(nodes)}
 
 
-def build_communication_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
-    """Email triage: scan Gmail for priority emails -> forward digest to Slack."""
-    y = _GROUP_Y_START
-    n1 = _schedule_node(_id(), x0, y, "*/30 9-18 * * 1-5")
-    n2 = _gmail_get(_id(), "Scan Priority Inbox", x0 + 220, y,
-                    "is:unread label:inbox -label:newsletters")
-    n3 = _code_node(_id(), "Filter & Classify", x0 + 440, y,
-                    "const msgs = items.map(i => i.json);\n"
-                    "const priority = msgs.filter(m => {\n"
-                    "  const s = (m.subject || '').toLowerCase();\n"
-                    "  return s.includes('urgent') || s.includes('action') ||\n"
-                    "         s.includes('asap') || s.includes('deadline');\n"
-                    "});\n"
-                    "if (!priority.length) return [];\n"
-                    "return priority.map(m => ({ json: {\n"
-                    "  subject: m.subject, from: m.from,\n"
-                    "  snippet: (m.snippet || '').slice(0, 120),\n"
-                    "  id: m.id\n"
-                    "}}));")
-    n4 = _slack_node(_id(), "Alert Priority Email", x0 + 660, y, "#urgent",
-                     f"\U0001F6A8 *Priority Email — {task_name}*\n"
-                     "From: {{{{ $json.from }}}}\n"
-                     "Subject: {{{{ $json.subject }}}}\n"
-                     "{{{{ $json.snippet }}}}")
-    nodes = [n1, n2, n3, n4]
-    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
-             (n3["name"], n4["name"])]
-    return nodes, _build_connections(edges)
+def _build_communication(task_name: str) -> dict:
+    """Priority email monitor: scan Gmail → filter urgent → Slack alert."""
+    trigger  = _schedule_node("Email Check Schedule", "*/30 8-18 * * 1-5")
+    read     = {
+        "id": _uid(), "name": "Scan Inbox",
+        "type": "n8n-nodes-base.gmail", "typeVersion": 2.1,
+        "position": [0, 0],
+        "parameters": {
+            "resource": "message", "operation": "getAll",
+            "filters": {"q": "is:unread label:inbox"}, "returnAll": False, "limit": 20
+        }
+    }
+    filter_  = _code_node("Filter Priority",
+        "const keywords = ['urgent', 'action required', 'asap', 'critical', 'important'];\n"
+        "return items.filter(i => {\n"
+        "  const s = (i.json.subject || '').toLowerCase();\n"
+        "  return keywords.some(k => s.includes(k));\n"
+        "}).map(i => ({ json: {\n"
+        "  subject: i.json.subject,\n"
+        "  from: i.json.from,\n"
+        "  snippet: (i.json.snippet || '').slice(0, 200)\n"
+        "} }));"
+    )
+    slack    = _slack_node("Alert Priority Email", "#urgent",
+        f"\U0001f6a8 *Priority Email — {task_name}*\n"
+        "From: {{{{$json.from}}}}\nSubject: {{{{$json.subject}}}}\n{{{{$json.snippet}}}}")
+    nodes = [trigger, read, filter_, slack]
+    return {"nodes": nodes, "connections": _chain(nodes)}
 
 
-def build_scheduling_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
-    """Calendar: fetch today's events -> post schedule to Slack each morning."""
-    y = _GROUP_Y_START
-    n1 = _schedule_node(_id(), x0, y, "30 8 * * 1-5")
-    n2 = _calendar_node(_id(), "Get Today Events", x0 + 220, y, "getAll")
-    n3 = _code_node(_id(), "Format Schedule", x0 + 440, y,
-                    "const events = items.map(i => i.json);\n"
-                    "if (!events.length) return [{ json: { msg: 'No meetings today \U0001F3D6\uFE0F' } }];\n"
-                    "const lines = events.map(e => {\n"
-                    "  const time = e.start?.dateTime?.slice(11, 16) || 'All day';\n"
-                    "  return `• ${time} — ${e.summary || 'Untitled'}`;\n"
-                    "});\n"
-                    "return [{ json: { msg: lines.join('\\n'), count: events.length } }];")
-    n4 = _slack_node(_id(), "Post Daily Schedule", x0 + 660, y, "#team",
-                     f"\U0001F4C5 *{task_name} — Today* ({{{{ $json.count }}}} meetings)\n"
-                     "{{{{ $json.msg }}}}")
-    nodes = [n1, n2, n3, n4]
-    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
-             (n3["name"], n4["name"])]
-    return nodes, _build_connections(edges)
+def _build_scheduling(task_name: str) -> dict:
+    """Daily calendar digest: fetch today's events → format → Slack."""
+    trigger  = _schedule_node("Morning Schedule", "0 8 * * 1-5")
+    cal      = _gcal_node("Get Today's Events")
+    format_  = _code_node("Format Schedule",
+        "const evts = items.map(i => i.json);\n"
+        "if (!evts.length) return [{ json: { msg: '\u2705 No meetings today — clear day!' } }];\n"
+        "const lines = evts.map(e => {\n"
+        "  const time = e.start?.dateTime?.slice(11, 16) || 'All day';\n"
+        "  return `\u2022 ${time} — ${e.summary || 'Untitled'}`;\n"
+        "});\n"
+        "return [{ json: { msg: lines.join('\\n'), count: evts.length } }];"
+    )
+    slack    = _slack_node("Post Daily Schedule", "#team",
+        f"\U0001f4c5 *{task_name}* — Today\n{{{{$json.msg}}}}")
+    nodes = [trigger, cal, format_, slack]
+    return {"nodes": nodes, "connections": _chain(nodes)}
 
 
-def build_data_entry_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
-    """Data entry: receive via webhook -> validate -> append to Sheets -> confirm."""
-    y = _GROUP_Y_START
-    n1 = _webhook_node(_id(), "Receive Entry", x0, y, "data-entry")
-    n2 = _code_node(_id(), "Validate & Format", x0 + 220, y,
-                    "const d = items[0].json;\n"
-                    "const required = ['name', 'value', 'category'];\n"
-                    "const missing = required.filter(k => !d[k]);\n"
-                    "if (missing.length) throw new Error(`Missing: ${missing.join(', ')}`);\n"
-                    "return [{ json: {\n"
-                    "  name: String(d.name).trim(),\n"
-                    "  value: Number(d.value),\n"
-                    "  category: String(d.category).trim(),\n"
-                    "  source: d.source || 'webhook',\n"
-                    "  timestamp: new Date().toISOString()\n"
-                    "}}];")
-    n3 = _sheets_append(_id(), "Log to Sheet", x0 + 440, y)
-    n4 = _slack_node(_id(), "Confirm Entry", x0 + 660, y, "#data-log",
-                     f"\u2705 *{task_name}* logged\n"
-                     "Name: {{{{ $json.name }}}} | Value: {{{{ $json.value }}}} | "
-                     "Category: {{{{ $json.category }}}}")
-    nodes = [n1, n2, n3, n4]
-    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
-             (n3["name"], n4["name"])]
-    return nodes, _build_connections(edges)
+def _build_data_entry(task_name: str) -> dict:
+    """Webhook ingest: receive POST → validate → append to Sheets → confirm."""
+    trigger  = _webhook_node("Receive Data Webhook", "data-entry")
+    validate = _code_node("Validate & Format",
+        "const d = items[0].json;\n"
+        "const required = ['name', 'value'];\n"
+        "for (const f of required) {\n"
+        "  if (!d[f]) throw new Error(`Missing required field: ${f}`);\n"
+        "}\n"
+        "return [{ json: {\n"
+        "  name: d.name,\n"
+        "  value: d.value,\n"
+        "  source: d.source || 'webhook',\n"
+        "  timestamp: new Date().toISOString()\n"
+        "} }];"
+    )
+    append   = _sheets_append_node("Append to Google Sheet")
+    confirm  = _slack_node("Confirm Entry", "#data-log",
+        f"\u2705 *{task_name}* logged\nName: {{{{$json.name}}}} | Value: {{{{$json.value}}}} | {{{{$json.timestamp}}}}")
+    nodes = [trigger, validate, append, confirm]
+    return {"nodes": nodes, "connections": _chain(nodes)}
 
 
-def build_research_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
-    """Research: fetch web/API data -> extract key info -> post digest."""
-    y = _GROUP_Y_START
-    n1 = _schedule_node(_id(), x0, y, "0 7 * * 1-5")
-    n2 = _http_node(_id(), "Fetch Data Source", x0 + 220, y,
-                    "={{ $vars.RESEARCH_API_URL || 'https://hacker-news.firebaseio.com/v0/topstories.json' }}")
-    n3 = _code_node(_id(), "Extract Key Insights", x0 + 440, y,
-                    "// Process fetched data into digestible insights\n"
-                    "const data = items[0].json;\n"
-                    "const items2 = Array.isArray(data) ? data.slice(0, 5) : [data];\n"
-                    "return [{ json: {\n"
-                    "  summary: `Found ${items2.length} items`,\n"
-                    "  data: JSON.stringify(items2).slice(0, 500),\n"
-                    "  date: new Date().toISOString().slice(0, 10)\n"
-                    "}}];")
-    n4 = _slack_node(_id(), "Post Research Digest", x0 + 660, y, "#research",
-                     f"\U0001F50D *{task_name}* — {{{{ $json.date }}}}\n"
-                     "{{{{ $json.summary }}}}\n\n{{{{ $json.data }}}}")
-    n5 = _sheets_append(_id(), "Log Research Results", x0 + 880, y)
-    nodes = [n1, n2, n3, n4, n5]
-    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
-             (n3["name"], n4["name"]), (n3["name"], n5["name"])]
-    return nodes, _build_connections(edges)
+def _build_research(task_name: str) -> dict:
+    """News / research digest: fetch RSS → parse → filter → Slack."""
+    trigger  = _schedule_node("Research Schedule", "0 7 * * 1-5")
+    fetch    = _http_node("Fetch RSS / News Feed",
+        "https://news.google.com/rss/search?q=YOUR+TOPIC&hl=en-US&gl=US&ceid=US:en")
+    parse    = _code_node("Parse & Rank Articles",
+        "const body = items[0].json.body || items[0].json.data || '';\n"
+        "const titles = [...String(body).matchAll(/<title><!\\[CDATA\\[([^\\]]+)\\]\\]><\\/title>|<title>([^<]+)<\\/title>/g)]\n"
+        "  .map(m => (m[1] || m[2] || '').trim()).filter(t => t && t !== 'Google News').slice(0, 6);\n"
+        "return [{ json: {\n"
+        "  articles: titles.join('\\n\u2022 '),\n"
+        "  count: titles.length,\n"
+        "  date: new Date().toISOString().slice(0, 10)\n"
+        "} }];"
+    )
+    slack    = _slack_node("Post Research Digest", "#research",
+        f"\U0001f4f0 *{task_name}* — {{{{$json.date}}}} ({{{{$json.count}}}} articles)\n\u2022 {{{{$json.articles}}}}")
+    nodes = [trigger, fetch, parse, slack]
+    return {"nodes": nodes, "connections": _chain(nodes)}
 
 
-def build_analysis_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
-    """Analysis: pull metrics -> compute KPIs -> report + log."""
-    y = _GROUP_Y_START
-    n1 = _schedule_node(_id(), x0, y, "0 8 * * 1")
-    n2 = _sheets_read(_id(), "Load Data", x0 + 220, y)
-    n3 = _code_node(_id(), "Run Analysis", x0 + 440, y,
-                    "const rows = items.map(i => i.json).filter(r => r.value !== undefined);\n"
-                    "if (!rows.length) return [{ json: { error: 'No data' } }];\n"
-                    "const values = rows.map(r => Number(r.value) || 0);\n"
-                    "const total = values.reduce((a, b) => a + b, 0);\n"
-                    "const avg = (total / values.length).toFixed(2);\n"
-                    "const max = Math.max(...values);\n"
-                    "const min = Math.min(...values);\n"
-                    "const top = rows.find(r => Number(r.value) === max)?.label || 'N/A';\n"
-                    "return [{ json: { total, avg, max, min, top,\n"
-                    "  count: rows.length, week: new Date().toISOString().slice(0,10) } }];")
-    n4 = _slack_node(_id(), "Post Analysis", x0 + 660, y, "#analytics",
-                     f"\U0001F4CA *{task_name}*\n"
-                     "Total: {{{{ $json.total }}}} | Avg: {{{{ $json.avg }}}} | "
-                     "Max: {{{{ $json.max }}}} ({{{{ $json.top }}}})")
-    n5 = _sheets_append(_id(), "Archive Results", x0 + 880, y)
-    nodes = [n1, n2, n3, n4, n5]
-    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
-             (n3["name"], n4["name"]), (n3["name"], n5["name"])]
-    return nodes, _build_connections(edges)
+def _build_analysis(task_name: str) -> dict:
+    """Data analysis: read Sheets → compute metrics → Slack + log."""
+    trigger  = _schedule_node("Analysis Schedule", "0 6 * * 1")
+    read     = _sheets_read_node("Read Data Sheet")
+    analyze  = _code_node("Compute Metrics",
+        "const rows = items.map(i => i.json);\n"
+        "const nums  = rows.map(r => parseFloat(r.value) || 0);\n"
+        "const total = nums.reduce((s, n) => s + n, 0);\n"
+        "const avg   = nums.length ? (total / nums.length).toFixed(2) : 0;\n"
+        "const max   = nums.length ? Math.max(...nums) : 0;\n"
+        "const min   = nums.length ? Math.min(...nums) : 0;\n"
+        "return [{ json: { total, avg, max, min, count: rows.length,\n"
+        "  week: new Date().toISOString().slice(0, 10) } }];"
+    )
+    slack    = _slack_node("Post Analysis to Slack", "#analytics",
+        f"\U0001f4ca *{task_name}* — {{{{$json.week}}}}\n"
+        "Total: {{{{$json.total}}}} | Avg: {{{{$json.avg}}}} | Max: {{{{$json.max}}}} | Count: {{{{$json.count}}}}")
+    log      = _sheets_append_node("Log Analysis Results")
+    nodes = [trigger, read, analyze, slack, log]
+    conns = _chain([trigger, read, analyze])
+    conns[analyze["name"]] = {"main": [[
+        {"node": slack["name"], "type": "main", "index": 0},
+        {"node": log["name"],   "type": "main", "index": 0},
+    ]]}
+    return {"nodes": nodes, "connections": conns}
 
 
-def build_general_workflow(task_name: str, x0: int) -> Tuple[List[dict], dict]:
-    """General automation: scheduled trigger -> process -> notify."""
-    y = _GROUP_Y_START
-    n1 = _schedule_node(_id(), x0, y, "0 9 * * 1-5")
-    n2 = _http_node(_id(), f"Fetch {task_name[:30]} Data", x0 + 220, y,
-                    "={{ $vars.API_ENDPOINT || 'https://api.example.com/data' }}")
-    n3 = _code_node(_id(), "Process & Format", x0 + 440, y,
-                    "const data = items[0].json;\n"
-                    "const summary = typeof data === 'object'\n"
-                    "  ? JSON.stringify(data).slice(0, 300)\n"
-                    "  : String(data).slice(0, 300);\n"
-                    "return [{ json: { summary, timestamp: new Date().toISOString() } }];")
-    n4 = _slack_node(_id(), "Send Notification", x0 + 660, y, "#automation",
-                     f"\u26A1 *{task_name}*\n{{{{ $json.summary }}}}\n_{{{{ $json.timestamp }}}}_")
-    nodes = [n1, n2, n3, n4]
-    edges = [(n1["name"], n2["name"]), (n2["name"], n3["name"]),
-             (n3["name"], n4["name"])]
-    return nodes, _build_connections(edges)
+def _build_general(task_name: str) -> dict:
+    """General automation: schedule → HTTP call → process → Slack."""
+    trigger  = _schedule_node("Automation Schedule", "0 9 * * 1-5")
+    fetch    = _http_node("Call External API", "https://api.example.com/data")
+    process  = _code_node("Process Response",
+        "const data = items[0].json;\n"
+        "return [{ json: {\n"
+        "  summary: JSON.stringify(data).slice(0, 300),\n"
+        "  timestamp: new Date().toISOString()\n"
+        "} }];"
+    )
+    notify   = _slack_node("Post Result to Slack", "#automation",
+        f"\U0001f916 *{task_name}* completed\n{{{{$json.summary}}}}")
+    nodes = [trigger, fetch, process, notify]
+    return {"nodes": nodes, "connections": _chain(nodes)}
 
 
-# Map task category -> workflow builder
-_CATEGORY_BUILDERS = {
-    "reporting":     build_reporting_workflow,
-    "management":    build_management_workflow,
-    "communication": build_communication_workflow,
-    "scheduling":    build_scheduling_workflow,
-    "data_entry":    build_data_entry_workflow,
-    "research":      build_research_workflow,
-    "analysis":      build_analysis_workflow,
-    "general":       build_general_workflow,
-    "testing":       build_general_workflow,       # code-test specific
-    "documentation": build_reporting_workflow,     # docs = report-like
+# ---------------------------------------------------------------------------
+# CATEGORY → BUILDER MAPPING
+# ---------------------------------------------------------------------------
+_BUILDERS = {
+    "reporting":     _build_reporting,
+    "management":    _build_management,
+    "communication": _build_communication,
+    "scheduling":    _build_scheduling,
+    "data_entry":    _build_data_entry,
+    "research":      _build_research,
+    "analysis":      _build_analysis,
+    "testing":       _build_analysis,       # use analysis flow
+    "documentation": _build_reporting,      # use reporting flow
+    "general":       _build_general,
 }
 
 
 # ---------------------------------------------------------------------------
-# CANVAS BUILDER — merges per-task workflows into one importable file
+# MERGE ENGINE — places all per-task workflows onto one canvas
 # ---------------------------------------------------------------------------
 
-def _merge_connections(all_conns: List[dict]) -> dict:
-    """Merge multiple connections dicts, namespacing by appending nothing
-    (node names are unique because we include col index in names)."""
-    merged: dict = {}
-    for conns in all_conns:
-        for src, data in conns.items():
-            if src not in merged:
-                merged[src] = {"main": [[]]}
-            for edge in data.get("main", [[]])[0]:
-                merged[src]["main"][0].append(edge)
-    return merged
-
-
-def build_canvas(job_title: str, tasks: List[dict]) -> dict:
+def _place_workflow(wf: dict, col_idx: int, task_name: str) -> Tuple[list, dict]:
     """
-    Build one merged n8n canvas for all tasks.
-    Each task gets its own workflow column with a sticky note header.
-    Returns a complete importable n8n workflow JSON dict.
+    Take a single workflow dict {"nodes": [...], "connections": {...}}
+    and place its nodes in column col_idx on the shared canvas.
+
+    Returns (placed_nodes, placed_connections) where connections
+    still use the ORIGINAL node names (n8n uses names as keys).
+    Node names are made unique by prefixing with col_idx.
     """
-    all_nodes: List[dict] = []
-    all_connections_list: List[dict] = []
+    x_base = col_idx * _COL_WIDTH
 
-    num_tasks = len(tasks)
+    # Build name → unique_name mapping
+    name_map: Dict[str, str] = {}
+    for node in wf["nodes"]:
+        orig = node["name"]
+        unique = f"[T{col_idx+1}] {orig}"
+        name_map[orig] = unique
 
-    # Top-level canvas header sticky note
-    canvas_width = max(960, num_tasks * _CANVAS_COL_WIDTH)
-    all_nodes.append(_sticky(
-        _id(),
-        f"\U0001F916 WorkScanAI — {job_title}",
-        0, 0,
-        f"# WorkScanAI Automation Canvas — {job_title}\n\n"
-        f"Generated by [WorkScanAI](https://workscanai.vercel.app)\n"
-        f"**{num_tasks} automation workflows** — one per task column below.\n\n"
-        f"**Setup:** Add your credentials in each node "
-        f"(Slack, Gmail, Google Sheets, Jira). "
-        f"Activate each workflow column independently.\n"
-        f"Set variables: `SPREADSHEET_ID`, `JIRA_PROJECT`, `REPORT_EMAIL`, etc.",
-        color=7, w=canvas_width, h=180
-    ))
+    placed_nodes = []
+    for row_idx, node in enumerate(wf["nodes"]):
+        n = copy.deepcopy(node)
+        n["id"] = _uid()                        # fresh unique ID
+        n["name"] = name_map[node["name"]]       # unique name
+        n["position"] = [x_base, _COL_START_Y + row_idx * _ROW_HEIGHT]
+        placed_nodes.append(n)
 
-    # Colour palette for task columns (cycles)
-    COLORS = [3, 4, 5, 6, 2, 1]
+    # Remap connection keys and targets to unique names
+    placed_conns: dict = {}
+    for src_name, conn_data in wf.get("connections", {}).items():
+        new_src = name_map.get(src_name, src_name)
+        placed_conns[new_src] = {}
+        for conn_type, target_groups in conn_data.items():
+            placed_conns[new_src][conn_type] = []
+            for group in target_groups:
+                new_group = []
+                for tgt in group:
+                    new_tgt = copy.deepcopy(tgt)
+                    new_tgt["node"] = name_map.get(tgt["node"], tgt["node"])
+                    new_group.append(new_tgt)
+                placed_conns[new_src][conn_type].append(new_group)
 
-    for col_idx, task in enumerate(tasks):
-        task_name = task.get("name", f"Task {col_idx + 1}")
-        category  = task.get("category", "general").lower()
-        frequency = task.get("frequency", "weekly")
-        x0 = col_idx * _CANVAS_COL_WIDTH
+    return placed_nodes, placed_conns
 
-        # Pick builder for this category
-        builder = _CATEGORY_BUILDERS.get(category, build_general_workflow)
 
-        # Build the workflow nodes + connections for this task
-        task_nodes, task_conns = builder(task_name, x0)
-
-        # Add per-task sticky note header (sits above the nodes)
-        color = COLORS[col_idx % len(COLORS)]
-        tool_hint = {
-            "reporting":     "Slack + Gmail + Google Sheets",
-            "management":    "Jira + Slack",
-            "communication": "Gmail + Slack",
-            "scheduling":    "Google Calendar + Slack",
-            "data_entry":    "Webhook + Google Sheets + Slack",
-            "research":      "HTTP Request + Slack + Google Sheets",
-            "analysis":      "Google Sheets + Slack",
-            "general":       "HTTP Request + Slack",
-        }.get(category, "HTTP Request + Slack")
-
-        all_nodes.append(_sticky(
-            _id(),
-            f"\U0001F4CC Task {col_idx + 1}: {task_name[:50]}",
-            x0, _GROUP_Y_START - _STICKY_HEIGHT - 20,
-            f"## Task {col_idx + 1}: {task_name}\n"
-            f"**Category:** {category} | **Frequency:** {frequency}\n"
-            f"**Tools:** {tool_hint}\n"
-            f"**Setup:** Connect credentials, then activate this workflow.",
-            color=color, w=920, h=_STICKY_HEIGHT
-        ))
-
-        all_nodes.extend(task_nodes)
-        all_connections_list.append(task_conns)
-
-    merged_conns = _merge_connections(all_connections_list)
-
+def _make_task_sticky(col_idx: int, task_name: str, category: str, reason: str) -> dict:
+    """Coloured sticky note header above each task column."""
+    color = _COLORS[col_idx % len(_COLORS)]
+    x_base = col_idx * _COL_WIDTH
+    content = (
+        f"## \U0001f4cc Task {col_idx+1}: {task_name}\n"
+        f"**Category:** {category}\n"
+        f"**Automation:** {reason}\n\n"
+        f"_Configure the nodes below: add your credentials and adjust "
+        f"the channel/sheet/calendar settings to match your workspace._"
+    )
     return {
-        "name": f"{job_title} — WorkScanAI Automation Canvas",
-        "nodes": all_nodes,
-        "connections": merged_conns,
-        "active": False,
-        "settings": {"executionOrder": "v1", "saveManualExecutions": True},
-        "meta": {
-            "generatedBy": "WorkScanAI",
-            "jobTitle": job_title,
-            "taskCount": num_tasks,
-            "note": (
-                "Purpose-built automation workflows — not generic templates. "
-                "Each column is a ready-to-connect automation for the task above."
-            ),
-        },
+        "id": _uid(),
+        "name": f"Task {col_idx+1} Header",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [x_base, _STICKY_Y],
+        "parameters": {
+            "color": color,
+            "width": _COL_WIDTH - 60,
+            "height": _STICKY_H,
+            "content": content
+        }
     }
+
+
+def _make_canvas_header(job_title: str, n_tasks: int, canvas_width: int) -> dict:
+    content = (
+        f"# \U0001f916 WorkScanAI — {job_title}\n\n"
+        f"**{n_tasks} automation workflows** generated for your role. "
+        f"Each column is one task-specific workflow.\n\n"
+        f"\U0001f527 **Setup:** Add your credentials in each node "
+        f"(Slack, Gmail, Google Sheets, Jira…). "
+        f"Activate each workflow independently once configured.\n\n"
+        f"\U0001f4a1 **Generated by** [WorkScanAI](https://workscanai.vercel.app) — "
+        f"AI-powered workflow automation analysis."
+    )
+    return {
+        "id": _uid(),
+        "name": "WorkScanAI Canvas",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [0, 0],
+        "parameters": {
+            "color": 7,
+            "width": canvas_width,
+            "height": 200,
+            "content": content
+        }
+    }
+
+
+
+# ---------------------------------------------------------------------------
+# REASON STRINGS — human-readable explanation per category
+# ---------------------------------------------------------------------------
+_REASONS = {
+    "reporting":     "Reads metrics from Google Sheets, computes KPIs, posts to Slack and emails the team",
+    "management":    "Fetches open Jira issues daily and posts a digest to your Slack channel",
+    "communication": "Scans Gmail every 30 minutes for priority emails and alerts you on Slack",
+    "scheduling":    "Reads today's Google Calendar events every morning and posts your daily schedule to Slack",
+    "data_entry":    "Receives data via webhook, validates it, appends to Google Sheets, and confirms on Slack",
+    "research":      "Fetches news/RSS feeds daily, parses and ranks articles, posts a digest to Slack",
+    "analysis":      "Reads a Google Sheet weekly, computes statistics, posts to Slack and logs results",
+    "testing":       "Reads test result data from Google Sheets, computes pass rates, alerts on failures",
+    "documentation": "Reads documentation metrics from Google Sheets, generates a weekly report via Slack and email",
+    "general":       "Calls an external API on a schedule, processes the response and posts results to Slack",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -525,92 +547,133 @@ def build_canvas(job_title: str, tasks: List[dict]) -> dict:
 
 class N8nTemplateClient:
     """
-    Builds role-specific n8n canvases using purpose-built workflow code.
-    No dependency on the n8n community API (which returns the same generic
-    templates regardless of search terms).
+    Builds role-specific n8n workflow canvases from a curated template library.
+    No external API calls. No LLM needed for template selection.
+    Always produces relevant, importable, working n8n workflows.
     """
 
     def __init__(self, anthropic_api_key: str = ""):
-        # anthropic_api_key kept for interface compatibility — not used
-        pass
+        # anthropic_api_key kept for interface compatibility — not used here
+        self._anthropic_api_key = anthropic_api_key
+
+    # ------------------------------------------------------------------
+    # PRIMARY ENTRY POINT (matches existing callers)
+    # ------------------------------------------------------------------
 
     def get_curated_templates(
         self,
         job_title: str,
-        tasks: List[dict],
-    ) -> List[dict]:
+        tasks: List[Dict],
+    ) -> List[Dict]:
         """
-        Returns suggested_templates[] — one per task, each with:
-          id, name, description, url, relevance_reason,
-          node_count, nodes_preview, workflow_json, task_name
+        Returns suggested_templates[] — one entry per task (up to 6).
+        Each entry has:  id, name, description, url, relevance_reason,
+                         node_count, nodes_preview, workflow_json, task_name
         """
         suggested = []
-        for idx, task in enumerate(tasks[:6]):
-            task_name = task.get("name", f"Task {idx + 1}")
-            category  = task.get("category", "general").lower()
-            builder   = _CATEGORY_BUILDERS.get(category, build_general_workflow)
+        seen_categories: set = set()
 
-            task_nodes, task_conns = builder(task_name, 0)
+        for task in tasks[:6]:
+            task_name = task.get("name", "")
+            category  = task.get("category", "general")
+            if not task_name:
+                continue
 
-            tool_map = {
-                "reporting":     ("Sheets + Slack + Gmail", "Automates weekly KPI collection, summarisation, and delivery"),
-                "management":    ("Jira + Slack",           "Fetches open issues daily and posts a prioritised digest"),
-                "communication": ("Gmail + Slack",          "Scans inbox every 30 min and surfaces urgent emails"),
-                "scheduling":    ("Google Calendar + Slack","Posts today's meeting schedule each morning"),
-                "data_entry":    ("Webhook + Sheets + Slack","Accepts data via webhook, validates, logs, and confirms"),
-                "research":      ("HTTP + Sheets + Slack",  "Fetches data from APIs/feeds and posts daily digest"),
-                "analysis":      ("Sheets + Slack",         "Computes weekly KPIs from sheet data and reports"),
-                "general":       ("HTTP + Slack",           "Scheduled data fetch, processing, and team notification"),
-            }
-            tool_name, reason = tool_map.get(category, ("HTTP + Slack", "Scheduled automation workflow"))
+            # Use a different builder if we've already used this category,
+            # so columns aren't identical.
+            builder_category = category
+            if category in seen_categories:
+                # Cycle to general as a distinct fallback
+                builder_category = "general" if category != "general" else "reporting"
+            seen_categories.add(category)
 
-            nodes_preview = [n["type"].split(".")[-1] for n in task_nodes
-                             if "stickyNote" not in n["type"]][:6]
+            builder = _BUILDERS.get(builder_category, _build_general)
+            wf_dict = builder(task_name)   # {"nodes": [...], "connections": {...}}
+
+            reason = _REASONS.get(category, _REASONS["general"])
+            nodes_preview = [
+                n["type"].split(".")[-1].replace("scheduleTrigger", "Schedule")
+                         .replace("httpRequest", "HTTP")
+                         .replace("googleSheets", "Sheets")
+                         .replace("googleCalendar", "Calendar")
+                         .replace("slack", "Slack")
+                         .replace("gmail", "Gmail")
+                         .replace("jira", "Jira")
+                         .replace("notion", "Notion")
+                         .replace("webhook", "Webhook")
+                         .replace("code", "Code")
+                         .replace("set", "Set")
+                         .replace("filter", "Filter")
+                for n in wf_dict["nodes"]
+                if "stickyNote" not in n["type"]
+            ]
 
             suggested.append({
-                "id":               idx + 1,
-                "name":             f"{task_name} — Automation",
-                "description":      reason,
-                "url":              "https://n8n.io/workflows/",
+                "id": 0,
+                "name": f"{task_name} Automation",
+                "description": reason,
+                "url": "https://workscanai.vercel.app",
                 "relevance_reason": reason,
-                "node_count":       len(task_nodes),
-                "nodes_preview":    nodes_preview,
-                "workflow_json":    {"nodes": task_nodes, "connections": task_conns,
-                                     "active": False, "settings": {"executionOrder": "v1"}},
-                "task_name":        task_name,
+                "node_count": len(wf_dict["nodes"]),
+                "nodes_preview": nodes_preview,
+                "workflow_json": wf_dict,
+                "task_name": task_name,
             })
+
         return suggested
 
     def build_merged_canvas(
         self,
         job_title: str,
-        suggested_templates: List[dict],
-    ) -> dict:
+        suggested_templates: List[Dict],
+    ) -> Dict:
         """
-        Merges suggested templates into one importable n8n canvas.
+        Merges all per-task workflow dicts into a single importable n8n canvas.
+        Each task gets its own column with a coloured sticky-note header.
+        Returns a dict ready to be JSON-serialised and stored.
         """
-        tasks = [{"name": t.get("task_name", t.get("name", "")),
-                  "category": _guess_category(t),
-                  "frequency": "weekly"}
-                 for t in suggested_templates]
-        return build_canvas(job_title, tasks)
+        all_nodes: list = []
+        all_connections: dict = {}
+        n_tasks = len(suggested_templates)
+        canvas_width = max(_COL_WIDTH, n_tasks * _COL_WIDTH)
+
+        # Top banner sticky
+        all_nodes.append(_make_canvas_header(job_title, n_tasks, canvas_width))
+
+        for col_idx, tpl in enumerate(suggested_templates):
+            task_name = tpl.get("task_name", f"Task {col_idx+1}")
+            category  = _category_from_reason(tpl.get("relevance_reason", ""))
+            reason    = tpl.get("relevance_reason", "")
+            wf_dict   = tpl.get("workflow_json", {})
+
+            # Per-task sticky note header
+            all_nodes.append(_make_task_sticky(col_idx, task_name, category, reason))
+
+            # Place the workflow nodes in this column
+            placed_nodes, placed_conns = _place_workflow(wf_dict, col_idx, task_name)
+            all_nodes.extend(placed_nodes)
+            all_connections.update(placed_conns)
+
+        return {
+            "name": f"{job_title} — WorkScanAI Automation Canvas",
+            "nodes": all_nodes,
+            "connections": all_connections,
+            "active": False,
+            "settings": {"executionOrder": "v1"},
+            "pinData": {},
+            "meta": {
+                "generatedBy": "WorkScanAI",
+                "reportUrl": "https://workscanai.vercel.app",
+                "jobTitle": job_title,
+                "taskCount": n_tasks,
+                "templateVersion": "3.0-curated",
+            },
+        }
 
 
-def _guess_category(tpl: dict) -> str:
-    """Infer category from template description when not stored."""
-    desc = (tpl.get("relevance_reason", "") + " " + tpl.get("description", "")).lower()
-    if "report" in desc or "kpi" in desc or "sheet" in desc:
-        return "reporting"
-    if "jira" in desc or "issue" in desc or "sprint" in desc:
-        return "management"
-    if "email" in desc or "gmail" in desc or "inbox" in desc:
-        return "communication"
-    if "calendar" in desc or "meeting" in desc or "schedule" in desc:
-        return "scheduling"
-    if "webhook" in desc or "form" in desc or "entry" in desc:
-        return "data_entry"
-    if "research" in desc or "fetch" in desc or "scrape" in desc:
-        return "research"
-    if "analys" in desc or "metric" in desc or "kpi" in desc:
-        return "analysis"
-    return "general"
+def _category_from_reason(reason: str) -> str:
+    """Reverse-look up category label from reason string for display."""
+    for cat, r in _REASONS.items():
+        if r == reason:
+            return cat
+    return "automation"
