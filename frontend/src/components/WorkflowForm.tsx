@@ -466,6 +466,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ job_title: jobTitle.trim(), analysis_context: analysisContext || 'individual', industry: industry || undefined }),
       })
+      if (r1.status === 429) {
+        const e = await r1.json().catch(()=>({}))
+        setRateLimitMessage(e.detail?.message || e.detail || 'You have reached the daily analysis limit.')
+        setJobScanStep('idle')
+        return
+      }
       if (!r1.ok) { const e = await r1.json().catch(()=>({})); throw new Error(e.detail || `Research failed (${r1.status})`) }
       const d1 = await r1.json()
       setJobScanTasks(d1.tasks || [])
@@ -475,6 +481,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ job_title: jobTitle.trim(), tasks: d1.tasks, analysis_context: analysisContext || 'individual', industry: industry || undefined, hourly_rate: hourlyRate }),
       })
+      if (r2.status === 429) {
+        const e = await r2.json().catch(()=>({}))
+        setRateLimitMessage(e.detail?.message || e.detail || 'You have reached the daily analysis limit.')
+        setJobScanStep('idle')
+        return
+      }
       if (!r2.ok) { const e = await r2.json().catch(()=>({})); throw new Error(e.detail || `Analysis failed (${r2.status})`) }
       const d2 = await r2.json()
       setJobScanStep('done')
