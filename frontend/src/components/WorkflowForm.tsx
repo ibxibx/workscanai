@@ -36,6 +36,25 @@ const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''
 // (auth/request involves DB + Resend email; analyze involves AI; parse-tasks involves AI)
 const BACKEND_DIRECT = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://workscanai.onrender.com').replace(/\/$/, '')
 
+// Pre-flight quota check — module-level so Turbopack cannot tree-shake it.
+// Returns true if the user is over the limit (caller should stop), false if clear.
+async function checkQuotaLimit(setRateLimitMessage: (m: string) => void): Promise<boolean> {
+  try {
+    const r = await fetch('/api/quota')
+    if (!r.ok) return false
+    const d = await r.json()
+    if (d.exceeded) {
+      setRateLimitMessage(
+        `You've used all ${d.limit} free analyses in the last 24 hours. The limit resets on a rolling 24-hour basis — try again tomorrow!`
+      )
+      return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
 function loadRecaptchaScript(): Promise<void> {
   if (!SITE_KEY) return Promise.resolve()
   if (document.getElementById('recaptcha-script')) return Promise.resolve()
@@ -272,7 +291,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const openAuthModal = () => { setShowAuthModal(true); setAuthStep('email'); setAuthEmailState(''); setAuthCode(''); setAuthError(''); pendingSubmitRef.current = null }
 
   const startVoiceRecording = async () => {
-    if (await checkQuota()) return
+    if (await checkQuotaLimit(setRateLimitMessage)) return
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) { onError('Speech recognition is not supported. Please use Chrome or Edge.'); return }
     const recognition = new SR()
@@ -302,7 +321,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
-    if (await checkQuota()) {
+    if (await checkQuotaLimit(setRateLimitMessage)) {
       if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
@@ -424,25 +443,6 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     try { return JSON.parse(text) } catch { return { detail: text || `HTTP ${res.status}` } }
   }
 
-  // Pre-flight quota check v2 — called immediately on every button press before any work.
-  // Returns true if the user is over the limit (modal is shown), false if they can proceed.
-  const checkQuota = async (): Promise<boolean> => {
-    try {
-      const r = await fetch('/api/quota')
-      if (!r.ok) return false // on error, let the server enforce
-      const d = await r.json()
-      if (d.exceeded) {
-        setRateLimitMessage(
-          `You've used all ${d.limit} free analyses in the last 24 hours. The limit resets on a rolling 24-hour basis — try again tomorrow!`
-        )
-        return true
-      }
-      return false
-    } catch {
-      return false // network error — let the server enforce
-    }
-  }
-
   const runAnalysis = async (userEmail: string) => {
     onError(''); setStepError(null)
 
@@ -483,7 +483,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   // ── Job Scanner handler ──────────────────────────────────────────────────
   const handleJobScan = async () => {
     if (!jobTitle.trim()) return
-    if (await checkQuota()) return
+    if (await checkQuotaLimit(setRateLimitMessage)) return
     setJobScanError(''); setJobScanTasks([]); setJobScanStep('researching')
     try {
       // Step 1: research via Vercel proxy (~15s)
@@ -531,7 +531,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       document.getElementById('context-selector')?.scrollIntoView({ behavior:'smooth', block:'center' })
       return
     }
-    if (await checkQuota()) return
+    if (await checkQuotaLimit(setRateLimitMessage)) return
     const guestId = getGuestId()
     await runAnalysis(guestId)
   }
