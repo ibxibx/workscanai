@@ -1107,7 +1107,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           </div>
         )}
 
-        <div id="context-selector" className={`rounded-[18px] p-[32px] border-2 transition-all duration-300 ${contextError?'border-red-400 bg-red-50/60':'border-[#d2d2d7] bg-[#f5f5f7]'}`}>
+        {inputMode!=='jobscan'&&<div id="context-selector" className={`rounded-[18px] p-[32px] border-2 transition-all duration-300 ${contextError?'border-red-400 bg-red-50/60':'border-[#d2d2d7] bg-[#f5f5f7]'}`}>
           <div className="flex items-start justify-between gap-[12px] mb-[6px]">
             <h2 className="text-[17px] font-semibold text-[#1d1d1f]">Who is this analysis for? <span className="text-red-500">*</span></h2>
             {contextError&&(
@@ -1171,7 +1171,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
               </div>
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Workflow Details — hidden in jobscan mode */}
         {inputMode!=='jobscan'&&(
