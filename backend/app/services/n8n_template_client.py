@@ -1493,13 +1493,21 @@ def _merge_connections(conn_list: List[dict]) -> dict:
 def build_canvas(job_title: str, tasks: List[dict]) -> dict:
     """
     Build one merged importable n8n workflow for all tasks.
-    Each task gets its own workflow column with a sticky note header.
+    Each task gets its own horizontal row with a sticky note header.
+    Rows are stacked vertically so they never overlap.
     Returns a complete importable n8n workflow JSON dict.
     """
     all_nodes: List[dict] = []
     all_conns: List[dict] = []
     num = len(tasks)
-    canvas_w = max(960, num * _COL_W)
+    # Layout constants for vertical stacking
+    _HEADER_H   = 200   # top canvas header sticky height
+    _HEADER_GAP = 60    # gap below header before first task
+    _TASK_STICKY_H = 160  # per-task sticky note height
+    _TASK_NODE_H   = 200  # vertical space occupied by the node row
+    _TASK_GAP      = 80   # gap between task blocks
+    _ROW_H = _TASK_STICKY_H + 20 + _TASK_NODE_H + _TASK_GAP  # total height per task row
+    CANVAS_W = 1800     # fixed canvas width (wide enough for any node chain)
     COLORS = [3, 4, 5, 6, 2, 1]
 
     # Top canvas header sticky note
@@ -1511,32 +1519,41 @@ def build_canvas(job_title: str, tasks: List[dict]) -> dict:
         f"**Role:** {job_title} | **{num} automation workflows** below\n\n"
         f"**Setup:** Add credentials in each node (Slack, Gmail, Google Sheets, Jira, GitHub, HubSpot).\n"
         f"Set n8n variables: `SPREADSHEET_ID`, `JIRA_PROJECT`, `REPORT_EMAIL`, `GITHUB_OWNER`, `GITHUB_REPO`.\n"
-        f"Each column is independent \u2014 activate the ones matching your stack.",
-        color=7, w=canvas_w, h=185
+        f"Each row is independent \u2014 activate the ones matching your stack.",
+        color=7, w=CANVAS_W, h=_HEADER_H
     ))
 
     for idx, task in enumerate(tasks):
         name  = task.get("name", f"Task {idx+1}")
         cat   = _resolve_category(task.get("category", "general"))
         freq  = task.get("frequency", "weekly")
-        x0    = idx * _COL_W
         color = COLORS[idx % len(COLORS)]
         tools = _TOOLS.get(cat, "Schedule + HTTP + Slack")
         builder = _BUILDERS.get(cat, _wf_general)
 
-        # Per-task sticky note header
+        # y origin for this task row
+        y_row = _HEADER_H + _HEADER_GAP + idx * _ROW_H
+
+        # Per-task sticky note header (full width, above nodes)
         all_nodes.append(_sticky(
             _uid(),
             f"\U0001f4cc Task {idx+1}: {name[:50]}",
-            x0, _Y_START - _STICKY_H - 20,
+            0, y_row,
             f"## Task {idx+1}: {name}\n"
             f"**Category:** {cat} | **Frequency:** {freq}\n"
             f"**Nodes:** {tools}\n"
             f"Connect credentials then toggle Active \u2192",
-            color=color, w=940, h=_STICKY_H
+            color=color, w=CANVAS_W, h=_TASK_STICKY_H
         ))
 
-        task_nodes, task_conns = builder(name, x0)
+        # Build nodes with x0=0 (builder places nodes relative to x0, y=_Y_START)
+        task_nodes, task_conns = builder(name, 0)
+
+        # Shift all non-sticky nodes to sit below this row's sticky note
+        y_nodes = y_row + _TASK_STICKY_H + 20
+        for node in task_nodes:
+            if "stickyNote" not in node["type"]:
+                node["position"][1] = y_nodes
 
         # ── PREFIX all working node names with T{n}: so names are unique ──
         # n8n connections are keyed by node name, so duplicate names across
