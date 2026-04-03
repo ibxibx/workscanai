@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     RECAPTCHA_SECRET_KEY: str = ""
     RECAPTCHA_MIN_SCORE: float = 0.5
 
+    # Owner IP — unlimited scans (set via .env / Render env var, never hardcoded)
+    OWNER_IP: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = True

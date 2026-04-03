@@ -28,8 +28,16 @@ def check_rate_limit(request: Request) -> None:
     """
     Call this at the top of the /api/analyze endpoint.
     Raises HTTP 429 if the IP has exceeded MAX_ANALYSES_PER_HOUR.
+    Owner IP (set via OWNER_IP env var) is always bypassed.
     """
     ip = get_client_ip(request)
+
+    # ── Owner bypass — unlimited scans ────────────────────────────────────
+    owner_ip = settings.OWNER_IP.strip()
+    if owner_ip and ip == owner_ip:
+        return  # no rate limit, no logging
+    # ──────────────────────────────────────────────────────────────────────
+
     now = time.time()
     cutoff = now - WINDOW_SECONDS
 
