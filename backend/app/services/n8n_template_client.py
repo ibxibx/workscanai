@@ -1501,12 +1501,12 @@ def build_canvas(job_title: str, tasks: List[dict]) -> dict:
     all_conns: List[dict] = []
     num = len(tasks)
     # Layout constants for vertical stacking
-    _HEADER_H   = 200   # top canvas header sticky height
-    _HEADER_GAP = 60    # gap below header before first task
-    _TASK_STICKY_H = 160  # per-task sticky note height
+    _HEADER_H   = 220   # top canvas header sticky height
+    _HEADER_GAP = 80    # gap below header before first task
+    _TASK_STICKY_H = 180  # per-task sticky note height (4 lines + padding)
     _TASK_NODE_H   = 200  # vertical space occupied by the node row
-    _TASK_GAP      = 80   # gap between task blocks
-    _ROW_H = _TASK_STICKY_H + 20 + _TASK_NODE_H + _TASK_GAP  # total height per task row
+    _TASK_GAP      = 120  # gap between task blocks (generous isolation)
+    _ROW_H = _TASK_STICKY_H + 30 + _TASK_NODE_H + _TASK_GAP  # total height per task row
     CANVAS_W = 1800     # fixed canvas width (wide enough for any node chain)
     COLORS = [3, 4, 5, 6, 2, 1]
 
@@ -1550,7 +1550,7 @@ def build_canvas(job_title: str, tasks: List[dict]) -> dict:
         task_nodes, task_conns = builder(name, 0)
 
         # Shift all non-sticky nodes to sit below this row's sticky note
-        y_nodes = y_row + _TASK_STICKY_H + 20
+        y_nodes = y_row + _TASK_STICKY_H + 30
         for node in task_nodes:
             if "stickyNote" not in node["type"]:
                 node["position"][1] = y_nodes
