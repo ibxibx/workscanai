@@ -214,7 +214,7 @@ export default function LandingPage() {
       <footer className="border-t border-[#d2d2d7]">
         <div className="max-w-[980px] mx-auto px-6 py-[32px]">
           <div className="flex justify-between items-center text-[12px] text-[#86868b]">
-            <div>Â© 2026 WorkScanAI</div>
+            <div>© 2026 WorkScanAI</div>
             <div className="flex gap-[24px]">
               <a href="https://ianworks.dev" target="_blank" rel="noopener noreferrer" className="hover:text-[#1d1d1f] transition-colors">
                 Ian Baumeister

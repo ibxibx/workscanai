@@ -652,7 +652,8 @@ class ReportGenerator:
             Paragraph(f'<font size="48"><b>{score:.0f}%</b></font><br/><font size="14" color="#6e6e73">Automation Score</font>',
                        style('hs', fontName='Helvetica-Bold', alignment=TA_CENTER, leading=54)),
             Table([[Paragraph('<b>Annual Savings</b>', ST['label']),''],
-                   [Paragraph(f'\u20ac{savings:,.0f}', style('sv', fontSize=22, fontName='Helvetica-Bold', textColor=GRAY_900)),''],
+                   [Paragraph(f'\u20ac{savings:,.0f}', style('sv', fontSize=22, fontName='Helvetica-Bold', textColor=GRAY_900, spaceAfter=6)),''],
+                   [Spacer(1, 4*mm),''],
                    [Paragraph(f'{hours:.0f} hours reclaimed', style('hr', fontSize=10, textColor=GRAY_600, fontName='Helvetica')),'']],
                   colWidths=[W*0.35, W*0.05]),
             Table([[Paragraph('<b>Tasks Analyzed</b>', ST['label']),''],
@@ -661,7 +662,7 @@ class ReportGenerator:
                   colWidths=[W*0.25, W*0.05]),
         ]], colWidths=[W*0.28, W*0.42, W*0.30],
         style=TableStyle([('BACKGROUND',(0,0),(-1,-1),sc_light),
-            ('TOPPADDING',(0,0),(-1,-1),16),('BOTTOMPADDING',(0,0),(-1,-1),16),
+            ('TOPPADDING',(0,0),(-1,-1),20),('BOTTOMPADDING',(0,0),(-1,-1),20),
             ('LEFTPADDING',(0,0),(0,-1),20),('LEFTPADDING',(1,0),(1,-1),10),
             ('VALIGN',(0,0),(-1,-1),'MIDDLE'),('LINEAFTER',(0,0),(0,-1),1,sc)]))
         story.append(hero)
