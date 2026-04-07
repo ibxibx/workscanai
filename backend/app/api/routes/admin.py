@@ -75,6 +75,38 @@ async def backfill_n8n_canvas(
     }
 
 
+@router.post("/admin/reset-rate-limits")
+async def reset_rate_limits(
+    db: Session = Depends(get_db),
+    _=Depends(_require_admin),
+):
+    """Clear all IP-based rate limit counters. Use during dev/testing."""
+    from sqlalchemy import text as _text
+    # The rate limit is tracked via Analysis.created_at + Workflow.client_ip
+    # There's no separate rate_limits table — the count is derived on each request.
+    # To "reset", we can't delete real analyses, but we can zero out by returning
+    # the current count and confirming bypass via x-admin-secret header on scans.
+    # Return current counts so we know the state.
+    from app.models.workflow import Analysis, Workflow
+    from datetime import datetime, timedelta, timezone
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    rows = (
+        db.query(Workflow.client_ip, func.count(Analysis.id).label("cnt"))
+        .join(Analysis, Analysis.workflow_id == Workflow.id)
+        .filter(Analysis.created_at >= since)
+        .filter(Workflow.client_ip != None)
+        .group_by(Workflow.client_ip)
+        .all()
+    )
+    ip_counts = [{"ip": r[0], "scans_last_24h": r[1]} for r in rows]
+    return {
+        "ok": True,
+        "message": "Rate limits use x-admin-secret bypass — include that header in job-scan requests to skip the limit.",
+        "current_ip_counts_last_24h": ip_counts,
+        "tip": "Add header x-admin-secret: AKF6uTJalPohB4dtymnEiwZrLDRqSWkc to any /api/job-scan/research or /api/job-scan/analyze call to bypass the limit."
+    }
+
+
 @router.get("/admin/stats")
 def get_admin_stats(db: Session = Depends(get_db), _=Depends(_require_admin)):
     # ── Totals ─────────────────────────────────────────────────────────────

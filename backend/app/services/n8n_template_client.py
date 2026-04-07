@@ -1592,7 +1592,7 @@ def build_canvas(job_title: str, tasks: List[dict]) -> dict:
             "jobTitle": job_title,
             "taskCount": num,
             "categories": list({_resolve_category(t.get("category","general")) for t in tasks}),
-            "note": "Purpose-built automations. Each column = one task workflow. Add credentials to activate.",
+            "note": "Purpose-built automations. Each row = one task workflow. Add credentials to activate.",
         },
     }
 
