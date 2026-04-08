@@ -57,7 +57,8 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 | 🎙️ **Voice Input** | Record tasks verbally — Web Speech API transcribes in real time |
 | 📄 **Document Upload** | Parse PDFs, Word, Excel, PowerPoint, images (20+ formats) via Claude Vision OCR |
 | ✍️ **Manual Entry** | Type tasks directly with dynamic add/remove controls |
-| 🔍 **Job Scanner** | Paste any job posting URL — Tavily fetches the page, Claude extracts tasks and context automatically |
+| 🔍 **Job Scanner** | Enter a job title — Tavily web-searches the role, Claude extracts tasks and context automatically |
+| ⚙️ **n8n Workflow Download** | Every Job Scanner result includes a ready-to-import n8n canvas — one column per task, real trigger→process→output chains, downloadable as JSON |
 | 👤 **3 Analysis Contexts** | Individual (career survival), Team/Startup (velocity), Company/Dept (strategic ROI) |
 | 🤖 **AI-Readiness Scoring** | 0–100% composite score per task: Repeatability, Data Access, Error Tolerance, Integration |
 | 🧩 **Decision Layer Analysis** | Explicitly flags tasks requiring human judgment vs fully automatable — no oversimplification |
@@ -202,15 +203,39 @@ Supported via `backend/app/api/routes/extraction.py`:
 Images are processed via Claude Vision API (OCR). All other formats use native Python libraries.
 
 ### Job Scanner (Tavily + Claude Pipeline)
-Paste any public job posting URL — from LinkedIn, Indeed, Greenhouse, Lever, company career pages, or anywhere else. The pipeline:
+Enter any job title and optionally an industry. The two-step pipeline (split to stay within Vercel's 60s limit):
 
-1. **Tavily Search API** fetches the full page content (handles JS-rendered pages, paywalls, ATS portals)
-2. **Claude Haiku** extracts: job title, company, responsibilities list, required tools/skills, and infers the most likely analysis context (Individual / Team / Company)
-3. Pre-filled task list and context land in the analysis form — ready to run with one click, or editable before submission
+**Step 1 — Research** (`POST /job-scan/research`, ~15–20s):
+1. **Tavily Search API** fetches real job posting content for the role from across the web
+2. **Claude Haiku** extracts: responsibilities list, required tools/skills, and infers the most likely analysis context (Individual / Team / Company)
+3. Returns a structured task list — pre-fills the analysis form, editable before submission
 
-The Job Scanner tab is embedded directly inside the `WorkflowForm` component (not a separate page/route) so the profile selector is hidden in scan mode and context is set automatically from the extraction output. Extraction runs via `POST /api/extract-tasks` on the Render backend (called directly, bypassing the Vercel proxy, as it can exceed 10s for rich job descriptions).
+**Step 2 — Analyze + Save** (`POST /job-scan/analyze`, ~30–40s):
+1. Runs the full batch AI analysis (same pipeline as the standard workflow analyzer)
+2. Generates and persists an **n8n automation canvas** (see below)
+3. Saves the workflow to DB, returns `workflow_id` + `share_code` for redirect
 
-**Supported sources (tested):** LinkedIn Jobs, Indeed, Greenhouse, Lever, Workable, Ashby, company `/careers` pages.
+Both endpoints share the same 5/24h rate limit (IP + email) as the standard analyzer. Both are called directly from the browser to Render (bypass Vercel proxy — they exceed the 10s serverless limit).
+
+### n8n Workflow Generation
+
+Every Job Scanner result includes a **downloadable n8n workflow JSON** — a single importable canvas covering all extracted tasks.
+
+**Architecture:**
+- `N8nTemplateClient` (`backend/app/services/n8n_template_client.py`) builds the canvas from **purpose-built workflow patterns** per task category — not the n8n community search API (confirmed broken: returns the same 10 templates for every query regardless of search terms)
+- **40+ task categories** mapped from task descriptions: `reporting`, `scheduling`, `communication`, `data_entry`, `research`, `analysis`, `customer_support`, `sales`, `marketing`, `hr`, `finance`, `devops`, `legal`, `content`, `product`, `seo`, `social_media`, `ecommerce`, `logistics`, `procurement`, `security`, `healthcare_admin`, `investor_relations`, and more
+- Claude Haiku curates which patterns are most relevant for the specific job title before building
+
+**Canvas format:**
+- One merged `.json` file per scan — directly importable into any n8n instance via **File → Import**
+- Full-width header sticky note (colour 7) with job title and generation timestamp
+- One column per task (1000px horizontal spacing)
+- Per-task coloured sticky note above each column
+- Real trigger → process → output node chains (not placeholders)
+- Correct n8n node types and `typeVersion` numbers — validated against n8n's schema
+- Valid `connections` dict format
+
+**Download:** available as a button on the Job Scanner results page — returns the JSON directly, browser saves as `{job_title}_n8n_workflows.json`.
 
 ### LinkedIn Import
 Paste a LinkedIn profile or company page URL. Claude Haiku infers the role context from the URL slug + any pasted text. If the user pastes their headline and current position description, the extraction is highly accurate. Without pasted text, a generic professional context is generated with a prompt to add more detail.
@@ -277,6 +302,8 @@ workscanai/
 │   │   │   │                     # GET /share/{code}, rate limiting, auth
 │   │   │   ├── extraction.py     # POST /parse-tasks, POST /extract-tasks (Job Scanner),
 │   │   │                     # POST /extract-linkedin
+│   │   └── job_scan.py       # POST /job-scan/research, POST /job-scan/analyze
+│   │                         # GET /quota, POST /job-scan/n8n-templates
 │   │   │   ├── reports.py        # GET /reports/{id}/pdf, GET /reports/{id}/docx
 │   │   │   │                     # POST /reports/combined/{format}
 │   │   │   ├── auth.py           # POST /auth/request, POST /auth/verify (OTP flow)
@@ -293,6 +320,9 @@ workscanai/
 │   │   ├── services/
 │   │   │   ├── ai_analyzer.py    # Batched Claude API call — all tasks in ONE request
 │   │   │   │                     # Decision-layer scoring rules, strategic task calibration
+│   │   │   ├── n8n_template_client.py # Purpose-built n8n canvas per task category
+│   │   │   │                          # 40+ categories, merged importable JSON, correct typeVersions
+│   │   │   ├── job_scanner.py    # JobScanner service — Tavily search + Claude task extraction
 │   │   │   └── report_generator.py # PDF (ReportLab) + DOCX (python-docx) — full parity
 │   │   └── main.py               # FastAPI app, CORS (hardcoded Vercel origins), routes
 │   └── requirements.txt
@@ -424,7 +454,9 @@ Three endpoints bypass the Vercel proxy because they exceed the 10s serverless l
 |---|---|---|
 | `POST /api/analyze` | 25–31s | Called directly from browser to Render |
 | `POST /api/parse-tasks` | 15–27s | Called directly from browser to Render |
-| `POST /api/extract-tasks` | variable (Job Scanner + doc upload) | Called directly from browser to Render |
+| `POST /api/job-scan/research` | 15–20s | Called directly from browser to Render |
+| `POST /api/job-scan/analyze` | 30–40s | Called directly from browser to Render |
+| `POST /api/extract-tasks` | variable (doc upload) | Called directly from browser to Render |
 
 This is handled in `WorkflowForm.tsx` using `NEXT_PUBLIC_BACKEND_URL`.
 
@@ -464,6 +496,7 @@ Hard-won insights from building this project.
 - **Orchestration blueprints** — multi-agent pipeline descriptions for automatable tasks
 - **Risk flags** — PII, financial, legal, compliance concerns per task
 - **AI Readiness Assessment** — org-level readiness across 4 dimensions
+- **n8n canvas generation** — `N8nTemplateClient` builds one merged importable canvas per Job Scanner result: purpose-built workflow JSON for 40+ task categories (no broken community API dependency), one column per task, real trigger→process→output chains, correct node `typeVersion` numbers, downloadable as `.json`
 
 ### Frontend
 - **Apple-inspired design** — clean white cards, `#0071e3` blue accent, hover lifts, stat animations
