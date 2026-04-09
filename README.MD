@@ -21,6 +21,18 @@
 
 ---
 
+## Demo
+
+<div align="center">
+
+![WorkScanAI Demo — type a job title, get a full AI automation report in 45 seconds](workscanai-demo.gif)
+
+*Type any job title → AI researches the role → scores every task for automation readiness → generates ROI, roadmap, and ready-to-import n8n workflows — in under 45 seconds.*
+
+</div>
+
+---
+
 ## Screenshots
 
 | Landing Page | Workflow Input (Text, Voice, Document) |
