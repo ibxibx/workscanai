@@ -33,8 +33,10 @@ def check_rate_limit(request: Request) -> None:
     ip = get_client_ip(request)
 
     # ── Owner bypass — unlimited scans ────────────────────────────────────
-    owner_ip = settings.OWNER_IP.strip()
-    if owner_ip and ip == owner_ip:
+    # Supports comma-separated list: OWNER_IP=84.63.30.124,1.2.3.4
+    # Update in Render env vars if your ISP reassigns your IP.
+    owner_ips = [o.strip() for o in settings.OWNER_IP.split(',') if o.strip()]
+    if ip in owner_ips:
         return  # no rate limit, no logging
     # ──────────────────────────────────────────────────────────────────────
 
