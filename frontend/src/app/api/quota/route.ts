@@ -11,12 +11,23 @@ const BACKEND_URL = (process.env.API_URL || 'http://localhost:8000').replace(/\/
  * This route reads the real IP from the incoming Vercel request headers and
  * injects it as x-real-ip so the backend owner-bypass check works correctly.
  */
+// Owner IPs that get unlimited analyses — bypass quota check entirely in the frontend
+// so it works regardless of Render deploy state or in-memory rate limiter.
+// Falls back to hardcoded IP if OWNER_IP env var not set on Vercel.
+const OWNER_IPS = (process.env.OWNER_IP || '84.63.30.124')
+  .split(',').map(s => s.trim()).filter(Boolean)
+
 export async function GET(request: NextRequest) {
   try {
     const realIp =
       request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
       request.headers.get('x-real-ip') ||
       ''
+
+    // Owner bypass — return "not exceeded" immediately without hitting backend
+    if (OWNER_IPS.length > 0 && OWNER_IPS.includes(realIp)) {
+      return NextResponse.json({ used: 0, limit: 5, remaining: 5, exceeded: false })
+    }
 
     const upstream = await fetch(`${BACKEND_URL}/api/quota`, {
       method: 'GET',
