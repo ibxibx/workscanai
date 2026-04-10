@@ -965,7 +965,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
             {isRecording&&(
               <div className="space-y-[16px]">
                 <div className="flex items-center justify-center gap-[10px]"><div className="w-[10px] h-[10px] bg-red-500 rounded-full animate-pulse"/><span className="text-[17px] font-medium text-red-600">Recording… speak now</span></div>
-                {transcript&&<div className="bg-white border border-[#d2d2d7] rounded-[12px] p-[16px] text-left text-[14px] text-[#1d1d1f] max-h-[120px] overflow-y-auto">{transcript}</div>}
+                {transcript&&<div ref={el => { if (el) el.scrollTop = el.scrollHeight }} className="bg-white border border-[#d2d2d7] rounded-[12px] p-[16px] text-left text-[14px] text-[#1d1d1f] min-h-[80px] max-h-[400px] overflow-y-auto transition-all duration-200 whitespace-pre-wrap">{transcript}</div>}
                 <button type="button" onClick={stopVoiceRecording} className="inline-flex items-center gap-[8px] bg-red-500 hover:bg-red-600 text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all">Stop &amp; Extract Tasks</button>
               </div>
             )}
