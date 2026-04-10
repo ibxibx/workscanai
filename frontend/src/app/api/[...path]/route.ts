@@ -44,6 +44,18 @@ async function handler(
       forwardHeaders['content-length'] = String(bodyBuffer.byteLength)
     }
 
+    // Vercel overwrites x-forwarded-for at the edge with its own IP before
+    // the request reaches this serverless function. Re-inject the real client
+    // IP so the backend owner-bypass and rate-limit logic sees the correct IP.
+    const realIp =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      ''
+    if (realIp) {
+      forwardHeaders['x-forwarded-for'] = realIp
+      forwardHeaders['x-real-ip'] = realIp
+    }
+
     const upstream = await fetch(url, {
       method: request.method,
       headers: forwardHeaders,
