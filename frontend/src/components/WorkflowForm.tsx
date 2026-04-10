@@ -632,7 +632,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
             {/* Fine print */}
             <p className="text-center text-[12px] text-[#9ca3af] mt-[14px]">
               Want unlimited analyses?{' '}
-              <a href="mailto:hello@workscanai.com" className="text-[#f97316] font-medium hover:underline">
+              <a href="mailto:ian@ianworks.dev" className="text-[#f97316] font-medium hover:underline">
                 Contact us about Pro
               </a>
             </p>
