@@ -160,7 +160,10 @@ export default function ResultsPage() {
        name: parsed.name || data.workflow.name || 'Automation Workflow',
        description: `n8n workflow generated for: ${data.workflow.name}`,
        workflow_json: parsed,
-       tasks: data.workflow.tasks?.map((t: WorkflowTask) => t.name) || [],
+       url: '',
+       relevance_reason: 'Generated from your workflow analysis',
+       node_count: parsed.nodes?.length || 0,
+       nodes_preview: [],
      }])
    } catch { }
  }
