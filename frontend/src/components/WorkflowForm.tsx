@@ -450,6 +450,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         if (d.workflow_name) setWorkflowName(d.workflow_name)
         if (d.workflow_description) setWorkflowDescription(d.workflow_description)
         setExtractStatus('done')
+        // Switch to manual mode so task fields are visible after upload populates them
+        setInputMode('manual')
         setTimeout(() => {
           setIsExtractingTasks(false)
           setExtractStatus('idle')
