@@ -151,6 +151,19 @@ export default function ResultsPage() {
  ...r, task: taskMap[r.task_id] || { id: r.task_id, name: `Task ${r.task_id}`, description: '' }
  }))
  setAnalysisData(data)
+ // Load n8n templates for ALL analysis types (not just job scan)
+ if (data.workflow?.n8n_workflow_json && !data.workflow?.input_mode?.includes('job_scan')) {
+   try {
+     const parsed = JSON.parse(data.workflow.n8n_workflow_json)
+     setSuggestedTemplates([{
+       id: data.workflow.id,
+       name: parsed.name || data.workflow.name || 'Automation Workflow',
+       description: `n8n workflow generated for: ${data.workflow.name}`,
+       workflow_json: parsed,
+       tasks: data.workflow.tasks?.map((t: WorkflowTask) => t.name) || [],
+     }])
+   } catch { }
+ }
  // Silently rewrite the address bar to the public share URL so copying
  // it is enough to share -- does NOT navigate, just updates the URL shown
  if (data.workflow?.share_code) {
@@ -910,8 +923,8 @@ export default function ResultsPage() {
  )}
 
 
- {/* n8n Community Templates — shown for job-scan workflows or when templates loaded */}
- {(isJobScan || suggestedTemplates.length > 0) && suggestedTemplates.length > 0 && (
+ {/* n8n Community Templates — shown for all analysis types when templates available */}
+ {suggestedTemplates.length > 0 && (
  <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
  <div className="flex items-center gap-[10px] mb-[6px]">
  <div className="w-[36px] h-[36px] rounded-full bg-[#0071e3] flex items-center justify-center">

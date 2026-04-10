@@ -257,6 +257,47 @@ async def analyze_workflow(
     
     db.commit()
     db.refresh(analysis)
+
+    # Generate n8n workflow + fetch community templates (same quality as Job Scanner)
+    try:
+        import os as _os
+        import json as _json
+        from app.services.n8n_template_client import N8nTemplateClient
+        _api_key = _os.getenv("ANTHROPIC_API_KEY", "")
+        _client = N8nTemplateClient(anthropic_api_key=_api_key)
+        _top_tasks = task_dicts[:6]
+        _workflow_name = workflow.name or "Workflow Analysis"
+        _suggested = _client.get_curated_templates(
+            job_title=_workflow_name,
+            tasks=_top_tasks,
+        )
+        if _suggested:
+            _n8n = _client.build_merged_canvas(
+                job_title=_workflow_name,
+                suggested_templates=_suggested,
+            )
+        else:
+            from app.services.job_scanner import JobScanner as _JS
+            _n8n = _JS()._generate_n8n_workflow(_workflow_name, _top_tasks)
+        _n8n_str = _json.dumps(_n8n)
+        from app.core.config import settings as _settings
+        if _settings.TURSO_DATABASE_URL and _settings.TURSO_AUTH_TOKEN:
+            from app.core.turso_dbapi import connect as _tc
+            _conn = _tc(_settings.TURSO_DATABASE_URL, _settings.TURSO_AUTH_TOKEN)
+            try:
+                _cur = _conn.cursor()
+                _cur.execute("UPDATE workflows SET n8n_workflow_json = ? WHERE id = ?", (_n8n_str, workflow.id))
+                _conn.commit()
+            finally:
+                _conn.close()
+        else:
+            from app.core.database import engine as _engine
+            from sqlalchemy import text as _text
+            with _engine.connect() as _c:
+                _c.execute(_text("UPDATE workflows SET n8n_workflow_json = :j WHERE id = :i"), {"j": _n8n_str, "i": workflow.id})
+                _c.commit()
+    except Exception as _exc:
+        print(f"[n8n] workflow generation error for regular analysis: {_exc}")
     
     # Eagerly load relationships so Pydantic can serialize them
     db.refresh(analysis)
