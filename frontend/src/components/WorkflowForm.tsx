@@ -325,6 +325,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
+    // Pre-fill workflow name from filename immediately so submit never blocks on empty name
+    if (!workflowName.trim()) {
+      const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+      setWorkflowName(baseName)
+    }
     setIsUploading(true); setUploadProgress(0); setUploadStage('Reading file…'); onError('')
     let fakeProgress = 0
     const STAGES = [{at:5,label:'Reading file…'},{at:20,label:'Extracting text…'},{at:45,label:'Parsing document structure…'},{at:65,label:'Running AI analysis…'},{at:82,label:'Populating tasks…'},{at:91,label:'Almost done…'}]
@@ -443,7 +448,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     try { return JSON.parse(text) } catch { return { detail: text || `HTTP ${res.status}` } }
   }
 
-  const runAnalysis = async (userEmail: string) => {
+  const runAnalysis = async (userEmail: string, nameOverride?: string) => {
     onError(''); setStepError(null)
 
     // BACKEND_DIRECT is a module-level constant — direct Render calls bypass
@@ -454,7 +459,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       advanceTo(0)
       const wfRes = await fetch('/api/workflows', {
         method:'POST', headers:{'Content-Type':'application/json','x-user-email':userEmail},
-        body: JSON.stringify({ name:workflowName, description:workflowDescription, source_text:effectiveSourceText||undefined, input_mode:inputMode, analysis_context:analysisContext||'individual', team_size:teamSize||undefined, industry:industry||undefined,
+        body: JSON.stringify({ name: nameOverride || workflowName, description:workflowDescription, source_text:effectiveSourceText||undefined, input_mode:inputMode, analysis_context:analysisContext||'individual', team_size:teamSize||undefined, industry:industry||undefined,
           tasks: tasks.filter(t=>t.name.trim()).map(t=>({ name:t.name, description:t.description||t.name, frequency:t.frequency, time_per_task:t.time_per_task, category:t.category, complexity:t.complexity }))
         })
       })
@@ -524,7 +529,24 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault()
-    if (!workflowName.trim()) { onError('Please provide a workflow name'); return }
+    if (!workflowName.trim()) {
+      // Auto-fill workflow name from input mode if empty, rather than silently blocking
+      const autoName = inputMode === 'document' ? 'Uploaded Document Analysis'
+        : inputMode === 'voice' ? 'Voice Workflow Analysis'
+        : 'Workflow Analysis'
+      setWorkflowName(autoName)
+      // Continue with auto-filled name inline
+      if (!tasks.some(t=>t.name.trim())) { onError('Please add at least one task'); return }
+      if (!analysisContext) {
+        setContextError(true)
+        document.getElementById('context-selector')?.scrollIntoView({ behavior:'smooth', block:'center' })
+        return
+      }
+      if (await checkQuotaLimit(setRateLimitMessage)) return
+      const guestId = getGuestId()
+      await runAnalysis(guestId)
+      return
+    }
     if (!tasks.some(t=>t.name.trim())) { onError('Please add at least one task'); return }
     if (!analysisContext) {
       setContextError(true)
