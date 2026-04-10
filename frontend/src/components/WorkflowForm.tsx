@@ -341,15 +341,32 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     }, 350)
     try {
       // extract-tasks uses AI (Claude Vision for images) and can be slow — call Render directly
+      // Use AbortController with 90s timeout to survive Render free-tier cold start (~50s)
       const BACKEND = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://workscanai.onrender.com').replace(/\/$/, '')
       const fd = new FormData(); fd.append('file', file)
-      const r = await fetch(`${BACKEND}/api/extract-tasks`, { method:'POST', body:fd })
-      if (!r.ok) throw new Error('upload')
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 90000)
+      let r: Response
+      try {
+        r = await fetch(`${BACKEND}/api/extract-tasks`, { method:'POST', body:fd, signal: controller.signal })
+      } finally {
+        clearTimeout(timeoutId)
+      }
+      if (!r.ok) {
+        const errText = await r.text().catch(() => '')
+        throw new Error(`Server error (${r.status})${errText ? ': ' + errText.substring(0, 100) : ''}`)
+      }
       const d = await r.json(); setSourceText(d.text||''); setUploadProgress(93); setUploadStage('Extracting tasks with AI…')
-      try { await extractTasksFromText(d.text) } catch { }
+      try { await extractTasksFromText(d.text) } catch (parseErr: any) {
+        onError('Tasks extracted but AI parsing failed — please add tasks manually or try again.')
+      }
       setUploadProgress(100); setUploadStage('Done!')
     } catch (err: any) {
-      if (err?.message==='upload') onError('Could not read this file. Please try a PDF, Word doc, or text file.')
+      if (err?.name === 'AbortError') {
+        onError('Upload timed out — the server is warming up (free tier). Please try again in 10 seconds.')
+      } else {
+        onError(err?.message || 'Could not read this file. Please try a PDF, Word doc, or text file.')
+      }
     } finally {
       clearInterval(ticker)
       setTimeout(() => { setIsUploading(false); setUploadProgress(0); setUploadStage('') }, 900)
