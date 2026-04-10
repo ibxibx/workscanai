@@ -444,7 +444,13 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     let lastErr: any
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        if (attempt > 0) await new Promise(res => setTimeout(res, 3000)) // wait 3s before retry
+        if (attempt > 0) {
+          // Keep spinner visible and show retry message during wait
+          setUploadStage(`Server warming up — retrying (${attempt}/2)…`)
+          setIsUploading(true)
+          setUploadProgress(92)
+          await new Promise(res => setTimeout(res, 4000))
+        }
         const r = await fetch(`${BACKEND}/api/parse-tasks`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text}) })
         if (!r.ok) { lastErr = new Error(`HTTP ${r.status}`); continue }
         const d = await r.json()
