@@ -439,26 +439,32 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
   const extractTasksFromText = async (text: string) => {
     setIsExtractingTasks(true); setExtractStatus('extracting')
-    // parse-tasks uses Claude Sonnet and can take 15–30s — call Render directly
     const BACKEND = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://workscanai.onrender.com').replace(/\/$/, '')
-    try {
-      const r = await fetch(`${BACKEND}/api/parse-tasks`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text}) })
-      if (!r.ok) throw new Error()
-      const d = await r.json()
-      if (d.tasks?.length > 0) {
-        setTasks(d.tasks)
-        if (d.workflow_name) setWorkflowName(d.workflow_name)
-        if (d.workflow_description) setWorkflowDescription(d.workflow_description)
-        setExtractStatus('done')
-        // Switch to manual mode so task fields are visible after upload populates them
-        setInputMode('manual')
-        setTimeout(() => {
-          setIsExtractingTasks(false)
-          setExtractStatus('idle')
-          document.getElementById('context-selector')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }, 2000)
-      } else { setIsExtractingTasks(false); setExtractStatus('idle') }
-    } catch { setIsExtractingTasks(false); setExtractStatus('idle') }
+    // Retry up to 3 times — Render free tier returns 500 on cold start then recovers
+    let lastErr: any
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        if (attempt > 0) await new Promise(res => setTimeout(res, 3000)) // wait 3s before retry
+        const r = await fetch(`${BACKEND}/api/parse-tasks`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text}) })
+        if (!r.ok) { lastErr = new Error(`HTTP ${r.status}`); continue }
+        const d = await r.json()
+        if (d.tasks?.length > 0) {
+          setTasks(d.tasks)
+          if (d.workflow_name) setWorkflowName(d.workflow_name)
+          if (d.workflow_description) setWorkflowDescription(d.workflow_description)
+          setExtractStatus('done')
+          setInputMode('manual')
+          setTimeout(() => {
+            setIsExtractingTasks(false)
+            setExtractStatus('idle')
+            document.getElementById('context-selector')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }, 2000)
+          return // success — stop retrying
+        } else { lastErr = new Error('No tasks returned') }
+      } catch (e: any) { lastErr = e }
+    }
+    // All retries exhausted
+    setIsExtractingTasks(false); setExtractStatus('idle')
   }
 
   // Safe JSON parser — never throws on non-JSON responses (e.g. "Internal Server Error")
