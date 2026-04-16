@@ -357,10 +357,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         throw new Error(`Server error (${r.status})${errText ? ': ' + errText.substring(0, 100) : ''}`)
       }
       const d = await r.json(); setSourceText(d.text||''); setUploadProgress(93); setUploadStage('Extracting tasks with AI…')
+      let parseOk = true
       try { await extractTasksFromText(d.text) } catch (parseErr: any) {
+        parseOk = false
         onError('Tasks extracted but AI parsing failed — please add tasks manually or try again.')
       }
-      setUploadProgress(100); setUploadStage('Done!')
+      if (parseOk) { setUploadProgress(100); setUploadStage('Done!') }
     } catch (err: any) {
       if (err?.name === 'AbortError') {
         onError('Upload timed out — the server is warming up (free tier). Please try again in 10 seconds.')
