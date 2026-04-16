@@ -469,8 +469,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         } else { lastErr = new Error('No tasks returned') }
       } catch (e: any) { lastErr = e }
     }
-    // All retries exhausted
-    setIsExtractingTasks(false); setExtractStatus('idle')
+    // All retries exhausted — show error to user
+    setIsExtractingTasks(false); setExtractStatus('idle'); setIsUploading(false)
+    onError(`Could not parse tasks from your document — the AI server may be warming up. Please try again in 15 seconds, or switch to Manual Entry and type your tasks directly. (${lastErr?.message || 'Unknown error'})`)
   }
 
   // Safe JSON parser — never throws on non-JSON responses (e.g. "Internal Server Error")
