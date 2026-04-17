@@ -46,12 +46,12 @@ export default function AdminPage() {
 
   if (!secret) return (
     <div className="min-h-screen bg-[#1d1d1f] flex items-center justify-center px-4">
-      <div className="bg-white rounded-[24px] p-[48px] w-full max-w-[400px] shadow-2xl">
-        <div className="flex items-center gap-[10px] mb-[32px]">
-          <Brain className="h-[28px] w-[28px] text-[#0071e3]" />
-          <div>
-            <h1 className="text-[22px] font-semibold text-[#1d1d1f]">WorkScanAI Admin</h1>
-            <p className="text-[13px] text-[#86868b]">Platform analytics & user data</p>
+      <div className="bg-white rounded-[24px] p-[32px] sm:p-[48px] w-full max-w-[400px] shadow-2xl">
+        <div className="flex items-center gap-[10px] mb-[28px] sm:mb-[32px]">
+          <Brain className="h-[24px] w-[24px] sm:h-[28px] sm:w-[28px] text-[#0071e3] shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-[18px] sm:text-[22px] font-semibold text-[#1d1d1f] leading-tight">WorkScanAI Admin</h1>
+            <p className="text-[12px] sm:text-[13px] text-[#86868b]">Platform analytics & user data</p>
           </div>
         </div>
         <div className="relative mb-[16px]">
@@ -135,8 +135,8 @@ export default function AdminPage() {
           ].map(({ icon: Icon, label, value, color }) => (
             <div key={label} className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
               <Icon className={`h-[18px] w-[18px] mb-[10px] ${color}`} />
-              <div className={`text-[26px] sm:text-[36px] font-bold mb-[4px] ${color}`}>{value}</div>
-              <div className="text-[10px] sm:text-[12px] text-[#86868b] font-semibold uppercase tracking-wide leading-snug">{label}</div>
+              <div className={`text-[22px] sm:text-[36px] font-bold mb-[4px] ${color}`}>{value}</div>
+              <div className="text-[10px] sm:text-[12px] text-[#86868b] font-semibold uppercase tracking-wide leading-tight">{label}</div>
             </div>
           ))}
         </div>
