@@ -142,9 +142,9 @@ export default function AdminPage() {
         </div>
 
         {/* Averages + Breakdowns */}
-        <div className="grid md:grid-cols-3 gap-[16px] mb-[32px]">
+        <div className="grid md:grid-cols-3 gap-[12px] sm:gap-[16px] mb-[24px] sm:mb-[32px]">
           {/* Averages */}
-          <div className="bg-white rounded-[18px] p-[24px] border border-[#e8e8ed]">
+          <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
             <h2 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px]">Platform Averages</h2>
             <div className="space-y-[14px]">
               <div className="flex justify-between items-center">
@@ -169,7 +169,7 @@ export default function AdminPage() {
           </div>
 
           {/* By Context */}
-          <div className="bg-white rounded-[18px] p-[24px] border border-[#e8e8ed]">
+          <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
             <h2 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px]">By Context</h2>
             <div className="space-y-[10px]">
               {Object.entries(stats.by_context).sort((a,b) => b[1]-a[1]).map(([ctx, cnt]) => (
@@ -187,7 +187,7 @@ export default function AdminPage() {
           </div>
 
           {/* By Input Mode */}
-          <div className="bg-white rounded-[18px] p-[24px] border border-[#e8e8ed]">
+          <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
             <h2 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px]">By Input Mode</h2>
             <div className="space-y-[10px]">
               {Object.entries(stats.by_input_mode).sort((a,b) => b[1]-a[1]).map(([mode, cnt]) => (
@@ -268,29 +268,21 @@ export default function AdminPage() {
                       </span>
                       {wf.industry && <span className="text-[10px] text-[#86868b] bg-[#f5f5f7] px-[8px] py-[2px] rounded-full">{wf.industry}</span>}
                     </div>
-                    <div className="flex items-center gap-[12px] text-[12px] text-[#86868b] flex-wrap">
-                      <span>{wf.user_email || 'anon'}</span>
-                      <span>·</span>
+                    <div className="text-[11px] text-[#86868b] mt-[2px] truncate">
+                      <span className="truncate max-w-[160px] inline-block align-bottom">{wf.user_email || 'anon'}</span>
+                      <span className="mx-[4px]">·</span>
                       <span>{new Date(wf.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                      <span>·</span>
-                      <span>{wf.task_count} tasks</span>
+                      <span className="mx-[4px]">·</span>
+                      <span>{wf.task_count}t</span>
                       {wf.automation_score != null && (
-                        <>
-                          <span>·</span>
-                          <span className={`font-semibold ${wf.automation_score >= 70 ? 'text-green-600' : wf.automation_score >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>
-                            {wf.automation_score}% score
-                          </span>
-                        </>
+                        <span className={`ml-[4px] font-semibold ${wf.automation_score >= 70 ? 'text-green-600' : wf.automation_score >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>
+                          · {wf.automation_score}%
+                        </span>
                       )}
                       {wf.annual_savings != null && (
-                        <>
-                          <span>·</span>
-                          <span className="text-green-600 font-semibold">€{Math.round(wf.annual_savings).toLocaleString()}/yr</span>
-                        </>
+                        <span className="text-green-600 font-semibold ml-[4px]">· €{Math.round(wf.annual_savings).toLocaleString()}</span>
                       )}
-                      {wf.automation_score == null && (
-                        <span className="text-[#86868b] italic">no analysis</span>
-                      )}
+                      {wf.automation_score == null && <span className="italic ml-[4px]">no analysis</span>}
                     </div>
                   </div>
                   <div className="shrink-0 flex items-center gap-[8px]">
