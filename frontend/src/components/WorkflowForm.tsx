@@ -898,7 +898,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       <form onSubmit={handleSubmit} className="space-y-[24px]">
 
         {/* Input Mode — dark bold tabs */}
-        <div className="bg-[#1d1d1f] border border-[#3a3a3c] rounded-[20px] p-[8px] flex flex-wrap gap-[6px] shadow-lg">
+        <div className="bg-[#1d1d1f] border border-[#3a3a3c] rounded-[20px] p-[6px] sm:p-[8px] grid grid-cols-2 sm:flex sm:flex-wrap gap-[4px] sm:gap-[6px] shadow-lg">
           {([
             { mode:'manual' as const,    icon:FileText, label:'Manual Entry',     sublabel:'Type tasks directly' },
             { mode:'voice' as const,     icon:Mic,      label:'Voice Input',      sublabel:'Speak your workflow' },
@@ -910,13 +910,13 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                 // Auto-select Solo when Job Scanner is clicked (user can change before submitting)
                 if (mode === 'jobscan' && !analysisContext) setAnalysisContext('individual')
               }}
-              className={`flex-1 flex items-center justify-center gap-[10px] px-[16px] py-[14px] rounded-[14px] font-semibold transition-all ${inputMode===mode?'bg-white text-[#1d1d1f] shadow-md':'text-white/60 hover:text-white hover:bg-white/10'}`}>
-              <Icon className="h-[18px] w-[18px] shrink-0"/>
+              className={`flex-1 flex items-center justify-center gap-[6px] sm:gap-[10px] px-[10px] sm:px-[16px] py-[12px] sm:py-[14px] rounded-[12px] sm:rounded-[14px] font-semibold transition-all ${inputMode===mode?'bg-white text-[#1d1d1f] shadow-md':'text-white/60 hover:text-white hover:bg-white/10'}`}>
+              <Icon className="h-[15px] w-[15px] sm:h-[18px] sm:w-[18px] shrink-0"/>
               <div className="text-left hidden sm:block">
-                <div className="text-[15px] leading-tight">{label}</div>
-                <div className={`text-[11px] font-normal leading-tight mt-[1px] ${inputMode===mode?'text-[#6e6e73]':'text-white/40'}`}>{sublabel}</div>
+                <div className="text-[14px] sm:text-[15px] leading-tight">{label}</div>
+                <div className={`text-[10px] sm:text-[11px] font-normal leading-tight mt-[1px] ${inputMode===mode?'text-[#6e6e73]':'text-white/40'}`}>{sublabel}</div>
               </div>
-              <span className="sm:hidden text-[14px]">{label}</span>
+              <span className="sm:hidden text-[12px] leading-tight text-center">{label}</span>
             </button>
           ))}
         </div>
@@ -1212,7 +1212,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           </div>
         )}
 
-        {inputMode!=='jobscan'&&<div id="context-selector" className={`rounded-[18px] p-[32px] border-2 transition-all duration-300 ${contextError?'border-red-400 bg-red-50/60':'border-[#d2d2d7] bg-[#f5f5f7]'}`}>
+        {inputMode!=='jobscan'&&<div id="context-selector" className={`rounded-[18px] p-[20px] sm:p-[32px] border-2 transition-all duration-300 ${contextError?'border-red-400 bg-red-50/60':'border-[#d2d2d7] bg-[#f5f5f7]'}`}>
           <div className="flex items-start justify-between gap-[12px] mb-[6px]">
             <h2 className="text-[17px] font-semibold text-[#1d1d1f]">Who is this analysis for? <span className="text-red-500">*</span></h2>
             {contextError&&(
@@ -1224,22 +1224,21 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
           </div>
           <p className="text-[13px] text-[#86868b] mb-[24px]">WorkScanAI adapts its scoring, framing, and recommendations based on the context of your submission.</p>
 
-          <div className="grid grid-cols-3 gap-[12px] mb-[20px]">
+          <div className="grid grid-cols-3 gap-[8px] sm:gap-[12px] mb-[20px]">
             {CONTEXT_OPTIONS.map(({value,label,desc,gradient,ring,icon})=>(
               <button key={value} type="button"
                 onClick={()=>{setAnalysisContext(value);setContextError(false)}}
-                className={`flex flex-col items-center text-center px-[12px] py-[22px] rounded-[18px] border-2 transition-all duration-200 ${
+                className={`flex flex-col items-center text-center px-[8px] sm:px-[12px] py-[16px] sm:py-[22px] rounded-[14px] sm:rounded-[18px] border-2 transition-all duration-200 ${
                   analysisContext===value
                     ? `border-transparent bg-white shadow-lg ring-2 ${ring} ring-offset-2`
                     : `border-[#d2d2d7] bg-white hover:border-[#b8b8bd] hover:shadow-md ${contextError?'border-red-200':''}`
                 }`}
               >
-                {/* Gradient filled circle — matches feature card icons */}
-                <div className={`w-[58px] h-[58px] rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center mb-[14px] shadow-md transition-all duration-200 ${analysisContext===value?'scale-110 shadow-lg':''}`}>
+                <div className={`w-[44px] h-[44px] sm:w-[58px] sm:h-[58px] rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center mb-[8px] sm:mb-[14px] shadow-md transition-all duration-200 ${analysisContext===value?'scale-110 shadow-lg':''}`}>
                   {icon}
                 </div>
-                <span className="text-[14px] font-semibold text-[#1d1d1f] leading-tight">{label}</span>
-                <span className="text-[11px] text-[#86868b] mt-[4px]">{desc}</span>
+                <span className="text-[11px] sm:text-[14px] font-semibold text-[#1d1d1f] leading-tight">{label}</span>
+                <span className="text-[10px] sm:text-[11px] text-[#86868b] mt-[2px] sm:mt-[4px] hidden sm:block">{desc}</span>
               </button>
             ))}
           </div>

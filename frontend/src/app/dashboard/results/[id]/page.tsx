@@ -264,7 +264,7 @@ export default function ResultsPage() {
 
  return (
  <div className="min-h-screen bg-[#fafafa] text-[#1d1d1f] pt-[88px] pb-[80px]">
- <div className="max-w-[980px] mx-auto px-6">
+ <div className="max-w-[980px] mx-auto px-4 sm:px-6">
 
  {/* -- Header -- */}
  <div className="mb-[40px]">

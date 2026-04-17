@@ -119,16 +119,16 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
     <div className="min-h-screen bg-white text-[#1d1d1f]">
       {/* Top banner */}
       <div className="bg-[#0071e3] text-white px-4 py-[10px]">
-        <div className="max-w-[980px] mx-auto flex items-center justify-between gap-[8px]">
-          <a href="https://workscanai.vercel.app" className="flex items-center gap-[6px] font-semibold text-[14px] hover:opacity-90 transition-opacity">
+        <div className="max-w-[980px] mx-auto flex items-center justify-between gap-[8px] min-w-0">
+          <a href="https://workscanai.vercel.app" className="flex items-center gap-[6px] font-semibold text-[14px] hover:opacity-90 transition-opacity shrink-0">
             <Brain className="h-[16px] w-[16px] shrink-0" />
             WorkScanAI
           </a>
-          <span className="text-[12px] opacity-80 hidden sm:inline">AI-Powered Workflow Analysis</span>
-          <a href="https://workscanai.vercel.app/#analyze" className="hidden sm:inline-flex items-center gap-[5px] text-[12px] font-semibold bg-white/20 hover:bg-white/30 px-[12px] py-[4px] rounded-full transition-all">
+          <span className="text-[12px] opacity-80 hidden sm:inline truncate">AI-Powered Workflow Analysis</span>
+          <a href="https://workscanai.vercel.app/#analyze" className="hidden sm:inline-flex items-center gap-[5px] text-[12px] font-semibold bg-white/20 hover:bg-white/30 px-[12px] py-[4px] rounded-full transition-all whitespace-nowrap shrink-0">
             Analyse your workflow &rarr;
           </a>
-          <span className="text-[11px] opacity-50 font-mono">#{code}</span>
+          <span className="text-[11px] opacity-50 font-mono truncate max-w-[80px] sm:max-w-none">#{code}</span>
         </div>
       </div>
 
@@ -156,7 +156,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
             { label: 'Annual Savings', value: `\u20ac${Math.round(data.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: `${Math.round(data.hours_saved)} hours per year` },
             { label: 'Quick Wins', value: `${quickWins}`, color: 'text-purple-600', sub: 'Tasks you can automate today' },
           ].map(card => (
-            <div key={card.label} className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[20px] sm:p-[32px]">
+            <div key={card.label} className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[20px] sm:p-[32px] overflow-hidden">
               <div className="text-[11px] font-semibold text-[#86868b] tracking-wide uppercase mb-[10px]">{card.label}</div>
               <div className={`text-[36px] sm:text-[48px] font-semibold tracking-tight mb-[4px] ${card.color} truncate`}>{card.value}</div>
               <div className="text-[12px] sm:text-[13px] text-[#86868b]">{card.sub}</div>
