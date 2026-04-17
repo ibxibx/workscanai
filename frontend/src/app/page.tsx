@@ -36,20 +36,20 @@ export default function LandingPage() {
               <Brain className="h-[18px] w-[18px] sm:h-[20px] sm:w-[20px]" />
               WorkScanAI
             </Link>
-            <div className="flex gap-[12px] sm:gap-[32px] text-[11px] sm:text-[12px] shrink-0">
+            <div className="flex gap-[12px] md:gap-[32px] text-[11px] md:text-[12px] shrink-0">
               <Link
                 href="/dashboard"
                 className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
               >
-                <span className="hidden sm:inline">Past Analyses</span>
-                <span className="sm:hidden">History</span>
+                <span className="hidden md:inline">Past Analyses</span>
+                <span className="md:hidden">History</span>
               </Link>
               <a
                 href="#analyze"
                 className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors whitespace-nowrap"
               >
-                <span className="hidden sm:inline">New Analysis</span>
-                <span className="sm:hidden">Analyze</span>
+                <span className="hidden md:inline">New Analysis</span>
+                <span className="md:hidden">Analyze</span>
               </a>
             </div>
           </div>
