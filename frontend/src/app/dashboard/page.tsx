@@ -186,18 +186,20 @@ export default function DashboardPage() {
             Dashboard
           </h1>
           <p className="text-[15px] sm:text-[19px] italic text-[#6e6e73]">
-            Your workflow analyses and automation insights.
+            <span className="hidden sm:inline">Your workflow analyses and automation insights.</span>
+            <span className="sm:hidden">Workflow analyses & insights.</span>
           </p>
         </div>
 
         {/* Sign-in banner — shown when not logged in */}
         {isLoaded && !email && (
-          <div className="bg-amber-50 border border-amber-200 rounded-[18px] p-[24px] mb-[32px] flex items-center justify-between gap-[16px]">
-            <div>
+          <div className="bg-amber-50 border border-amber-200 rounded-[18px] p-[20px] sm:p-[24px] mb-[32px] flex items-center justify-between gap-[16px]">
+            <div className="min-w-0">
               <div className="text-[14px] font-semibold text-amber-800 mb-[2px]">Sign in to see all your analyses</div>
-              <div className="text-[13px] text-amber-700">Analyses are tied to your account — sign in to access them on any device.</div>
+              <div className="text-[13px] text-amber-700 hidden sm:block">Analyses are tied to your account — sign in to access them on any device.</div>
+              <div className="text-[12px] text-amber-700 sm:hidden">Sign in to access analyses on any device.</div>
             </div>
-            <Link href="/auth" className="shrink-0 inline-flex items-center gap-[8px] bg-amber-600 hover:bg-amber-700 text-white px-[20px] py-[10px] rounded-full text-[14px] font-semibold transition-all">
+            <Link href="/auth" className="shrink-0 inline-flex items-center gap-[8px] bg-amber-600 hover:bg-amber-700 text-white px-[16px] sm:px-[20px] py-[10px] rounded-full text-[13px] sm:text-[14px] font-semibold transition-all">
               Sign in
             </Link>
           </div>
