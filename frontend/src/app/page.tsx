@@ -31,23 +31,25 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#d2d2d7]">
         <div className="max-w-[980px] mx-auto px-4 sm:px-6">
-          <div className="flex justify-between items-center h-[44px]">
-            <Link href="/" className="flex items-center gap-[6px] sm:gap-[8px] text-[18px] sm:text-[21px] font-semibold tracking-tight text-[#1d1d1f]">
+          <div className="flex justify-between items-center h-[44px] gap-2">
+            <Link href="/" className="flex items-center gap-[6px] sm:gap-[8px] text-[18px] sm:text-[21px] font-semibold tracking-tight text-[#1d1d1f] shrink-0">
               <Brain className="h-[18px] w-[18px] sm:h-[20px] sm:w-[20px]" />
               WorkScanAI
             </Link>
-            <div className="flex gap-[16px] sm:gap-[32px] text-[12px]">
+            <div className="flex gap-[12px] sm:gap-[32px] text-[11px] sm:text-[12px] shrink-0">
               <Link
                 href="/dashboard"
                 className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
               >
-                Past Analyses
+                <span className="hidden sm:inline">Past Analyses</span>
+                <span className="sm:hidden">History</span>
               </Link>
               <a
                 href="#analyze"
                 className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors whitespace-nowrap"
               >
-                New Analysis
+                <span className="hidden sm:inline">New Analysis</span>
+                <span className="sm:hidden">Analyze</span>
               </a>
             </div>
           </div>
