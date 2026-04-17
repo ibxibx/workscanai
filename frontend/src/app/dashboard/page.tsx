@@ -195,7 +195,7 @@ export default function DashboardPage() {
         {isLoaded && !email && (
           <div className="bg-amber-50 border border-amber-200 rounded-[18px] p-[20px] sm:p-[24px] mb-[32px] flex items-center justify-between gap-[16px]">
             <div className="min-w-0">
-              <div className="text-[14px] font-semibold text-amber-800 mb-[2px]">Sign in to see all your analyses</div>
+              <div className="text-[13px] sm:text-[14px] font-semibold text-amber-800 mb-[2px]">Sign in to see all your analyses</div>
               <div className="text-[13px] text-amber-700 hidden sm:block">Analyses are tied to your account — sign in to access them on any device.</div>
               <div className="text-[12px] text-amber-700 sm:hidden">Sign in to access analyses on any device.</div>
             </div>
