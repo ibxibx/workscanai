@@ -185,7 +185,20 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
   const [stepError, setStepError] = useState<string | null>(null)
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null)
+  const [serverWarmingUp, setServerWarmingUp] = useState(false)
+  const serverWarmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isAnalyzing = activeStep >= 0 && activeStep < STEPS.length - 1
+
+  // Show "server warming up" toast after 2s of waiting on any Render call
+  const startWarmTimer = () => {
+    if (serverWarmTimerRef.current) clearTimeout(serverWarmTimerRef.current)
+    serverWarmTimerRef.current = setTimeout(() => setServerWarmingUp(true), 2000)
+  }
+  const stopWarmTimer = () => {
+    if (serverWarmTimerRef.current) clearTimeout(serverWarmTimerRef.current)
+    serverWarmTimerRef.current = null
+    setServerWarmingUp(false)
+  }
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<any>(null)
 
@@ -291,7 +304,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const openAuthModal = () => { setShowAuthModal(true); setAuthStep('email'); setAuthEmailState(''); setAuthCode(''); setAuthError(''); pendingSubmitRef.current = null }
 
   const startVoiceRecording = async () => {
-    if (await checkQuotaLimit(setRateLimitMessage)) return
+    startWarmTimer()
+    if (await checkQuotaLimit(setRateLimitMessage)) { stopWarmTimer(); return }
+    stopWarmTimer()
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) { onError('Speech recognition is not supported. Please use Chrome or Edge.'); return }
     const recognition = new SR()
@@ -321,10 +336,13 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
+    startWarmTimer()
     if (await checkQuotaLimit(setRateLimitMessage)) {
+      stopWarmTimer()
       if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
+    stopWarmTimer()
     // Pre-fill workflow name from filename immediately so submit never blocks on empty name
     if (!workflowName.trim()) {
       const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
@@ -522,7 +540,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   // ── Job Scanner handler ──────────────────────────────────────────────────
   const handleJobScan = async () => {
     if (!jobTitle.trim()) return
-    if (await checkQuotaLimit(setRateLimitMessage)) return
+    startWarmTimer()
+    if (await checkQuotaLimit(setRateLimitMessage)) { stopWarmTimer(); setJobScanStep('idle'); return }
+    stopWarmTimer()
     setJobScanError(''); setJobScanTasks([]); setJobScanStep('researching')
     try {
       // Step 1: research via Vercel proxy (~15s)
@@ -576,7 +596,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         document.getElementById('context-selector')?.scrollIntoView({ behavior:'smooth', block:'center' })
         return
       }
-      if (await checkQuotaLimit(setRateLimitMessage)) return
+      startWarmTimer()
+      if (await checkQuotaLimit(setRateLimitMessage)) { stopWarmTimer(); return }
+      stopWarmTimer()
       const guestId = getGuestId()
       await runAnalysis(guestId)
       return
@@ -587,7 +609,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       document.getElementById('context-selector')?.scrollIntoView({ behavior:'smooth', block:'center' })
       return
     }
-    if (await checkQuotaLimit(setRateLimitMessage)) return
+    startWarmTimer()
+    if (await checkQuotaLimit(setRateLimitMessage)) { stopWarmTimer(); return }
+    stopWarmTimer()
     const guestId = getGuestId()
     await runAnalysis(guestId)
   }
@@ -786,6 +810,24 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   return (
     <>
       {rateLimitMessage && <RateLimitModal/>}
+
+      {/* ── Server warm-up toast — shows after 2s of waiting on any Render call ── */}
+      {serverWarmingUp && (
+        <div className="fixed bottom-[32px] left-1/2 -translate-x-1/2 z-[70] flex items-center gap-[14px] bg-[#1d1d1f] text-white px-[24px] py-[16px] rounded-[16px] shadow-2xl max-w-[440px] w-[calc(100%-32px)] animate-in slide-in-from-bottom-4 duration-300">
+          <div className="shrink-0 w-[36px] h-[36px] rounded-full bg-white/10 flex items-center justify-center">
+            <Loader2 className="w-[18px] h-[18px] animate-spin text-[#34aadc]"/>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-semibold leading-tight">Starting up the server…</p>
+            <p className="text-[12px] text-white/60 mt-[2px]">Free tier wakes up in ~15 seconds — almost there!</p>
+          </div>
+          <div className="shrink-0 flex gap-[4px]">
+            {[0,1,2].map(i => (
+              <div key={i} className="w-[6px] h-[6px] rounded-full bg-[#34aadc]" style={{animation:`pulse 1.2s ease-in-out ${i*0.2}s infinite`}}/>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Upload progress overlay — fixed so it survives inputMode switching ── */}
       {isUploading && (
