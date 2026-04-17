@@ -108,16 +108,16 @@ export default function LandingPage() {
           {/* Stats strip */}
           <div className="grid grid-cols-3 gap-[8px] sm:gap-[48px] justify-center mt-[24px] sm:mt-[48px] w-full max-w-[560px] mx-auto px-2">
             <div className="text-center min-w-0">
-              <div className="text-[20px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight">&lt;5 min</div>
-              <div className="text-[10px] sm:text-[13px] text-white/60 mt-[4px]">to analyze</div>
+              <div className="text-[18px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight whitespace-nowrap">&lt;5 min</div>
+              <div className="text-[9px] sm:text-[13px] text-white/60 mt-[4px] whitespace-nowrap">to analyze</div>
             </div>
             <div className="text-center border-x border-white/20 px-[8px] sm:px-0 min-w-0">
-              <div className="text-[20px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight">0–100%</div>
-              <div className="text-[10px] sm:text-[13px] text-white/60 mt-[4px]">automation score</div>
+              <div className="text-[18px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight whitespace-nowrap">0–100%</div>
+              <div className="text-[9px] sm:text-[13px] text-white/60 mt-[4px] whitespace-nowrap">automation score</div>
             </div>
             <div className="text-center min-w-0">
-              <div className="text-[20px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight">€28K+</div>
-              <div className="text-[10px] sm:text-[13px] text-white/60 mt-[4px]">avg. savings</div>
+              <div className="text-[18px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight whitespace-nowrap">€28K+</div>
+              <div className="text-[9px] sm:text-[13px] text-white/60 mt-[4px] whitespace-nowrap">avg. savings</div>
             </div>
           </div>
 
@@ -189,11 +189,11 @@ export default function LandingPage() {
           <div className="text-center mb-[48px]">
             <div className="relative inline-block">
               <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/15 to-transparent blur-[100px]"></div>
-              <h2 className="relative text-[40px] leading-[1.1] font-semibold italic tracking-tight mb-[12px] text-[#1d1d1f] px-[32px]">
+              <h2 className="relative text-[26px] sm:text-[40px] leading-[1.1] font-semibold italic tracking-tight mb-[12px] text-[#1d1d1f] px-[16px] sm:px-[32px]">
                 Start your analysis now.
               </h2>
             </div>
-            <p className="text-[19px] text-[#6e6e73]">
+            <p className="text-[15px] sm:text-[19px] text-[#6e6e73] px-4">
               Enter a job title, upload a document, use voice, or type tasks manually.
             </p>
           </div>
