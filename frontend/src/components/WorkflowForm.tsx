@@ -900,11 +900,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
         {/* Input Mode — dark bold tabs */}
         <div className="bg-[#1d1d1f] border border-[#3a3a3c] rounded-[20px] p-[6px] sm:p-[8px] grid grid-cols-2 sm:flex sm:flex-wrap gap-[4px] sm:gap-[6px] shadow-lg">
           {([
-            { mode:'manual' as const,    icon:FileText, label:'Manual Entry',     sublabel:'Type tasks directly' },
-            { mode:'voice' as const,     icon:Mic,      label:'Voice Input',      sublabel:'Speak your workflow' },
-            { mode:'document' as const,  icon:Upload,   label:'Upload Document',  sublabel:'PDF, Word, CV, Excel…' },
-            { mode:'jobscan' as const,   icon:Search,   label:'Job Scanner',      sublabel:'Auto-scan any job title' },
-          ]).map(({mode,icon:Icon,label,sublabel}) => (
+            { mode:'manual' as const,    icon:FileText, label:'Manual Entry',     mobileLabel:'Manual',   sublabel:'Type tasks directly' },
+            { mode:'voice' as const,     icon:Mic,      label:'Voice Input',      mobileLabel:'Voice',    sublabel:'Speak your workflow' },
+            { mode:'document' as const,  icon:Upload,   label:'Upload Document',  mobileLabel:'Upload',   sublabel:'PDF, Word, CV, Excel…' },
+            { mode:'jobscan' as const,   icon:Search,   label:'Job Scanner',      mobileLabel:'Scanner',  sublabel:'Auto-scan any job title' },
+          ]).map(({mode,icon:Icon,label,mobileLabel,sublabel}) => (
             <button key={mode} type="button" onClick={()=>{
                 setInputMode(mode)
                 // Auto-select Solo when Job Scanner is clicked (user can change before submitting)
@@ -916,7 +916,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                 <div className="text-[14px] sm:text-[15px] leading-tight">{label}</div>
                 <div className={`text-[10px] sm:text-[11px] font-normal leading-tight mt-[1px] ${inputMode===mode?'text-[#6e6e73]':'text-white/40'}`}>{sublabel}</div>
               </div>
-              <span className="sm:hidden text-[12px] leading-tight text-center">{label}</span>
+              <span className="sm:hidden text-[11px] leading-tight text-center whitespace-nowrap">{mobileLabel}</span>
             </button>
           ))}
         </div>
@@ -1237,8 +1237,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
                 <div className={`w-[44px] h-[44px] sm:w-[58px] sm:h-[58px] rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center mb-[8px] sm:mb-[14px] shadow-md transition-all duration-200 ${analysisContext===value?'scale-110 shadow-lg':''}`}>
                   {icon}
                 </div>
-                <span className="text-[11px] sm:text-[14px] font-semibold text-[#1d1d1f] leading-tight">{label}</span>
-                <span className="text-[10px] sm:text-[11px] text-[#86868b] mt-[2px] sm:mt-[4px] hidden sm:block">{desc}</span>
+                <span className="text-[10px] sm:text-[14px] font-semibold text-[#1d1d1f] leading-tight text-center whitespace-nowrap">{label}</span>
+                <span className="text-[9px] sm:text-[11px] text-[#86868b] mt-[2px] sm:mt-[4px] hidden sm:block">{desc}</span>
               </button>
             ))}
           </div>

@@ -189,11 +189,11 @@ export default function LandingPage() {
           <div className="text-center mb-[48px]">
             <div className="relative inline-block">
               <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/15 to-transparent blur-[100px]"></div>
-              <h2 className="relative text-[26px] sm:text-[40px] leading-[1.1] font-semibold italic tracking-tight mb-[12px] text-[#1d1d1f] px-[16px] sm:px-[32px]">
+              <h2 className="relative text-[22px] sm:text-[40px] leading-[1.1] font-semibold italic tracking-tight mb-[10px] text-[#1d1d1f] px-[16px] sm:px-[32px]">
                 Start your analysis now.
               </h2>
             </div>
-            <p className="text-[15px] sm:text-[19px] text-[#6e6e73] px-4">
+            <p className="text-[14px] sm:text-[19px] text-[#6e6e73] px-4">
               Enter a job title, upload a document, use voice, or type tasks manually.
             </p>
           </div>
