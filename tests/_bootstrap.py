@@ -1,0 +1,1 @@
+print('bootstrap write test ok')
