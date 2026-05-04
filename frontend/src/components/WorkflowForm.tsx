@@ -21,11 +21,12 @@ interface WorkflowFormProps {
 }
 
 const STEPS = [
-  { id: 'saving',    label: 'Saving workflow',     detail: 'Storing your tasks…' },
-  { id: 'captcha',   label: 'Verifying request',   detail: 'Running security check…' },
-  { id: 'analyzing', label: 'AI analysis running', detail: 'Claude is evaluating each task…' },
-  { id: 'roi',       label: 'Calculating ROI',     detail: 'Estimating time & cost savings…' },
-  { id: 'done',      label: 'Analysis complete',   detail: 'Redirecting to results…' },
+  { id: 'warmup',    label: 'Connecting to server',   detail: 'Free tier wakes from sleep — first request takes ~15s…' },
+  { id: 'saving',    label: 'Saving workflow',        detail: 'Storing your tasks…' },
+  { id: 'captcha',   label: 'Verifying request',      detail: 'Running security check…' },
+  { id: 'analyzing', label: 'AI analysis running',    detail: 'Claude is evaluating each task…' },
+  { id: 'roi',       label: 'Calculating ROI',        detail: 'Estimating time & cost savings…' },
+  { id: 'done',      label: 'Analysis complete',      detail: 'Redirecting to results…' },
 ]
 
 type AuthStep = 'email' | 'code' | 'success'
@@ -189,10 +190,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
   const serverWarmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isAnalyzing = activeStep >= 0 && activeStep < STEPS.length - 1
 
-  // Show "server warming up" toast after 2s of waiting on any Render call
+  // Show "server warming up" toast after 800ms — perception threshold below
+  // which clicks feel registered. Above this, the user thinks the click was lost.
   const startWarmTimer = () => {
     if (serverWarmTimerRef.current) clearTimeout(serverWarmTimerRef.current)
-    serverWarmTimerRef.current = setTimeout(() => setServerWarmingUp(true), 2000)
+    serverWarmTimerRef.current = setTimeout(() => setServerWarmingUp(true), 800)
   }
   const stopWarmTimer = () => {
     if (serverWarmTimerRef.current) clearTimeout(serverWarmTimerRef.current)
@@ -507,8 +509,19 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
     // Vercel's serverless timeout for long-running AI + auth operations.
 
     const effectiveSourceText = sourceText.trim() || (inputMode==='manual' && workflowDescription.trim() ? workflowDescription.trim() : '')
+
+    // STAGE 0 — open the progress modal IMMEDIATELY on click. The 'warmup'
+    // step shows until the backend accepts the workflow POST, so the user
+    // never sees a blank screen during cold start.
+    advanceTo(0)
+
     try {
-      advanceTo(0)
+      // Fire wake ping in parallel — best effort. The workflow POST below
+      // is the de-facto wake call; this just resolves any in-flight ping
+      // and primes lastWakeAt for subsequent calls in this session.
+      const { wakeBackend } = await import('@/lib/wake-ping')
+      wakeBackend().catch(() => {})
+
       const wfRes = await fetch('/api/workflows', {
         method:'POST', headers:{'Content-Type':'application/json','x-user-email':userEmail},
         body: JSON.stringify({ name: nameOverride || workflowName, description:workflowDescription, source_text:effectiveSourceText||undefined, input_mode:inputMode, analysis_context:analysisContext||'individual', team_size:teamSize||undefined, industry:industry||undefined,
@@ -517,24 +530,93 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
       })
       if (!wfRes.ok) { const err=await safeJson(wfRes); throw new Error(err.detail||'Failed to create workflow') }
       const workflow = await safeJson(wfRes); saveMyWorkflowId(workflow.id)
-      advanceTo(1)
+
+      // Workflow saved → backend is warm → advance past warmup + saving
+      advanceTo(1) // saving (completes warmup)
+      advanceTo(2) // captcha
       const recaptchaToken = await getRecaptchaToken('analyze_workflow')
-      advanceTo(2)
-      // ⚡ Direct-to-Render: bypasses Vercel's 10s serverless timeout entirely
-      const analysisRes = await fetch(`${BACKEND_DIRECT}/api/analyze`, {
-        method:'POST', headers:{'Content-Type':'application/json','x-user-email':userEmail},
-        body: JSON.stringify({ workflow_id:workflow.id, hourly_rate:hourlyRate, recaptcha_token:recaptchaToken })
+      advanceTo(3) // analyzing
+
+      // ⚡ Direct-to-Render with SSE streaming for real progress events.
+      // Falls back transparently to JSON if the backend isn't on a build
+      // that supports streaming yet.
+      const streamed = await runAnalysisStream(workflow.id, hourlyRate, recaptchaToken, userEmail, (stage) => {
+        if (stage === 'analyzing') advanceTo(3)
+        else if (stage === 'roi') advanceTo(4)
+        else if (stage === 'n8n') advanceTo(4)
       })
-      if (!analysisRes.ok) {
-        const err = await safeJson(analysisRes)
-        if (analysisRes.status===429) { setRateLimitMessage(err.detail?.message||err.detail||'You have reached the daily analysis limit.'); return }
-        if (analysisRes.status===403) throw new Error(err.detail?.message||err.detail||'Security check failed.')
-        throw new Error(err.detail||`Analysis failed (HTTP ${analysisRes.status}) — please try again.`)
+
+      if (!streamed.ok) {
+        if (streamed.status === 429) { setRateLimitMessage(streamed.message || 'You have reached the daily analysis limit.'); return }
+        if (streamed.status === 403) throw new Error(streamed.message || 'Security check failed.')
+        throw new Error(streamed.message || `Analysis failed (HTTP ${streamed.status}) — please try again.`)
       }
-      advanceTo(3); await new Promise(r=>setTimeout(r,600))
-      advanceTo(4); await new Promise(r=>setTimeout(r,700))
+
+      advanceTo(4); await new Promise(r=>setTimeout(r,400))
+      advanceTo(5); await new Promise(r=>setTimeout(r,500))
       onAnalysisComplete(workflow.id)
     } catch (err: any) { setStepError(err.message||'Something went wrong.'); onError(err.message||'Failed to analyze workflow.'); resetProgress() }
+  }
+
+  // SSE-aware analyze caller. If the backend supports text/event-stream
+  // we read progress events and call onStage. Otherwise (older deploy)
+  // we transparently treat it as a single JSON response.
+  const runAnalysisStream = async (
+    workflowId: number,
+    hourlyRate: number,
+    recaptchaToken: string,
+    userEmail: string,
+    onStage: (stage: 'analyzing' | 'roi' | 'n8n') => void,
+  ): Promise<{ ok: true } | { ok: false; status: number; message: string }> => {
+    const res = await fetch(`${BACKEND_DIRECT}/api/analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream, application/json',
+        'x-user-email': userEmail,
+      },
+      body: JSON.stringify({ workflow_id: workflowId, hourly_rate: hourlyRate, recaptcha_token: recaptchaToken }),
+    })
+
+    if (!res.ok) {
+      const err = await safeJson(res)
+      return { ok: false, status: res.status, message: err?.detail?.message || err?.detail || '' }
+    }
+
+    const ct = res.headers.get('content-type') || ''
+    if (!ct.includes('text/event-stream') || !res.body) {
+      try { await res.json() } catch {}
+      return { ok: true }
+    }
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let idx
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const event = buffer.slice(0, idx)
+        buffer = buffer.slice(idx + 2)
+        const m = /^data:\s*(.*)$/m.exec(event)
+        if (!m) continue
+        try {
+          const payload = JSON.parse(m[1])
+          if (payload.stage === 'analyzing' || payload.stage === 'roi' || payload.stage === 'n8n') {
+            onStage(payload.stage)
+          } else if (payload.stage === 'done') {
+            return { ok: true }
+          } else if (payload.stage === 'error') {
+            return { ok: false, status: payload.status || 500, message: payload.message || 'Analysis failed' }
+          }
+        } catch {
+          // ignore malformed events
+        }
+      }
+    }
+    return { ok: true }
   }
 
   // ── Job Scanner handler ──────────────────────────────────────────────────
@@ -818,8 +900,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
             <Loader2 className="w-[18px] h-[18px] animate-spin text-[#34aadc]"/>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-semibold leading-tight">Starting up the server…</p>
-            <p className="text-[12px] text-white/60 mt-[2px]">Free tier wakes up in ~15 seconds — almost there!</p>
+            <p className="text-[14px] font-semibold leading-tight">Waking the analysis server…</p>
+            <p className="text-[12px] text-white/60 mt-[2px]">Free tier — first request takes 20–40s. After that it&apos;s instant.</p>
           </div>
           <div className="shrink-0 flex gap-[4px]">
             {[0,1,2].map(i => (
