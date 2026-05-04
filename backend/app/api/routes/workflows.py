@@ -2,6 +2,9 @@
 API routes for workflow management and analysis
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
+from fastapi.responses import StreamingResponse
+import asyncio
+import json as _json_lib
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sqlfunc
 from typing import List, Optional
@@ -134,57 +137,23 @@ def _get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-@router.post("/analyze", response_model=AnalysisResponse)
-async def analyze_workflow(
-    request: AnalyzeRequest,
-    http_request: Request,
-    db: Session = Depends(get_db),
-    x_user_email: Optional[str] = Header(None),
-):
-    """Analyze a workflow using AI — no auth required, IP-rate-limited."""
-
-    client_ip = _get_client_ip(http_request)
-
-    # 1. IP-based rate limit — 5 analyses per 24 hours per IP (primary, works for all users)
-    ip_count = _get_ip_daily_analyses(client_ip, db)
-    if ip_count >= DAILY_ANALYSIS_LIMIT:
-        raise HTTPException(
-            status_code=429,
-            detail={"error": "rate_limit", "message": f"Daily limit reached ({DAILY_ANALYSIS_LIMIT} analyses per 24 hours). Try again tomorrow.", "retry_after_seconds": 86400},
-        )
-
-    # 2. Email-based rate limit — additional check for signed-in users
-    if x_user_email:
-        email = x_user_email.lower().strip()
-        count = _get_user_daily_analyses(email, db)
-        if count >= DAILY_ANALYSIS_LIMIT:
-            raise HTTPException(
-                status_code=429,
-                detail={"error": "rate_limit", "message": f"Daily limit reached ({DAILY_ANALYSIS_LIMIT} analyses per 24 hours). Try again tomorrow.", "retry_after_seconds": 86400},
-            )
-
-    # 3. reCAPTCHA — skip silently if token absent
-    if request.recaptcha_token:
-        await verify_recaptcha(request.recaptcha_token)
-    
-    # Get workflow with tasks
-    workflow = db.query(Workflow).filter(Workflow.id == request.workflow_id).first()
-    
+def _perform_analysis_sync(workflow_id, hourly_rate, db):
+    """
+    Run the analysis synchronously, yielding (stage_name, payload) tuples
+    at each milestone. The route wrapper turns these into either a single
+    JSON response or an SSE stream.
+    """
+    workflow = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not workflow:
-        raise HTTPException(status_code=404, detail="Workflow not found")
-
-    # Store client IP on workflow for rate-limit tracking
-    if not workflow.client_ip:
-        workflow.client_ip = client_ip
-        db.flush()
-    
+        yield ('error', {'status': 404, 'message': 'Workflow not found'})
+        return
     if not workflow.tasks:
-        raise HTTPException(status_code=400, detail="Workflow has no tasks to analyze")
-    
-    # Initialize AI analyzer
-    analyzer = AIAnalyzer()
+        yield ('error', {'status': 400, 'message': 'Workflow has no tasks to analyze'})
+        return
 
-    # Build task dicts for batch analysis
+    yield ('analyzing', {'task_count': len(workflow.tasks)})
+
+    analyzer = AIAnalyzer()
     task_dicts = [
         {
             'name': task.name,
@@ -199,8 +168,6 @@ async def analyze_workflow(
         }
         for task in workflow.tasks
     ]
-
-    # ONE Claude API call for all tasks (was N sequential calls — now 1)
     batch_results = analyzer.analyze_tasks_batch(task_dicts)
 
     tasks_analysis = []
@@ -208,11 +175,10 @@ async def analyze_workflow(
         analysis_result['task'] = task_dict
         analysis_result['task_obj'] = task
         tasks_analysis.append(analysis_result)
-    
-    # Calculate ROI
-    roi_metrics = analyzer.calculate_roi(tasks_analysis, request.hourly_rate)
-    
-    # Save analysis to database
+
+    yield ('roi', {})
+
+    roi_metrics = analyzer.calculate_roi(tasks_analysis, hourly_rate)
     analysis = Analysis(
         workflow_id=workflow.id,
         automation_score=roi_metrics['automation_score'],
@@ -226,8 +192,7 @@ async def analyze_workflow(
     )
     db.add(analysis)
     db.flush()
-    
-    # Save individual task results
+
     for task_analysis in tasks_analysis:
         result = AnalysisResult(
             analysis_id=analysis.id,
@@ -254,32 +219,25 @@ async def analyze_workflow(
             decision_layer=task_analysis.get('decision_layer'),
         )
         db.add(result)
-    
     db.commit()
     db.refresh(analysis)
 
-    # Generate n8n workflow + fetch community templates (same quality as Job Scanner)
+    yield ('n8n', {})
+
     try:
         import os as _os
-        import json as _json
         from app.services.n8n_template_client import N8nTemplateClient
         _api_key = _os.getenv("ANTHROPIC_API_KEY", "")
         _client = N8nTemplateClient(anthropic_api_key=_api_key)
         _top_tasks = task_dicts[:6]
         _workflow_name = workflow.name or "Workflow Analysis"
-        _suggested = _client.get_curated_templates(
-            job_title=_workflow_name,
-            tasks=_top_tasks,
-        )
+        _suggested = _client.get_curated_templates(job_title=_workflow_name, tasks=_top_tasks)
         if _suggested:
-            _n8n = _client.build_merged_canvas(
-                job_title=_workflow_name,
-                suggested_templates=_suggested,
-            )
+            _n8n = _client.build_merged_canvas(job_title=_workflow_name, suggested_templates=_suggested)
         else:
             from app.services.job_scanner import JobScanner as _JS
             _n8n = _JS()._generate_n8n_workflow(_workflow_name, _top_tasks)
-        _n8n_str = _json.dumps(_n8n)
+        _n8n_str = _json_lib.dumps(_n8n)
         from app.core.config import settings as _settings
         if _settings.TURSO_DATABASE_URL and _settings.TURSO_AUTH_TOKEN:
             from app.core.turso_dbapi import connect as _tc
@@ -298,15 +256,110 @@ async def analyze_workflow(
                 _c.commit()
     except Exception as _exc:
         print(f"[n8n] workflow generation error for regular analysis: {_exc}")
-    
-    # Eagerly load relationships so Pydantic can serialize them
+
     db.refresh(analysis)
     _ = analysis.workflow
     _ = analysis.results
     for r in analysis.results:
         _ = r.task
-    
-    return analysis
+
+    yield ('done', {'analysis': analysis})
+
+
+@router.post("/analyze", response_model=AnalysisResponse)
+async def analyze_workflow(
+    request: AnalyzeRequest,
+    http_request: Request,
+    db: Session = Depends(get_db),
+    x_user_email: Optional[str] = Header(None),
+):
+    """Analyze a workflow using AI - no auth required, IP-rate-limited.
+
+    Supports SSE streaming when client sends Accept: text/event-stream.
+    Falls back to single JSON response otherwise (backward compatible).
+    """
+
+    client_ip = _get_client_ip(http_request)
+
+    ip_count = _get_ip_daily_analyses(client_ip, db)
+    if ip_count >= DAILY_ANALYSIS_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail={"error": "rate_limit", "message": f"Daily limit reached ({DAILY_ANALYSIS_LIMIT} analyses per 24 hours). Try again tomorrow.", "retry_after_seconds": 86400},
+        )
+
+    if x_user_email:
+        email = x_user_email.lower().strip()
+        count = _get_user_daily_analyses(email, db)
+        if count >= DAILY_ANALYSIS_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail={"error": "rate_limit", "message": f"Daily limit reached ({DAILY_ANALYSIS_LIMIT} analyses per 24 hours). Try again tomorrow.", "retry_after_seconds": 86400},
+            )
+
+    if request.recaptcha_token:
+        await verify_recaptcha(request.recaptcha_token)
+
+    workflow = db.query(Workflow).filter(Workflow.id == request.workflow_id).first()
+    if workflow and not workflow.client_ip:
+        workflow.client_ip = client_ip
+        db.flush()
+
+    accept = (http_request.headers.get('accept') or '').lower()
+    wants_sse = 'text/event-stream' in accept
+
+    if not wants_sse:
+        analysis_obj = None
+        for stage, payload in _perform_analysis_sync(request.workflow_id, request.hourly_rate, db):
+            if stage == 'error':
+                raise HTTPException(status_code=payload.get('status', 500), detail=payload.get('message', 'Analysis failed'))
+            if stage == 'done':
+                analysis_obj = payload['analysis']
+        if analysis_obj is None:
+            raise HTTPException(status_code=500, detail='Analysis produced no result')
+        return analysis_obj
+
+    async def event_stream():
+        queue: asyncio.Queue = asyncio.Queue()
+        loop = asyncio.get_event_loop()
+
+        def _producer():
+            try:
+                for stage, payload in _perform_analysis_sync(request.workflow_id, request.hourly_rate, db):
+                    if stage == 'done':
+                        out = {'stage': 'done', 'workflow_id': request.workflow_id}
+                    else:
+                        safe = {k: v for k, v in payload.items() if isinstance(v, (str, int, float, bool, type(None)))}
+                        out = {'stage': stage, **safe}
+                    asyncio.run_coroutine_threadsafe(queue.put(out), loop)
+            except Exception as exc:
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({'stage': 'error', 'status': 500, 'message': str(exc)}), loop
+                )
+            finally:
+                asyncio.run_coroutine_threadsafe(queue.put(None), loop)
+
+        loop.run_in_executor(None, _producer)
+
+        while True:
+            try:
+                msg = await asyncio.wait_for(queue.get(), timeout=15.0)
+            except asyncio.TimeoutError:
+                yield ': ping\n\n'
+                continue
+            if msg is None:
+                return
+            yield f"data: {_json_lib.dumps(msg)}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache, no-transform',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive',
+        },
+    )
 
 
 @router.get("/results/{workflow_id}", response_model=AnalysisResponse)
