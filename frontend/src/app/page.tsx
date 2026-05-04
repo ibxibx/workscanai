@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Brain, Sparkles } from 'lucide-react'
 import WorkflowForm from '@/components/WorkflowForm'
@@ -10,6 +10,14 @@ export default function LandingPage() {
   const [spotlightPos, setSpotlightPos] = useState({ x: 50, y: 50 })
   const [spotlightVisible, setSpotlightVisible] = useState(false)
   const analyzeRef = useRef<HTMLElement>(null)
+
+  // Pre-warm Render backend on landing — by the time the user fills
+  // the form (typically 30s+), the dyno is awake. Best-effort, fail silent.
+  useEffect(() => {
+    import('@/lib/wake-ping').then(({ wakeBackend }) => {
+      wakeBackend().catch(() => {})
+    })
+  }, [])
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
