@@ -4,7 +4,7 @@ so a first-time visitor sees a meaningful dashboard instead of an empty screen.
 
 Run with:
     cd backend
-    python seed_demo.py
+    python scripts/seed_demo.py
 """
 import sys
 import requests
