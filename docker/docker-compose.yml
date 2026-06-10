@@ -37,7 +37,7 @@ services:
   # ── FastAPI backend ────────────────────────────────────────────────────────
   backend:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: Dockerfile
     container_name: workscanai-backend
     restart: unless-stopped
@@ -59,13 +59,13 @@ services:
     volumes:
       # Mount backend code for live reloading during development
       # Remove in production for a static image
-      - ./backend:/app
+      - ../backend:/app
       - /app/venv  # Exclude the venv — use the container's installed packages
 
   # ── Next.js frontend ───────────────────────────────────────────────────────
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
       args:
         # The browser talks to backend via localhost:8000 (host port)
