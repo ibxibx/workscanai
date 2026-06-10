@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="pics/WorkScanAILogo.png" alt="WorkScanAI Logo" width="270" />
+<img src="pics/WorkScanAILogo.png" alt="WorkScanAI Logo" width="470" />
 
 # WorkScanAI
 
