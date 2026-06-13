@@ -202,7 +202,7 @@ export default function LandingPage() {
               </h2>
             </div>
             <p className="text-[14px] sm:text-[19px] text-[#6e6e73] px-4">
-              Enter a job title, upload a document, use voice, or type tasks manually.
+              Type your tasks, upload a workflow document, use voice, or enter a job title.
             </p>
           </div>
 
