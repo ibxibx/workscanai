@@ -89,6 +89,11 @@ export default function LandingPage() {
             what to automate.
           </h1>
 
+          {/* One-line product descriptor — instant clarity on what WorkScanAI is */}
+          <p className="max-w-[600px] mx-auto text-[15px] sm:text-[19px] leading-[1.4] font-normal text-white/85 drop-shadow px-3">
+            WorkScanAI analyzes your team&apos;s workflows and identifies automation opportunities in minutes, not months.
+          </p>
+
           {/* Value Proposition Block */}
           <div className="max-w-[680px] mx-auto mt-[24px] sm:mt-[40px]">
             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[18px] p-[20px] sm:p-[32px]">
