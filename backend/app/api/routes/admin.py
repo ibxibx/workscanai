@@ -189,6 +189,54 @@ def get_admin_stats(db: Session = Depends(get_db), _=Depends(_require_admin)):
             "share_url": f"https://workscanai.vercel.app/report/{w.share_code}" if w.share_code and analysis else None,
         })
 
+    # ── Traffic / country analytics (first-party page_views) ───────────────
+    from app.models.workflow import PageView
+    now = datetime.now(timezone.utc)
+    since_24h = now - timedelta(hours=24)
+    since_7d = now - timedelta(days=7)
+
+    total_views = db.query(func.count(PageView.id)).scalar() or 0
+    unique_visitors = db.query(func.count(func.distinct(PageView.ip_hash))).scalar() or 0
+    views_24h = db.query(func.count(PageView.id)).filter(PageView.created_at >= since_24h).scalar() or 0
+    views_7d = db.query(func.count(PageView.id)).filter(PageView.created_at >= since_7d).scalar() or 0
+
+    country_rows = (
+        db.query(
+            PageView.country,
+            PageView.country_name,
+            func.count(PageView.id),
+            func.count(func.distinct(PageView.ip_hash)),
+        )
+        .filter(PageView.country != None)
+        .group_by(PageView.country, PageView.country_name)
+        .order_by(func.count(PageView.id).desc())
+        .all()
+    )
+    by_country = [
+        {"code": r[0], "name": r[1] or r[0], "views": r[2], "visitors": r[3]}
+        for r in country_rows
+    ]
+
+    path_rows = (
+        db.query(PageView.path, func.count(PageView.id))
+        .filter(PageView.path != None)
+        .group_by(PageView.path)
+        .order_by(func.count(PageView.id).desc())
+        .limit(12)
+        .all()
+    )
+    top_paths = [{"path": r[0], "views": r[1]} for r in path_rows]
+
+    traffic = {
+        "total_views": total_views,
+        "unique_visitors": unique_visitors,
+        "views_24h": views_24h,
+        "views_7d": views_7d,
+        "countries_count": len(by_country),
+        "by_country": by_country,
+        "top_paths": top_paths,
+    }
+
     return {
         "totals": {
             "users": total_users,
@@ -203,6 +251,7 @@ def get_admin_stats(db: Session = Depends(get_db), _=Depends(_require_admin)):
         },
         "by_context": by_context,
         "by_input_mode": by_input_mode,
+        "traffic": traffic,
         "users": users_list,
         "workflows": workflows_list,
     }
