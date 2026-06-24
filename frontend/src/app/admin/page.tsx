@@ -1,15 +1,32 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Users, BarChart3, Clock, DollarSign, FileText, Brain, Zap, Eye, EyeOff, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import { Users, BarChart3, Clock, DollarSign, FileText, Brain, Zap, Eye, EyeOff, RefreshCw, ChevronDown, ChevronUp, Globe, MapPin } from 'lucide-react'
 
 const BACKEND = 'https://workscanai.onrender.com'
+
+// ISO-3166 alpha-2 → flag emoji (regional indicator letters)
+function flag(code: string): string {
+  if (!code || code.length !== 2) return '🌐'
+  const A = 0x1f1e6
+  const cc = code.toUpperCase()
+  return String.fromCodePoint(A + (cc.charCodeAt(0) - 65)) + String.fromCodePoint(A + (cc.charCodeAt(1) - 65))
+}
 
 interface AdminStats {
   totals: { users: number; workflows: number; analyses: number; tasks: number }
   averages: { automation_score: number | null; annual_savings: number | null; hours_saved: number | null }
   by_context: Record<string, number>
   by_input_mode: Record<string, number>
+  traffic?: {
+    total_views: number
+    unique_visitors: number
+    views_24h: number
+    views_7d: number
+    countries_count: number
+    by_country: Array<{ code: string; name: string; views: number; visitors: number }>
+    top_paths: Array<{ path: string; views: number }>
+  }
   users: Array<{ id: number; email: string; created_at: string; workflows: number; analyses: number }>
   workflows: Array<{
     id: number; name: string; user_email: string
@@ -140,6 +157,91 @@ export default function AdminPage() {
             </div>
           ))}
         </div>
+
+        {/* Traffic & Reach */}
+        {stats.traffic && (
+          <div className="mb-[24px] sm:mb-[32px]">
+            <div className="flex items-center gap-[8px] mb-[12px] sm:mb-[16px]">
+              <Globe className="h-[18px] w-[18px] text-[#0071e3]" />
+              <h2 className="text-[15px] sm:text-[17px] font-semibold">Traffic &amp; Reach</h2>
+              <span className="text-[11px] text-[#86868b]">first-party · since tracking went live</span>
+            </div>
+
+            {/* Traffic KPIs */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-[12px] sm:gap-[16px] mb-[16px]">
+              {[
+                { icon: Eye, label: 'Total Page Views', value: stats.traffic.total_views, color: 'text-indigo-600' },
+                { icon: Users, label: 'Unique Visitors', value: stats.traffic.unique_visitors, color: 'text-cyan-600' },
+                { icon: Globe, label: 'Countries', value: stats.traffic.countries_count, color: 'text-teal-600' },
+                { icon: Clock, label: 'Views (24h)', value: stats.traffic.views_24h, color: 'text-rose-600' },
+              ].map(({ icon: Icon, label, value, color }) => (
+                <div key={label} className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
+                  <Icon className={`h-[18px] w-[18px] mb-[10px] ${color}`} />
+                  <div className={`text-[22px] sm:text-[36px] font-bold mb-[4px] ${color}`}>{value}</div>
+                  <div className="text-[10px] sm:text-[12px] text-[#86868b] font-semibold uppercase tracking-wide leading-tight">{label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-[12px] sm:gap-[16px]">
+              {/* Visits by Country */}
+              <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
+                <h3 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px] flex items-center gap-[6px]">
+                  <MapPin className="h-[14px] w-[14px]" /> Visits by Country
+                </h3>
+                {stats.traffic.by_country.length === 0 ? (
+                  <p className="text-[13px] text-[#86868b] italic">No country data yet — visits will appear here as traffic comes in.</p>
+                ) : (
+                  <div className="space-y-[10px] max-h-[320px] overflow-y-auto">
+                    {stats.traffic.by_country.map((c) => {
+                      const max = stats.traffic!.by_country[0].views || 1
+                      return (
+                        <div key={c.code} className="flex items-center justify-between gap-[10px]">
+                          <span className="flex items-center gap-[8px] min-w-0">
+                            <span className="text-[18px] leading-none shrink-0">{flag(c.code)}</span>
+                            <span className="text-[13px] text-[#1d1d1f] truncate">{c.name}</span>
+                          </span>
+                          <div className="flex items-center gap-[8px] shrink-0">
+                            <div className="w-[80px] sm:w-[120px] h-[6px] bg-[#f0f0f5] rounded-full overflow-hidden">
+                              <div className="h-full bg-[#0071e3] rounded-full" style={{ width: `${(c.views / max) * 100}%` }} />
+                            </div>
+                            <span className="text-[13px] font-semibold w-[36px] text-right">{c.views}</span>
+                            <span className="text-[11px] text-[#86868b] w-[44px] text-right">{c.visitors} uniq</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Top Pages */}
+              <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
+                <h3 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px]">Top Pages</h3>
+                {stats.traffic.top_paths.length === 0 ? (
+                  <p className="text-[13px] text-[#86868b] italic">No page data yet.</p>
+                ) : (
+                  <div className="space-y-[10px] max-h-[320px] overflow-y-auto">
+                    {stats.traffic.top_paths.map((p) => {
+                      const max = stats.traffic!.top_paths[0].views || 1
+                      return (
+                        <div key={p.path} className="flex items-center justify-between gap-[10px]">
+                          <span className="text-[12px] font-mono text-[#1d1d1f] truncate">{p.path}</span>
+                          <div className="flex items-center gap-[8px] shrink-0">
+                            <div className="w-[80px] sm:w-[120px] h-[6px] bg-[#f0f0f5] rounded-full overflow-hidden">
+                              <div className="h-full bg-purple-500 rounded-full" style={{ width: `${(p.views / max) * 100}%` }} />
+                            </div>
+                            <span className="text-[13px] font-semibold w-[36px] text-right">{p.views}</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Averages + Breakdowns */}
         <div className="grid md:grid-cols-3 gap-[12px] sm:gap-[16px] mb-[24px] sm:mb-[32px]">
