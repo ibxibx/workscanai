@@ -66,3 +66,6 @@ trigger_deploy.py
 # DB
 *.db
 *.sqlite
+
+# Growth working docs (private)
+GROWTH_PLAN.md

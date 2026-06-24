@@ -131,3 +131,22 @@ class AnalysisResult(Base):
     # Relationships
     analysis = relationship("Analysis", back_populates="results")
     task = relationship("Task", back_populates="analysis_result")
+
+
+class PageView(Base):
+    """Lightweight first-party traffic log for the /admin growth dashboard.
+
+    One row per tracked page load. Country is resolved server-side from the
+    client IP (the frontend calls Render directly, so x-vercel-ip-country is
+    not available). ip_hash is a salted hash — we never store raw IPs here,
+    so this stays privacy-preserving while still allowing unique-visitor counts.
+    """
+    __tablename__ = "page_views"
+
+    id = Column(Integer, primary_key=True, index=True)
+    path = Column(String(255), nullable=True)            # e.g. '/', '/dashboard', '/report/4m5gd9'
+    country = Column(String(2), nullable=True, index=True)   # ISO-3166 alpha-2, e.g. 'DE'
+    country_name = Column(String(100), nullable=True)    # human label, e.g. 'Germany'
+    referrer = Column(String(500), nullable=True)        # where the visit came from
+    ip_hash = Column(String(64), nullable=True, index=True)  # salted hash for unique counts
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
