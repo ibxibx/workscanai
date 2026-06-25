@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { isPostHogReady } from '@/lib/analytics'
+import { resolveAcquisition } from '@/lib/audience'
 
 /**
  * Initializes PostHog (client-side) and fires SPA $pageview events on every
@@ -38,6 +39,29 @@ export default function PostHogProvider() {
       },
       loaded: () => { initialized.current = true },
     })
+
+    // Niche attribution: register acquisition context as super properties so
+    // every event (pageview → activation) carries audience + channel + utm.
+    // This is what lets the conversion funnel be segmented by niche.
+    try {
+      const acq = resolveAcquisition()
+      posthog.register({
+        audience: acq.audience,
+        acq_channel: acq.acq_channel,
+        utm_source: acq.utm_source,
+        utm_medium: acq.utm_medium,
+        utm_campaign: acq.utm_campaign,
+        acq_referring_domain: acq.referring_domain,
+      })
+      // Persist audience as a person property too (survives identification),
+      // set once so the FIRST-touch niche isn't overwritten by later visits.
+      posthog.setPersonPropertiesForFlags?.({ audience: acq.audience })
+      posthog.people?.set_once?.({
+        initial_audience: acq.audience,
+        initial_acq_channel: acq.acq_channel,
+      })
+    } catch { /* never break init on attribution */ }
+
     initialized.current = true
   }, [])
 
