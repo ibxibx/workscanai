@@ -1,6 +1,8 @@
 import { ImageResponse } from 'next/og'
 
-export const runtime = 'edge'
+// Node runtime (not edge): on Next 16 + React 19 the edge ImageResponse can
+// fail silently and return an empty 0-byte PNG. Node runtime renders reliably.
+export const runtime = 'nodejs'
 export const alt = 'WorkScanAI Analysis Report'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
