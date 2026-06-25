@@ -45,6 +45,7 @@ class WorkflowResponse(BaseModel):
     analysis_context: Optional[str] = None
     team_size: Optional[str] = None
     industry: Optional[str] = None
+    referred_by_code: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime]
     tasks: List[TaskResponse] = []
