@@ -6,6 +6,7 @@ import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown,
          Mail, ArrowRight } from 'lucide-react'
 import { saveMyWorkflowId } from '@/app/dashboard/page'
 import { persistSession } from '@/lib/auth'
+import { trackInputStarted, trackAnalysisSubmitted } from '@/lib/analytics'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type AnalysisContext = 'individual' | 'team' | 'company'
@@ -272,7 +273,14 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
   const resetProgress = () => { setActiveStep(-1); setCompletedSteps(new Set()); setStepError(null); setRateLimitMessage(null) }
   const addTask = () => setTasks(t => [...t, { name:'', description:'', frequency:'weekly', time_per_task:30, category:'general', complexity:'medium' }])
   const removeTask = (i: number) => { if (tasks.length > 1) setTasks(t => t.filter((_,idx) => idx !== i)) }
+  const inputStartedFired = useRef(false)
+  const fireInputStarted = (mode: string) => {
+    if (inputStartedFired.current) return
+    inputStartedFired.current = true
+    trackInputStarted({ input_mode: mode })
+  }
   const updateTask = (i: number, field: keyof Task, value: string | number) => {
+    fireInputStarted('manual')
     setTasks(t => { const n=[...t]; n[i]={...n[i],[field]:value}; return n })
   }
 
@@ -505,6 +513,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
 
   const runAnalysis = async (userEmail: string, nameOverride?: string) => {
     onError(''); setStepError(null)
+    trackAnalysisSubmitted({
+      input_mode: inputMode,
+      analysis_context: analysisContext || 'individual',
+      task_count: tasks.filter(t => t.name.trim()).length,
+      referred: !!referredByCode,
+    })
 
     // BACKEND_DIRECT is a module-level constant — direct Render calls bypass
     // Vercel's serverless timeout for long-running AI + auth operations.
@@ -623,6 +637,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
   // ── Job Scanner handler ──────────────────────────────────────────────────
   const handleJobScan = async () => {
     if (!jobTitle.trim()) return
+    trackAnalysisSubmitted({ input_mode: 'jobscan', analysis_context: analysisContext || 'individual', job_title: jobTitle.trim(), referred: !!referredByCode })
     startWarmTimer()
     if (await checkQuotaLimit(setRateLimitMessage)) { stopWarmTimer(); setJobScanStep('idle'); return }
     stopWarmTimer()

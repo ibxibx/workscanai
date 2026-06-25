@@ -4,6 +4,8 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import SiteHeader from "@/components/SiteHeader";
 import PageTracker from "@/components/PageTracker";
+import PostHogProvider from "@/components/PostHogProvider";
+import { Suspense } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,6 +30,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
+          <Suspense fallback={null}>
+            <PostHogProvider />
+          </Suspense>
           <PageTracker />
           <SiteHeader />
           {children}
