@@ -46,6 +46,10 @@ try:
             "ALTER TABLE analyses ADD COLUMN readiness_tool_maturity REAL",
             "ALTER TABLE analyses ADD COLUMN readiness_team_skills REAL",
             "ALTER TABLE workflows ADD COLUMN n8n_workflow_json TEXT",
+            # page_views geo: city/region resolved server-side from IP (same source
+            # Vercel shows). country/country_name already existed; add finer geo.
+            "ALTER TABLE page_views ADD COLUMN region VARCHAR(100)",
+            "ALTER TABLE page_views ADD COLUMN city VARCHAR(100)",
         ]:
             try:
                 conn.execute(text(ddl))

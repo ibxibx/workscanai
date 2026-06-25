@@ -41,19 +41,26 @@ def _is_public_ip(ip: str) -> bool:
         return False
 
 
-def _resolve_country(ip: str) -> tuple[Optional[str], Optional[str]]:
-    """Look up ISO country code + name from an IP. Returns (code, name).
-    Free, no-key service with a tight timeout; fails soft to (None, None)."""
+def _resolve_geo(ip: str) -> dict:
+    """Look up geo (country code/name, region, city) from an IP.
+    Free, no-key service with a tight timeout; fails soft to empty dict.
+    ipapi.co returns city/region in the same payload as country — the same
+    source of truth Vercel surfaces — so city costs no extra request."""
     if not _is_public_ip(ip):
-        return None, None
+        return {}
     try:
         r = httpx.get(f"https://ipapi.co/{ip}/json/", timeout=2.0)
         if r.status_code == 200:
             d = r.json()
-            return d.get("country_code"), d.get("country_name")
+            return {
+                "country": d.get("country_code"),
+                "country_name": d.get("country_name"),
+                "region": d.get("region"),
+                "city": d.get("city"),
+            }
     except Exception:
         pass
-    return None, None
+    return {}
 
 
 @router.post("/track")
@@ -64,11 +71,13 @@ async def track_page_view(
 ):
     try:
         ip = get_client_ip(request)
-        code, name = _resolve_country(ip)
+        geo = _resolve_geo(ip)
         pv = PageView(
             path=(payload.path or "")[:255] or None,
-            country=code,
-            country_name=name,
+            country=geo.get("country"),
+            country_name=geo.get("country_name"),
+            region=(geo.get("region") or "")[:100] or None,
+            city=(geo.get("city") or "")[:100] or None,
             referrer=(payload.referrer or "")[:500] or None,
             ip_hash=_hash_ip(ip) if ip and ip != "unknown" else None,
         )

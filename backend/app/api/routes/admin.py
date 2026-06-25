@@ -217,6 +217,27 @@ def get_admin_stats(db: Session = Depends(get_db), _=Depends(_require_admin)):
         for r in country_rows
     ]
 
+    # Top cities — same IP-resolved geo Vercel shows. Group by city+region+country
+    # so identically-named cities in different regions/countries stay distinct.
+    city_rows = (
+        db.query(
+            PageView.city,
+            PageView.region,
+            PageView.country,
+            func.count(PageView.id),
+            func.count(func.distinct(PageView.ip_hash)),
+        )
+        .filter(PageView.city != None)
+        .group_by(PageView.city, PageView.region, PageView.country)
+        .order_by(func.count(PageView.id).desc())
+        .limit(15)
+        .all()
+    )
+    by_city = [
+        {"city": r[0], "region": r[1], "country": r[2], "views": r[3], "visitors": r[4]}
+        for r in city_rows
+    ]
+
     path_rows = (
         db.query(PageView.path, func.count(PageView.id))
         .filter(PageView.path != None)
@@ -234,6 +255,8 @@ def get_admin_stats(db: Session = Depends(get_db), _=Depends(_require_admin)):
         "views_7d": views_7d,
         "countries_count": len(by_country),
         "by_country": by_country,
+        "cities_count": len(by_city),
+        "by_city": by_city,
         "top_paths": top_paths,
     }
 
