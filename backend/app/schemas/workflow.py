@@ -31,6 +31,7 @@ class WorkflowCreate(BaseModel):
     analysis_context: Optional[str] = None   # 'individual' | 'team' | 'company'
     team_size: Optional[str] = None
     industry: Optional[str] = None
+    referred_by_code: Optional[str] = None   # share_code of report that referred this (k-factor)
     tasks: List[TaskCreate] = Field(default_factory=list)
 
 

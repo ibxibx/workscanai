@@ -29,6 +29,13 @@ interface AdminStats {
     by_city: Array<{ city: string; region: string | null; country: string | null; views: number; visitors: number }>
     top_paths: Array<{ path: string; views: number }>
   }
+  referral?: {
+    report_views: number
+    report_unique_viewers: number
+    referred_analyses: number
+    viewer_to_creator_rate: number
+    top_referrers: Array<{ code: string; referred: number }>
+  }
   users: Array<{ id: number; email: string; created_at: string; workflows: number; analyses: number }>
   workflows: Array<{
     id: number; name: string; user_email: string
@@ -276,6 +283,62 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Viral loop — viewer → creator (k-factor) */}
+        {stats.referral && (
+          <div className="mb-[24px] sm:mb-[32px]">
+            <div className="flex items-center gap-[8px] mb-[12px] sm:mb-[16px]">
+              <Zap className="h-[18px] w-[18px] text-[#0071e3]" />
+              <h2 className="text-[15px] sm:text-[17px] font-semibold">Viral Loop</h2>
+              <span className="text-[11px] text-[#86868b]">shared report opens → new analyses</span>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-[12px] sm:gap-[16px] mb-[16px]">
+              {[
+                { label: 'Report Opens', value: stats.referral.report_views, color: 'text-indigo-600' },
+                { label: 'Unique Viewers', value: stats.referral.report_unique_viewers, color: 'text-cyan-600' },
+                { label: 'Referred Analyses', value: stats.referral.referred_analyses, color: 'text-green-600' },
+                { label: 'Viewer→Creator', value: `${(stats.referral.viewer_to_creator_rate * 100).toFixed(1)}%`, color: 'text-orange-600' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
+                  <div className={`text-[22px] sm:text-[36px] font-bold mb-[4px] ${color}`}>{value}</div>
+                  <div className="text-[10px] sm:text-[12px] text-[#86868b] font-semibold uppercase tracking-wide leading-tight">{label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
+              <h3 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px]">Top Referring Reports</h3>
+              {stats.referral.top_referrers.length === 0 ? (
+                <p className="text-[13px] text-[#86868b] italic">No referred analyses yet — when a viewer of a shared report starts their own analysis, the source report appears here.</p>
+              ) : (
+                <div className="space-y-[10px] max-h-[280px] overflow-y-auto">
+                  {stats.referral.top_referrers.map((r) => {
+                    const max = stats.referral!.top_referrers[0].referred || 1
+                    return (
+                      <div key={r.code} className="flex items-center justify-between gap-[10px]">
+                        <a
+                          href={`https://workscanai.vercel.app/report/${r.code}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[12px] font-mono text-[#0071e3] hover:underline truncate"
+                        >
+                          #{r.code}
+                        </a>
+                        <div className="flex items-center gap-[8px] shrink-0">
+                          <div className="w-[80px] sm:w-[120px] h-[6px] bg-[#f0f0f5] rounded-full overflow-hidden">
+                            <div className="h-full bg-[#0071e3] rounded-full" style={{ width: `${(r.referred / max) * 100}%` }} />
+                          </div>
+                          <span className="text-[13px] font-semibold w-[60px] text-right">{r.referred} analys{r.referred === 1 ? 'is' : 'es'}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}

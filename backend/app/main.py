@@ -50,6 +50,8 @@ try:
             # Vercel shows). country/country_name already existed; add finer geo.
             "ALTER TABLE page_views ADD COLUMN region VARCHAR(100)",
             "ALTER TABLE page_views ADD COLUMN city VARCHAR(100)",
+            # k-factor: which shared report (share_code) referred this new analysis
+            "ALTER TABLE workflows ADD COLUMN referred_by_code VARCHAR(16)",
         ]:
             try:
                 conn.execute(text(ddl))

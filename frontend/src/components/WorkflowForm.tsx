@@ -18,6 +18,7 @@ interface Task {
 interface WorkflowFormProps {
   onAnalysisComplete: (workflowId: number, shareCode?: string) => void
   onError: (error: string) => void
+  referredByCode?: string | null
 }
 
 const STEPS = [
@@ -139,7 +140,7 @@ const CONTEXT_OPTIONS = [
 ]
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFormProps) {
+export default function WorkflowForm({ onAnalysisComplete, onError, referredByCode }: WorkflowFormProps) {
   // Guest session: stable anonymous ID stored in localStorage for workflow ownership
   const getGuestId = (): string => {
     let id = localStorage.getItem('wsai_guest_id')
@@ -524,7 +525,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError }: WorkflowFo
 
       const wfRes = await fetch('/api/workflows', {
         method:'POST', headers:{'Content-Type':'application/json','x-user-email':userEmail},
-        body: JSON.stringify({ name: nameOverride || workflowName, description:workflowDescription, source_text:effectiveSourceText||undefined, input_mode:inputMode, analysis_context:analysisContext||'individual', team_size:teamSize||undefined, industry:industry||undefined,
+        body: JSON.stringify({ name: nameOverride || workflowName, description:workflowDescription, source_text:effectiveSourceText||undefined, input_mode:inputMode, analysis_context:analysisContext||'individual', team_size:teamSize||undefined, industry:industry||undefined, referred_by_code: referredByCode || undefined,
           tasks: tasks.filter(t=>t.name.trim()).map(t=>({ name:t.name, description:t.description||t.name, frequency:t.frequency, time_per_task:t.time_per_task, category:t.category, complexity:t.complexity }))
         })
       })
