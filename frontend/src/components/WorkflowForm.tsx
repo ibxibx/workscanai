@@ -1220,7 +1220,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
                   <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-[6px]">Job Title <span className="text-red-500">*</span></label>
                   <input
                     type="text" value={jobTitle}
-                    onChange={e=>setJobTitle(e.target.value)}
+                    onChange={e=>{fireInputStarted('jobscan');setJobTitle(e.target.value)}}
                     onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();handleJobScan()}}}
                     placeholder="e.g. Marketing Manager, Data Analyst, Software Engineer"
                     className="w-full px-[16px] py-[14px] rounded-[12px] border border-[#d2d2d7] bg-white text-[15px] text-[#1d1d1f] placeholder:text-[#a1a1a6] focus:outline-none focus:ring-2 focus:ring-[#0071e3] transition"
