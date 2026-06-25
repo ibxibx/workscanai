@@ -56,6 +56,15 @@ def create_workflow(
             db.add(user)
             db.flush()
 
+    # k-factor attribution: if this analysis was started from a shared report,
+    # the frontend passes that report's share_code. Only store it if it matches
+    # an existing report (ignore junk / self-referrals).
+    referred_by = None
+    if workflow_data.referred_by_code:
+        ref = workflow_data.referred_by_code.strip()[:16]
+        if ref and db.query(Workflow.id).filter(Workflow.share_code == ref).first():
+            referred_by = ref
+
     # Create workflow
     workflow = Workflow(
         share_code=_gen_share_code(),
@@ -67,6 +76,7 @@ def create_workflow(
         team_size=workflow_data.team_size,
         industry=workflow_data.industry,
         user_email=x_user_email.lower().strip() if x_user_email else None,
+        referred_by_code=referred_by,
     )
     db.add(workflow)
     db.flush()  # Get workflow.id

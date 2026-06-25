@@ -14,7 +14,23 @@ export default function LandingPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [spotlightPos, setSpotlightPos] = useState({ x: 50, y: 50 })
   const [spotlightVisible, setSpotlightVisible] = useState(false)
+  const [referredBy, setReferredBy] = useState<string | null>(null)
   const analyzeRef = useRef<HTMLElement>(null)
+
+  // Read ?ref={code} — the share_code of a report a viewer came from. Persist in
+  // sessionStorage so it survives even if the param is stripped on later navs.
+  // Powers the viewer→creator (k-factor) attribution in admin stats.
+  useEffect(() => {
+    try {
+      const param = new URLSearchParams(window.location.search).get('ref')
+      const stored = sessionStorage.getItem('wsai_ref')
+      const ref = (param || stored || '').trim().slice(0, 16)
+      if (ref) {
+        setReferredBy(ref)
+        if (param) sessionStorage.setItem('wsai_ref', ref)
+      }
+    } catch { /* ignore */ }
+  }, [])
 
   // Pre-warm Render backend on landing — by the time the user fills
   // the form (typically 30s+), the dyno is awake. Best-effort, fail silent.
@@ -241,6 +257,7 @@ export default function LandingPage() {
           <WorkflowForm
             onAnalysisComplete={handleAnalysisComplete}
             onError={(e) => setFormError(e || null)}
+            referredByCode={referredBy}
           />
         </div>
       </section>

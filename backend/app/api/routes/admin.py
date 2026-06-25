@@ -260,6 +260,47 @@ def get_admin_stats(db: Session = Depends(get_db), _=Depends(_require_admin)):
         "top_paths": top_paths,
     }
 
+    # ── k-factor: viewer → creator conversion on shared reports ────────────
+    # Report opens = page_views whose path is a /report/{code} URL.
+    # Referred analyses = workflows stamped with referred_by_code (a viewer of a
+    # shared report who then started their own analysis).
+    report_views = (
+        db.query(func.count(PageView.id))
+        .filter(PageView.path.like("/report/%"))
+        .scalar() or 0
+    )
+    report_unique_viewers = (
+        db.query(func.count(func.distinct(PageView.ip_hash)))
+        .filter(PageView.path.like("/report/%"))
+        .scalar() or 0
+    )
+    referred_analyses = (
+        db.query(func.count(Analysis.id))
+        .join(Workflow, Analysis.workflow_id == Workflow.id)
+        .filter(Workflow.referred_by_code != None)
+        .scalar() or 0
+    )
+    # Top source reports by number of analyses they referred.
+    referral_rows = (
+        db.query(Workflow.referred_by_code, func.count(Workflow.id))
+        .filter(Workflow.referred_by_code != None)
+        .group_by(Workflow.referred_by_code)
+        .order_by(func.count(Workflow.id).desc())
+        .limit(10)
+        .all()
+    )
+    top_referrers = [{"code": r[0], "referred": r[1]} for r in referral_rows]
+    # k-factor proxy: referred analyses per unique report viewer.
+    k_factor = round(referred_analyses / report_unique_viewers, 3) if report_unique_viewers else 0.0
+
+    referral = {
+        "report_views": report_views,
+        "report_unique_viewers": report_unique_viewers,
+        "referred_analyses": referred_analyses,
+        "viewer_to_creator_rate": k_factor,   # referred analyses / unique report viewers
+        "top_referrers": top_referrers,
+    }
+
     return {
         "totals": {
             "users": total_users,
@@ -275,6 +316,7 @@ def get_admin_stats(db: Session = Depends(get_db), _=Depends(_require_admin)):
         "by_context": by_context,
         "by_input_mode": by_input_mode,
         "traffic": traffic,
+        "referral": referral,
         "users": users_list,
         "workflows": workflows_list,
     }
