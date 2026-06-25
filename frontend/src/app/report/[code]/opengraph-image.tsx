@@ -44,8 +44,11 @@ export default async function Image({ params }: { params: Promise<{ code: string
   const contextLabel = context === 'company' ? 'Company Analysis' : context === 'team' ? 'Team Analysis' : 'Personal Analysis'
   const contextColor = context === 'company' ? '#fb923c' : context === 'team' ? '#34d399' : '#818cf8'
 
-  // Countdown label based on score
-  const countdownLabel = automationScore >= 75 ? '⚡ Act now — within 12 months' : automationScore >= 50 ? '🟠 12–24 month window' : '🟢 24–48 months runway'
+  // Countdown label based on score. NOTE: no emoji — Satori (next/og's renderer)
+  // cannot render emoji without an embedded emoji font, and an unrendered emoji
+  // throws at runtime → 500 / blank PNG. We use a colored status dot instead.
+  const countdownLabel = automationScore >= 75 ? 'Act now — within 12 months' : automationScore >= 50 ? '12–24 month window' : '24–48 months runway'
+  const countdownDot = automationScore >= 75 ? '#f87171' : automationScore >= 50 ? '#fbbf24' : '#34d399'
 
   return new ImageResponse(
     (
@@ -79,11 +82,13 @@ export default async function Image({ params }: { params: Promise<{ code: string
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <div style={{
+              display: 'flex',
               background: contextColor + '22', color: contextColor,
               border: `1px solid ${contextColor}44`,
               borderRadius: '999px', padding: '6px 16px', fontSize: '13px', fontWeight: 700,
             }}>{contextLabel}</div>
             <div style={{
+              display: 'flex',
               background: '#ffffff10', color: '#86868b',
               border: '1px solid #ffffff15',
               borderRadius: '999px', padding: '6px 16px', fontSize: '13px', fontWeight: 500,
@@ -93,10 +98,11 @@ export default async function Image({ params }: { params: Promise<{ code: string
 
         {/* Middle — workflow name + countdown */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, justifyContent: 'center', paddingTop: '8px' }}>
-          <div style={{ color: '#6e6e73', fontSize: '15px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '2px' }}>
+          <div style={{ display: 'flex', color: '#6e6e73', fontSize: '15px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '2px' }}>
             Automation Risk Report
           </div>
           <div style={{
+            display: 'flex',
             color: 'white', fontSize: '48px', fontWeight: 700,
             lineHeight: 1.1, maxWidth: '820px', fontStyle: 'italic',
             letterSpacing: '-1px',
@@ -104,9 +110,11 @@ export default async function Image({ params }: { params: Promise<{ code: string
             {workflowName.length > 50 ? workflowName.substring(0, 47) + '…' : workflowName}
           </div>
           <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
             color: automationScore >= 75 ? '#fca5a5' : automationScore >= 50 ? '#fde68a' : '#86efac',
             fontSize: '16px', fontWeight: 600, marginTop: '4px',
           }}>
+            <div style={{ display: 'flex', width: '12px', height: '12px', borderRadius: '50%', background: countdownDot }} />
             {countdownLabel}
           </div>
         </div>
@@ -120,8 +128,8 @@ export default async function Image({ params }: { params: Promise<{ code: string
             display: 'flex', flexDirection: 'column', gap: '6px',
             minWidth: '200px',
           }}>
-            <div style={{ color: scoreColor, fontSize: '52px', fontWeight: 800, lineHeight: 1 }}>{automationScore}%</div>
-            <div style={{ color: '#86868b', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>Automation Risk</div>
+            <div style={{ display: 'flex', color: scoreColor, fontSize: '52px', fontWeight: 800, lineHeight: 1 }}>{automationScore}%</div>
+            <div style={{ display: 'flex', color: '#86868b', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>Automation Risk</div>
           </div>
 
           {[
@@ -134,8 +142,8 @@ export default async function Image({ params }: { params: Promise<{ code: string
               borderRadius: '20px', padding: '24px 28px',
               display: 'flex', flexDirection: 'column', gap: '6px', flex: 1,
             }}>
-              <div style={{ color, fontSize: '34px', fontWeight: 700, lineHeight: 1 }}>{value}</div>
-              <div style={{ color: '#86868b', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>{label}</div>
+              <div style={{ display: 'flex', color, fontSize: '34px', fontWeight: 700, lineHeight: 1 }}>{value}</div>
+              <div style={{ display: 'flex', color: '#86868b', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>{label}</div>
             </div>
           ))}
 
@@ -145,8 +153,8 @@ export default async function Image({ params }: { params: Promise<{ code: string
             display: 'flex', flexDirection: 'column', justifyContent: 'center',
             alignItems: 'center', gap: '8px', minWidth: '160px',
           }}>
-            <div style={{ color: 'white', fontSize: '15px', fontWeight: 700, textAlign: 'center', lineHeight: 1.3 }}>Analyse your workflow →</div>
-            <div style={{ color: '#93c5fd', fontSize: '12px', textAlign: 'center' }}>workscanai.vercel.app</div>
+            <div style={{ display: 'flex', color: 'white', fontSize: '15px', fontWeight: 700, textAlign: 'center', lineHeight: 1.3 }}>Analyse your workflow →</div>
+            <div style={{ display: 'flex', color: '#93c5fd', fontSize: '12px', textAlign: 'center' }}>workscanai.vercel.app</div>
           </div>
         </div>
       </div>
