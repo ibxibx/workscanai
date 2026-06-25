@@ -266,12 +266,15 @@ export default function AdminPage() {
               <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
                 <h3 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px] flex items-center gap-[6px]">
                   <MapPin className="h-[14px] w-[14px]" /> Visits by Country
+                  {geo && geo.by_country.length > 0 && (
+                    <span className="text-[10px] normal-case font-normal text-[#a1a1a6]">top {Math.min(7, geo.by_country.length)} of {geo.by_country.length}</span>
+                  )}
                 </h3>
                 {!geo || geo.by_country.length === 0 ? (
                   <p className="text-[13px] text-[#86868b] italic">No country data in this window.</p>
                 ) : (
                   <div className="space-y-[10px] max-h-[360px] overflow-y-auto">
-                    {geo.by_country.map((c) => (
+                    {geo.by_country.slice(0, 7).map((c) => (
                       <div key={c.code} className="flex items-center justify-between gap-[10px]">
                         <span className="flex items-center gap-[8px] min-w-0">
                           <span className="text-[18px] leading-none shrink-0">{flag(c.code)}</span>
@@ -286,6 +289,9 @@ export default function AdminPage() {
                         </div>
                       </div>
                     ))}
+                    {geo.by_country.length > 7 && (
+                      <p className="text-[11px] text-[#a1a1a6] pt-[2px]">+{geo.by_country.length - 7} more countries</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -294,12 +300,15 @@ export default function AdminPage() {
               <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
                 <h3 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px] flex items-center gap-[6px]">
                   <MapPin className="h-[14px] w-[14px]" /> Visits by City
+                  {geo && geo.by_city.length > 0 && (
+                    <span className="text-[10px] normal-case font-normal text-[#a1a1a6]">top {Math.min(7, geo.by_city.length)} of {geo.by_city.length}</span>
+                  )}
                 </h3>
                 {!geo || geo.by_city.length === 0 ? (
                   <p className="text-[13px] text-[#86868b] italic">No city data in this window.</p>
                 ) : (
                   <div className="space-y-[10px] max-h-[360px] overflow-y-auto">
-                    {geo.by_city.map((c, i) => {
+                    {geo.by_city.slice(0, 7).map((c, i) => {
                       const sublabel = [c.region, c.country].filter(Boolean).join(', ')
                       return (
                         <div key={`${c.city}-${c.region}-${c.country}-${i}`} className="flex items-center justify-between gap-[10px]">
@@ -320,6 +329,9 @@ export default function AdminPage() {
                         </div>
                       )
                     })}
+                    {geo.by_city.length > 7 && (
+                      <p className="text-[11px] text-[#a1a1a6] pt-[2px]">+{geo.by_city.length - 7} more cities</p>
+                    )}
                   </div>
                 )}
               </div>
