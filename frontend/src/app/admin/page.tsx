@@ -24,9 +24,9 @@ interface AdminStats {
     views_24h: number
     views_7d: number
     countries_count: number
-    by_country: Array<{ code: string; name: string; views: number; visitors: number }>
+    by_country: Array<{ code: string; name: string; views: number; visitors: number; pct: number }>
     cities_count: number
-    by_city: Array<{ city: string; region: string | null; country: string | null; views: number; visitors: number }>
+    by_city: Array<{ city: string; region: string | null; country: string | null; views: number; visitors: number; pct: number }>
     top_paths: Array<{ path: string; views: number }>
   }
   referral?: {
@@ -48,6 +48,15 @@ interface AdminStats {
   }>
 }
 
+interface GeoData {
+  months: number
+  total_views: number
+  countries_count: number
+  cities_count: number
+  by_country: Array<{ code: string; name: string; views: number; visitors: number; pct: number }>
+  by_city: Array<{ city: string; region: string | null; country: string | null; views: number; visitors: number; pct: number }>
+}
+
 export default function AdminPage() {
   const [secret, setSecret] = useState('')
   const [input, setInput] = useState('')
@@ -57,6 +66,25 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [expandedWf, setExpandedWf] = useState<number | null>(null)
   const [filter, setFilter] = useState('')
+  // Geo section time filter (months: 0=all, 1, 3, 6). Fetched separately from
+  // /api/admin/geo so toggling doesn't re-pull the whole heavy stats payload.
+  const [geoMonths, setGeoMonths] = useState(0)
+  const [geo, setGeo] = useState<GeoData | null>(null)
+  const [geoLoading, setGeoLoading] = useState(false)
+
+  const fetchGeo = async (s: string, months: number) => {
+    setGeoLoading(true)
+    try {
+      const r = await fetch(`${BACKEND}/api/admin/geo?months=${months}`, { headers: { 'x-admin-secret': s } })
+      if (r.ok) setGeo(await r.json())
+    } catch { /* keep previous geo on error */ }
+    finally { setGeoLoading(false) }
+  }
+
+  const onGeoFilter = (months: number) => {
+    setGeoMonths(months)
+    if (secret) fetchGeo(secret, months)
+  }
 
   const fetchStats = async (s: string) => {
     setLoading(true); setError('')
@@ -66,6 +94,18 @@ export default function AdminPage() {
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       const d = await r.json()
       setStats(d); setSecret(s)
+      // Seed the geo section from the all-time data already in the stats payload.
+      if (d.traffic) {
+        setGeo({
+          months: 0,
+          total_views: d.traffic.total_views,
+          countries_count: d.traffic.countries_count,
+          cities_count: d.traffic.cities_count,
+          by_country: d.traffic.by_country,
+          by_city: d.traffic.by_city,
+        })
+        setGeoMonths(0)
+      }
     } catch (e: any) { setError(e.message || 'Failed to load') }
     finally { setLoading(false) }
   }
@@ -192,49 +232,74 @@ export default function AdminPage() {
               ))}
             </div>
 
+            {/* Geo time filter — applies to Countries + Cities only */}
+            <div className="flex items-center gap-[8px] mb-[12px] flex-wrap">
+              <span className="text-[11px] text-[#86868b] uppercase tracking-wide font-semibold">Geo window:</span>
+              {[
+                { label: 'All time', m: 0 },
+                { label: '6 months', m: 6 },
+                { label: '3 months', m: 3 },
+                { label: '1 month', m: 1 },
+              ].map(({ label, m }) => (
+                <button
+                  key={m}
+                  onClick={() => onGeoFilter(m)}
+                  className={`text-[12px] font-medium px-[12px] py-[5px] rounded-full border transition-all ${
+                    geoMonths === m
+                      ? 'bg-[#0071e3] text-white border-[#0071e3]'
+                      : 'bg-white text-[#6e6e73] border-[#d2d2d7] hover:border-[#0071e3]/50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              {geoLoading && <RefreshCw className="h-[13px] w-[13px] text-[#86868b] animate-spin" />}
+              {geo && (
+                <span className="text-[11px] text-[#86868b] ml-auto">
+                  {geo.total_views.toLocaleString()} views · {geo.countries_count} countries · {geo.cities_count} cities
+                </span>
+              )}
+            </div>
+
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[12px] sm:gap-[16px]">
               {/* Visits by Country */}
               <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
                 <h3 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px] flex items-center gap-[6px]">
                   <MapPin className="h-[14px] w-[14px]" /> Visits by Country
                 </h3>
-                {stats.traffic.by_country.length === 0 ? (
-                  <p className="text-[13px] text-[#86868b] italic">No country data yet — visits will appear here as traffic comes in.</p>
+                {!geo || geo.by_country.length === 0 ? (
+                  <p className="text-[13px] text-[#86868b] italic">No country data in this window.</p>
                 ) : (
-                  <div className="space-y-[10px] max-h-[320px] overflow-y-auto">
-                    {stats.traffic.by_country.map((c) => {
-                      const max = stats.traffic!.by_country[0].views || 1
-                      return (
-                        <div key={c.code} className="flex items-center justify-between gap-[10px]">
-                          <span className="flex items-center gap-[8px] min-w-0">
-                            <span className="text-[18px] leading-none shrink-0">{flag(c.code)}</span>
-                            <span className="text-[13px] text-[#1d1d1f] truncate">{c.name}</span>
-                          </span>
-                          <div className="flex items-center gap-[8px] shrink-0">
-                            <div className="w-[80px] sm:w-[120px] h-[6px] bg-[#f0f0f5] rounded-full overflow-hidden">
-                              <div className="h-full bg-[#0071e3] rounded-full" style={{ width: `${(c.views / max) * 100}%` }} />
-                            </div>
-                            <span className="text-[13px] font-semibold w-[36px] text-right">{c.views}</span>
-                            <span className="text-[11px] text-[#86868b] w-[44px] text-right">{c.visitors} uniq</span>
+                  <div className="space-y-[10px] max-h-[360px] overflow-y-auto">
+                    {geo.by_country.map((c) => (
+                      <div key={c.code} className="flex items-center justify-between gap-[10px]">
+                        <span className="flex items-center gap-[8px] min-w-0">
+                          <span className="text-[18px] leading-none shrink-0">{flag(c.code)}</span>
+                          <span className="text-[13px] text-[#1d1d1f] truncate">{c.name}</span>
+                        </span>
+                        <div className="flex items-center gap-[8px] shrink-0">
+                          <div className="w-[64px] sm:w-[100px] h-[6px] bg-[#f0f0f5] rounded-full overflow-hidden">
+                            <div className="h-full bg-[#0071e3] rounded-full" style={{ width: `${c.pct}%` }} />
                           </div>
+                          <span className="text-[13px] font-bold text-[#0071e3] w-[44px] text-right">{c.pct}%</span>
+                          <span className="text-[11px] text-[#86868b] w-[58px] text-right">{c.views}v · {c.visitors}u</span>
                         </div>
-                      )
-                    })}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
 
-              {/* Top Cities — same IP-resolved geo Vercel shows */}
+              {/* Visits by City — same IP-resolved geo Vercel shows */}
               <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
                 <h3 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px] flex items-center gap-[6px]">
-                  <MapPin className="h-[14px] w-[14px]" /> Top Cities
+                  <MapPin className="h-[14px] w-[14px]" /> Visits by City
                 </h3>
-                {stats.traffic.by_city.length === 0 ? (
-                  <p className="text-[13px] text-[#86868b] italic">No city data yet — cities will appear here as new traffic comes in.</p>
+                {!geo || geo.by_city.length === 0 ? (
+                  <p className="text-[13px] text-[#86868b] italic">No city data in this window.</p>
                 ) : (
-                  <div className="space-y-[10px] max-h-[320px] overflow-y-auto">
-                    {stats.traffic.by_city.map((c, i) => {
-                      const max = stats.traffic!.by_city[0].views || 1
+                  <div className="space-y-[10px] max-h-[360px] overflow-y-auto">
+                    {geo.by_city.map((c, i) => {
                       const sublabel = [c.region, c.country].filter(Boolean).join(', ')
                       return (
                         <div key={`${c.city}-${c.region}-${c.country}-${i}`} className="flex items-center justify-between gap-[10px]">
@@ -246,11 +311,11 @@ export default function AdminPage() {
                             </span>
                           </span>
                           <div className="flex items-center gap-[8px] shrink-0">
-                            <div className="w-[80px] sm:w-[120px] h-[6px] bg-[#f0f0f5] rounded-full overflow-hidden">
-                              <div className="h-full bg-teal-500 rounded-full" style={{ width: `${(c.views / max) * 100}%` }} />
+                            <div className="w-[64px] sm:w-[100px] h-[6px] bg-[#f0f0f5] rounded-full overflow-hidden">
+                              <div className="h-full bg-teal-500 rounded-full" style={{ width: `${c.pct}%` }} />
                             </div>
-                            <span className="text-[13px] font-semibold w-[36px] text-right">{c.views}</span>
-                            <span className="text-[11px] text-[#86868b] w-[44px] text-right">{c.visitors} uniq</span>
+                            <span className="text-[13px] font-bold text-teal-600 w-[44px] text-right">{c.pct}%</span>
+                            <span className="text-[11px] text-[#86868b] w-[58px] text-right">{c.views}v · {c.visitors}u</span>
                           </div>
                         </div>
                       )
@@ -259,13 +324,13 @@ export default function AdminPage() {
                 )}
               </div>
 
-              {/* Top Pages */}
+              {/* Top Pages (all-time — not affected by geo filter) */}
               <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
-                <h3 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px]">Top Pages</h3>
+                <h3 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px]">Top Pages <span className="text-[10px] normal-case font-normal">(all time)</span></h3>
                 {stats.traffic.top_paths.length === 0 ? (
                   <p className="text-[13px] text-[#86868b] italic">No page data yet.</p>
                 ) : (
-                  <div className="space-y-[10px] max-h-[320px] overflow-y-auto">
+                  <div className="space-y-[10px] max-h-[360px] overflow-y-auto">
                     {stats.traffic.top_paths.map((p) => {
                       const max = stats.traffic!.top_paths[0].views || 1
                       return (

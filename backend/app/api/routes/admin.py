@@ -213,7 +213,8 @@ def get_admin_stats(db: Session = Depends(get_db), _=Depends(_require_admin)):
         .all()
     )
     by_country = [
-        {"code": r[0], "name": r[1] or r[0], "views": r[2], "visitors": r[3]}
+        {"code": r[0], "name": r[1] or r[0], "views": r[2], "visitors": r[3],
+         "pct": round(r[2] / total_views * 100, 1) if total_views else 0.0}
         for r in country_rows
     ]
 
@@ -230,11 +231,11 @@ def get_admin_stats(db: Session = Depends(get_db), _=Depends(_require_admin)):
         .filter(PageView.city != None)
         .group_by(PageView.city, PageView.region, PageView.country)
         .order_by(func.count(PageView.id).desc())
-        .limit(15)
         .all()
     )
     by_city = [
-        {"city": r[0], "region": r[1], "country": r[2], "views": r[3], "visitors": r[4]}
+        {"city": r[0], "region": r[1], "country": r[2], "views": r[3], "visitors": r[4],
+         "pct": round(r[3] / total_views * 100, 1) if total_views else 0.0}
         for r in city_rows
     ]
 
@@ -319,4 +320,86 @@ def get_admin_stats(db: Session = Depends(get_db), _=Depends(_require_admin)):
         "referral": referral,
         "users": users_list,
         "workflows": workflows_list,
+    }
+
+
+@router.get("/admin/geo")
+def get_admin_geo(
+    months: int = 0,
+    db: Session = Depends(get_db),
+    _=Depends(_require_admin),
+):
+    """Geo breakdown (countries + cities) with percentages, filtered by a
+    rolling time window. months=0 (default) = all time; 1/3/6 = last N months.
+    Returns ALL entries (no top-N cap) so the admin can see the full long tail.
+    Percentages are share of total filtered page views."""
+    from app.models.workflow import PageView
+
+    # Build the time filter
+    base = db.query(PageView)
+    if months and months > 0:
+        since = datetime.now(timezone.utc) - timedelta(days=30 * months)
+        base_filter = PageView.created_at >= since
+    else:
+        base_filter = None
+
+    def _filtered(q):
+        return q.filter(base_filter) if base_filter is not None else q
+
+    # Total views in window — denominator for percentages
+    total_views = _filtered(db.query(func.count(PageView.id))).scalar() or 0
+
+    # Countries
+    country_rows = _filtered(
+        db.query(
+            PageView.country,
+            PageView.country_name,
+            func.count(PageView.id),
+            func.count(func.distinct(PageView.ip_hash)),
+        )
+        .filter(PageView.country != None)
+    ).group_by(PageView.country, PageView.country_name) \
+     .order_by(func.count(PageView.id).desc()).all()
+    by_country = [
+        {
+            "code": r[0],
+            "name": r[1] or r[0],
+            "views": r[2],
+            "visitors": r[3],
+            "pct": round(r[2] / total_views * 100, 1) if total_views else 0.0,
+        }
+        for r in country_rows
+    ]
+
+    # Cities (city+region+country so same-named cities stay distinct)
+    city_rows = _filtered(
+        db.query(
+            PageView.city,
+            PageView.region,
+            PageView.country,
+            func.count(PageView.id),
+            func.count(func.distinct(PageView.ip_hash)),
+        )
+        .filter(PageView.city != None)
+    ).group_by(PageView.city, PageView.region, PageView.country) \
+     .order_by(func.count(PageView.id).desc()).all()
+    by_city = [
+        {
+            "city": r[0],
+            "region": r[1],
+            "country": r[2],
+            "views": r[3],
+            "visitors": r[4],
+            "pct": round(r[3] / total_views * 100, 1) if total_views else 0.0,
+        }
+        for r in city_rows
+    ]
+
+    return {
+        "months": months,
+        "total_views": total_views,
+        "countries_count": len(by_country),
+        "cities_count": len(by_city),
+        "by_country": by_country,
+        "by_city": by_city,
     }
