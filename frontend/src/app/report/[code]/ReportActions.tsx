@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Download, Share2, Check, FileText, FileJson, Loader2 } from 'lucide-react'
+import { trackReportShared, trackReportExported, trackWorkflowDownloaded, trackResultViewed } from '@/lib/analytics'
 
 interface ReportActionsProps {
   workflowId: number
@@ -21,6 +22,7 @@ export default function ReportActions({
   workflowId,
   workflowName,
   shareUrl,
+  shareCode,
   isJobScan,
   n8nWorkflowJson,
   topTaskResults,
@@ -28,7 +30,14 @@ export default function ReportActions({
   const [copied, setCopied] = useState(false)
   const [downloading, setDownloading] = useState<string | null>(null)
 
+  // result_viewed — fires once when a finished public report renders.
+  useEffect(() => {
+    trackResultViewed({ share_code: shareCode, workflow_id: workflowId, is_job_scan: isJobScan, surface: 'public_report' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleShare = async () => {
+    trackReportShared({ share_code: shareCode, workflow_id: workflowId })
     try {
       await navigator.clipboard.writeText(shareUrl)
       setCopied(true)
@@ -39,6 +48,7 @@ export default function ReportActions({
   }
 
   const downloadReport = async (fmt: 'docx' | 'pdf') => {
+    trackReportExported({ format: fmt, share_code: shareCode, workflow_id: workflowId })
     setDownloading(fmt)
     try {
       const response = await fetch(`/api/reports/${workflowId}/${fmt}`)
@@ -58,6 +68,7 @@ export default function ReportActions({
   }
 
   const downloadN8n = async () => {
+    trackWorkflowDownloaded({ share_code: shareCode, workflow_id: workflowId })
     setDownloading('n8n')
     // Small delay so the loading state renders before the sync blob work
     await new Promise(r => setTimeout(r, 80))
