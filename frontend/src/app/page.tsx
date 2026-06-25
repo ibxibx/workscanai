@@ -5,6 +5,11 @@ import Link from 'next/link'
 import { ArrowRight, Brain, Sparkles } from 'lucide-react'
 import WorkflowForm from '@/components/WorkflowForm'
 
+// Canonical pre-generated sample report (real AI analysis of a marketing-team
+// workflow). Lets visitors see a credible result instantly — value before input,
+// zero wait, no quota slot. Swap the code here to point at a different sample.
+const SAMPLE_REPORT_CODE = 'e07429'
+
 export default function LandingPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [spotlightPos, setSpotlightPos] = useState({ x: 50, y: 50 })
@@ -109,7 +114,9 @@ export default function LandingPage() {
                   <ArrowRight className="h-[16px] w-[16px] group-hover:translate-x-[2px] transition-transform" />
                 </a>
                 <a
-                  href="#analyze"
+                  href={`/report/${SAMPLE_REPORT_CODE}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-white/80 hover:text-white text-[17px] leading-[1.17] font-normal transition-colors underline underline-offset-4 decoration-white/40"
                 >
                   See how it works
@@ -208,6 +215,19 @@ export default function LandingPage() {
             </div>
             <p className="text-[14px] sm:text-[19px] text-[#6e6e73] px-4">
               Type your tasks, upload a workflow document, use voice, or enter a job title.
+            </p>
+            {/* Value before input — let visitors see a real report instantly */}
+            <p className="text-[13px] sm:text-[15px] text-[#86868b] mt-[14px] px-4">
+              Not sure where to start?{' '}
+              <a
+                href={`/report/${SAMPLE_REPORT_CODE}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#0071e3] hover:text-[#0077ed] font-medium underline underline-offset-4 decoration-[#0071e3]/40 transition-colors"
+              >
+                See a sample report
+              </a>{' '}
+              — a real analysis of a marketing team&apos;s workflow.
             </p>
           </div>
 
