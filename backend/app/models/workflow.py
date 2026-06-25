@@ -147,6 +147,8 @@ class PageView(Base):
     path = Column(String(255), nullable=True)            # e.g. '/', '/dashboard', '/report/4m5gd9'
     country = Column(String(2), nullable=True, index=True)   # ISO-3166 alpha-2, e.g. 'DE'
     country_name = Column(String(100), nullable=True)    # human label, e.g. 'Germany'
+    region = Column(String(100), nullable=True)          # state/region, e.g. 'Berlin', 'California'
+    city = Column(String(100), nullable=True, index=True)    # city, e.g. 'Berlin' — same source Vercel shows
     referrer = Column(String(500), nullable=True)        # where the visit came from
     ip_hash = Column(String(64), nullable=True, index=True)  # salted hash for unique counts
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

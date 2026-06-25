@@ -25,6 +25,8 @@ interface AdminStats {
     views_7d: number
     countries_count: number
     by_country: Array<{ code: string; name: string; views: number; visitors: number }>
+    cities_count: number
+    by_city: Array<{ city: string; region: string | null; country: string | null; views: number; visitors: number }>
     top_paths: Array<{ path: string; views: number }>
   }
   users: Array<{ id: number; email: string; created_at: string; workflows: number; analyses: number }>
@@ -183,7 +185,7 @@ export default function AdminPage() {
               ))}
             </div>
 
-            <div className="grid md:grid-cols-2 gap-[12px] sm:gap-[16px]">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[12px] sm:gap-[16px]">
               {/* Visits by Country */}
               <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
                 <h3 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px] flex items-center gap-[6px]">
@@ -204,6 +206,41 @@ export default function AdminPage() {
                           <div className="flex items-center gap-[8px] shrink-0">
                             <div className="w-[80px] sm:w-[120px] h-[6px] bg-[#f0f0f5] rounded-full overflow-hidden">
                               <div className="h-full bg-[#0071e3] rounded-full" style={{ width: `${(c.views / max) * 100}%` }} />
+                            </div>
+                            <span className="text-[13px] font-semibold w-[36px] text-right">{c.views}</span>
+                            <span className="text-[11px] text-[#86868b] w-[44px] text-right">{c.visitors} uniq</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Top Cities — same IP-resolved geo Vercel shows */}
+              <div className="bg-white rounded-[18px] p-[16px] sm:p-[24px] border border-[#e8e8ed]">
+                <h3 className="text-[14px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px] flex items-center gap-[6px]">
+                  <MapPin className="h-[14px] w-[14px]" /> Top Cities
+                </h3>
+                {stats.traffic.by_city.length === 0 ? (
+                  <p className="text-[13px] text-[#86868b] italic">No city data yet — cities will appear here as new traffic comes in.</p>
+                ) : (
+                  <div className="space-y-[10px] max-h-[320px] overflow-y-auto">
+                    {stats.traffic.by_city.map((c, i) => {
+                      const max = stats.traffic!.by_city[0].views || 1
+                      const sublabel = [c.region, c.country].filter(Boolean).join(', ')
+                      return (
+                        <div key={`${c.city}-${c.region}-${c.country}-${i}`} className="flex items-center justify-between gap-[10px]">
+                          <span className="flex items-center gap-[8px] min-w-0">
+                            <span className="text-[18px] leading-none shrink-0">{flag(c.country || '')}</span>
+                            <span className="min-w-0">
+                              <span className="text-[13px] text-[#1d1d1f] truncate block">{c.city}</span>
+                              {sublabel && <span className="text-[11px] text-[#86868b] truncate block">{sublabel}</span>}
+                            </span>
+                          </span>
+                          <div className="flex items-center gap-[8px] shrink-0">
+                            <div className="w-[80px] sm:w-[120px] h-[6px] bg-[#f0f0f5] rounded-full overflow-hidden">
+                              <div className="h-full bg-teal-500 rounded-full" style={{ width: `${(c.views / max) * 100}%` }} />
                             </div>
                             <span className="text-[13px] font-semibold w-[36px] text-right">{c.views}</span>
                             <span className="text-[11px] text-[#86868b] w-[44px] text-right">{c.visitors} uniq</span>
