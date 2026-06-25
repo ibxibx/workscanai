@@ -7,7 +7,8 @@ export const contentType = 'image/png'
 
 const API_BASE = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://workscanai.onrender.com'
 
-export default async function Image({ params }: { params: { code: string } }) {
+export default async function Image({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params
   let workflowName = 'Workflow Analysis'
   let automationScore = 0
   let annualSavings = 0
@@ -18,8 +19,8 @@ export default async function Image({ params }: { params: { code: string } }) {
 
   try {
     const [analysisRes, workflowRes] = await Promise.all([
-      fetch(`${API_BASE}/api/share/${params.code}`),
-      fetch(`${API_BASE}/api/share/${params.code}/workflow`),
+      fetch(`${API_BASE}/api/share/${code}`),
+      fetch(`${API_BASE}/api/share/${code}/workflow`),
     ])
     if (analysisRes.ok) {
       const data = await analysisRes.json()
@@ -84,7 +85,7 @@ export default async function Image({ params }: { params: { code: string } }) {
               background: '#ffffff10', color: '#86868b',
               border: '1px solid #ffffff15',
               borderRadius: '999px', padding: '6px 16px', fontSize: '13px', fontWeight: 500,
-            }}>#{params.code}</div>
+            }}>#{code}</div>
           </div>
         </div>
 
