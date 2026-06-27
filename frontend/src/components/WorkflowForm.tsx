@@ -20,6 +20,10 @@ interface WorkflowFormProps {
   onAnalysisComplete: (workflowId: number, shareCode?: string) => void
   onError: (error: string) => void
   referredByCode?: string | null
+  // Deep-link entry: /scan and niche campaign URLs can land directly on the
+  // Job Scanner with a role pre-filled, skipping tab selection + typing.
+  initialMode?: 'manual' | 'voice' | 'document' | 'jobscan'
+  initialJobTitle?: string
 }
 
 const STEPS = [
@@ -141,7 +145,7 @@ const CONTEXT_OPTIONS = [
 ]
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function WorkflowForm({ onAnalysisComplete, onError, referredByCode }: WorkflowFormProps) {
+export default function WorkflowForm({ onAnalysisComplete, onError, referredByCode, initialMode, initialJobTitle }: WorkflowFormProps) {
   // Guest session: stable anonymous ID stored in localStorage for workflow ownership
   const getGuestId = (): string => {
     let id = localStorage.getItem('wsai_guest_id')
@@ -158,7 +162,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
     name: '', description: '', frequency: 'weekly',
     time_per_task: 30, category: 'general', complexity: 'medium'
   }])
-  const [inputMode, setInputMode] = useState<'manual' | 'voice' | 'document' | 'jobscan'>('manual')
+  const [inputMode, setInputMode] = useState<'manual' | 'voice' | 'document' | 'jobscan'>(initialMode ?? 'manual')
   const [analysisContext, setAnalysisContext] = useState<AnalysisContext | null>(null)
   const [contextError, setContextError] = useState(false)
   const [teamSize, setTeamSize] = useState<string>('')
@@ -173,7 +177,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
   const [linkedinUrl, setLinkedinUrl] = useState('')
   const [linkedinPastedText, setLinkedinPastedText] = useState('')
   // Job Scanner state
-  const [jobTitle, setJobTitle] = useState('')
+  const [jobTitle, setJobTitle] = useState(initialJobTitle ?? '')
   const [jobScanStep, setJobScanStep] = useState<'idle' | 'researching' | 'analyzing' | 'done'>('idle')
   const [jobScanError, setJobScanError] = useState('')
   const [jobScanTasks, setJobScanTasks] = useState<Array<{name:string;description?:string;frequency?:string;time_per_task?:number;category?:string;complexity?:string}>>([])

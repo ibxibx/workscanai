@@ -67,6 +67,13 @@ export default function LandingPage() {
             </Link>
             <div className="flex gap-[12px] md:gap-[32px] text-[11px] md:text-[12px] shrink-0">
               <Link
+                href="/scan"
+                className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
+              >
+                <span className="hidden md:inline">Is my job automatable?</span>
+                <span className="md:hidden">Scan job</span>
+              </Link>
+              <Link
                 href="/dashboard"
                 className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
               >
