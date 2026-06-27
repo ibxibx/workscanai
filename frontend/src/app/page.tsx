@@ -4,6 +4,8 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Brain, Sparkles } from 'lucide-react'
 import WorkflowForm from '@/components/WorkflowForm'
+import posthog from 'posthog-js'
+import { getFeatureFlag, registerExperimentVariant, isPostHogReady } from '@/lib/analytics'
 
 // Canonical pre-generated sample report (real AI analysis of a marketing-team
 // workflow). Lets visitors see a credible result instantly — value before input,
@@ -14,6 +16,10 @@ export default function LandingPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [spotlightPos, setSpotlightPos] = useState({ x: 50, y: 50 })
   const [spotlightVisible, setSpotlightVisible] = useState(false)
+  // onboarding-style A/B: 'control' (blank form) vs 'sample_first' (lead with a
+  // real sample report). Defaults to control until the flag resolves so SSR +
+  // no-PostHog visitors get the current experience.
+  const [onboardingVariant, setOnboardingVariant] = useState<'control' | 'sample_first'>('control')
   const [referredBy, setReferredBy] = useState<string | null>(null)
   const analyzeRef = useRef<HTMLElement>(null)
 
@@ -38,6 +44,23 @@ export default function LandingPage() {
     import('@/lib/wake-ping').then(({ wakeBackend }) => {
       wakeBackend().catch(() => {})
     })
+  }, [])
+
+  // Resolve the onboarding-style A/B variant. PostHog loads flags async, so we
+  // subscribe via onFeatureFlags and also try an immediate read. Once resolved,
+  // register the arm as a super property so the whole funnel splits by variant.
+  useEffect(() => {
+    if (!isPostHogReady()) return
+    const apply = () => {
+      const v = getFeatureFlag('onboarding-style')
+      const variant = v === 'sample_first' ? 'sample_first' : 'control'
+      setOnboardingVariant(variant)
+      registerExperimentVariant('onboarding-style', variant)
+    }
+    apply()
+    let unsub: (() => void) | undefined
+    try { unsub = posthog.onFeatureFlags(() => apply()) } catch { /* ignore */ }
+    return () => { try { unsub?.() } catch { /* ignore */ } }
   }, [])
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
@@ -229,6 +252,31 @@ export default function LandingPage() {
         />
 
         <div className="relative z-10 max-w-[980px] mx-auto px-6">
+          {/* sample_first arm: lead with a real report so visitors see value
+              before any input. control arm keeps the subtle inline link below. */}
+          {onboardingVariant === 'sample_first' && (
+            <a
+              href={`/report/${SAMPLE_REPORT_CODE}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => { try { posthog.capture('sample_report_clicked', { placement: 'sample_first_card' }) } catch {} }}
+              className="group block max-w-[680px] mx-auto mb-[40px] bg-white border border-[#e8e8ed] rounded-[20px] p-[24px] sm:p-[32px] shadow-sm hover:shadow-md hover:border-[#0071e3]/40 transition-all"
+            >
+              <div className="flex items-center gap-[8px] mb-[12px]">
+                <Sparkles className="h-[16px] w-[16px] text-[#0071e3]" />
+                <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#0071e3]">See a real result first</span>
+              </div>
+              <h3 className="text-[20px] sm:text-[26px] font-semibold italic tracking-tight text-[#1d1d1f] mb-[8px]">
+                A marketing team&apos;s workflow, fully analyzed
+              </h3>
+              <p className="text-[14px] sm:text-[16px] text-[#6e6e73] leading-[1.5] mb-[16px]">
+                61% automation potential · €19,159/yr saved · 383 hours reclaimed across 5 tasks — with importable n8n workflows. No signup, opens instantly.
+              </p>
+              <span className="inline-flex items-center gap-[6px] text-[14px] font-medium text-[#0071e3] group-hover:gap-[10px] transition-all">
+                View the sample report <ArrowRight className="h-[15px] w-[15px]" />
+              </span>
+            </a>
+          )}
           <div className="text-center mb-[48px]">
             <div className="relative inline-block">
               <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/15 to-transparent blur-[100px]"></div>
@@ -240,18 +288,22 @@ export default function LandingPage() {
               Type your tasks, upload a workflow document, use voice, or enter a job title.
             </p>
             {/* Value before input — let visitors see a real report instantly */}
+            {/* control arm only — sample_first shows the prominent card above */}
+            {onboardingVariant === 'control' && (
             <p className="text-[13px] sm:text-[15px] text-[#86868b] mt-[14px] px-4">
               Not sure where to start?{' '}
               <a
                 href={`/report/${SAMPLE_REPORT_CODE}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => { try { posthog.capture('sample_report_clicked', { placement: 'control_inline_link' }) } catch {} }}
                 className="text-[#0071e3] hover:text-[#0077ed] font-medium underline underline-offset-4 decoration-[#0071e3]/40 transition-colors"
               >
                 See a sample report
               </a>{' '}
               — a real analysis of a marketing team&apos;s workflow.
             </p>
+            )}
           </div>
 
           {/* Error banner */}

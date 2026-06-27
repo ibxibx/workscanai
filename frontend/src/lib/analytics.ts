@@ -25,6 +25,28 @@ function capture(event: string, props?: Record<string, unknown>) {
   try { posthog.capture(event, props) } catch { /* never throw from analytics */ }
 }
 
+/**
+ * Read a multivariate/boolean feature flag value. Returns undefined if PostHog
+ * isn't ready (no key / not loaded) so callers can fall back to a default.
+ * Used for the onboarding-style A/B test (control vs sample_first).
+ */
+export function getFeatureFlag(key: string): string | boolean | undefined {
+  if (!isPostHogReady()) return undefined
+  try { return posthog.getFeatureFlag(key) } catch { return undefined }
+}
+
+/**
+ * Register the resolved A/B variant as a super property so EVERY subsequent
+ * event carries it — lets the funnel be broken down by experiment arm. Also
+ * fires PostHog's $feature_flag_called so the flag shows usage. No-ops safely.
+ */
+export function registerExperimentVariant(flagKey: string, variant: string) {
+  if (!isPostHogReady()) return
+  try {
+    posthog.register({ [`exp_${flagKey.replace(/-/g, '_')}`]: variant })
+  } catch { /* never throw from analytics */ }
+}
+
 // 1) First meaningful interaction with the analyze form
 export const trackInputStarted = (props?: Record<string, unknown>) =>
   capture('input_started', props)
