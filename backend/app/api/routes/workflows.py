@@ -18,6 +18,7 @@ from app.schemas.workflow import (
     AnalyzeRequest, AnalysisResponse, AnalysisResultResponse
 )
 from app.services.ai_analyzer import AIAnalyzer
+from app.core.posthog_client import capture_event
 
 router = APIRouter()
 DAILY_ANALYSIS_LIMIT = 5
@@ -97,7 +98,22 @@ def create_workflow(
     
     db.commit()
     db.refresh(workflow)
-    
+
+    # Server-side analytics — never allowed to break workflow creation.
+    try:
+        distinct_id = workflow.user_email or f"anon_{workflow.id}"
+        capture_event(distinct_id, "workflow_created", {
+            "workflow_id": workflow.id,
+            "task_count": len(workflow.tasks),
+            "input_mode": workflow.input_mode,
+            "analysis_context": workflow.analysis_context,
+            "industry": workflow.industry,
+            "team_size": workflow.team_size,
+            "referred_by_code": workflow.referred_by_code,
+        })
+    except Exception as _exc:
+        print(f"[posthog] workflow_created capture skipped: {_exc}")
+
     return workflow
 
 
@@ -272,6 +288,23 @@ def _perform_analysis_sync(workflow_id, hourly_rate, db):
     _ = analysis.results
     for r in analysis.results:
         _ = r.task
+
+    # Server-side analytics — must NEVER be able to break the analysis flow.
+    # Guard attribute access (workflow can be None on refresh edge cases) and
+    # swallow everything; capture_event itself also no-ops without a configured key.
+    try:
+        _wf = analysis.workflow
+        distinct_id = (_wf.user_email if _wf else None) or f"anon_{analysis.workflow_id}"
+        capture_event(distinct_id, "analysis_completed", {
+            "workflow_id": analysis.workflow_id,
+            "automation_score": analysis.automation_score,
+            "hours_saved": analysis.hours_saved,
+            "annual_savings": analysis.annual_savings,
+            "task_count": len(analysis.results),
+            "industry": _wf.industry if _wf else None,
+        })
+    except Exception as _exc:
+        print(f"[posthog] analysis_completed capture skipped: {_exc}")
 
     yield ('done', {'analysis': analysis})
 
