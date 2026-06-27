@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     # Owner IP — unlimited scans (set via .env / Render env var, never hardcoded)
     OWNER_IP: str = ""
 
+    # PostHog server-side analytics
+    POSTHOG_API_KEY: str = ""
+    POSTHOG_HOST: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = True
