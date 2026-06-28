@@ -63,6 +63,10 @@ export const trackResultViewed = (props?: Record<string, unknown>) =>
 export const trackReportShared = (props?: Record<string, unknown>) =>
   capture('report_shared', props)
 
+// 4b) One-click LinkedIn share (caption copied + composer opened)
+export const trackReportSharedLinkedin = (props?: Record<string, unknown>) =>
+  capture('report_shared_linkedin', props)
+
 // 5) Report exported (PDF / DOCX)
 export const trackReportExported = (props?: Record<string, unknown>) =>
   capture('report_exported', props)

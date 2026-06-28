@@ -252,6 +252,9 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
           shareCode={code}
           isJobScan={data.workflow.input_mode === 'job_scan'}
           n8nWorkflowJson={data.workflow.n8n_workflow_json}
+          automationScore={Math.round(data.automation_score)}
+          annualSavings={Math.round(data.annual_savings)}
+          hoursSaved={Math.round(data.hours_saved)}
           topTaskResults={[...data.results]
             .sort((a, b) => b.ai_readiness_score - a.ai_readiness_score)
             .slice(0, 3)
