@@ -48,6 +48,52 @@ async function getAnalysisByCode(code: string): Promise<AnalysisData | null> {
   } catch { return null }
 }
 
+// Resolve the n8n workflow cards for a report, server-side, with two paths:
+//  1. Stored merged canvas (workflow.n8n_workflow_json) -> one card.
+//  2. Fallback: live-fetch curated per-task community templates from the
+//     backend, mirroring the dashboard's client fallback but on the server so
+//     the public report shows them even when no canvas was persisted.
+async function getN8nTemplates(data: AnalysisData): Promise<N8nTemplate[]> {
+  // Path 1 — stored merged canvas
+  if (data.workflow.n8n_workflow_json) {
+    try {
+      const parsed = JSON.parse(data.workflow.n8n_workflow_json)
+      return [{
+        id: data.workflow.id,
+        name: parsed.name || data.workflow.name || 'Automation Workflow',
+        description: `n8n workflow generated for: ${data.workflow.name}`,
+        workflow_json: parsed,
+        url: '',
+        relevance_reason: 'Generated from your workflow analysis',
+        node_count: Array.isArray(parsed.nodes) ? parsed.nodes.length : 0,
+        nodes_preview: Array.isArray(parsed.nodes)
+          ? parsed.nodes.map((n: { type?: string }) => n?.type || '').filter(Boolean).slice(0, 5)
+          : [],
+      }]
+    } catch { /* fall through to live fetch */ }
+  }
+
+  // Path 2 — live curated templates (server-side fetch; closes the gap where
+  // no canvas was stored). Strip any "— Job Scanner" suffix from the title.
+  const jobTitle = data.workflow.name.replace(/\s*[-\u2014]+\s*Job Scanner/i, '').trim()
+  const taskDicts = data.results.map(r => ({
+    name: r.task?.name || '', category: 'general', frequency: 'weekly',
+  })).filter(t => t.name)
+  if (taskDicts.length === 0) return []
+  try {
+    const res = await fetch(`${BACKEND_BASE}/api/job-scan/n8n-templates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_title: jobTitle, tasks: taskDicts }),
+      next: { revalidate: 3600 },
+    })
+    if (!res.ok) return []
+    const payload = await res.json()
+    const templates = (payload?.suggested_templates || []) as N8nTemplate[]
+    return Array.isArray(templates) ? templates : []
+  } catch { return [] }
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const { code } = await params
   const data = await getAnalysisByCode(code)
@@ -81,25 +127,8 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
   const quickWins = data.results.filter(r => r.difficulty === 'easy').length
   const shareUrl = `https://workscanai.vercel.app/report/${code}`
 
-  // Build n8n template card from the stored merged canvas (mirrors dashboard path-1).
-  const n8nTemplates: N8nTemplate[] = []
-  if (data.workflow.n8n_workflow_json) {
-    try {
-      const parsed = JSON.parse(data.workflow.n8n_workflow_json)
-      n8nTemplates.push({
-        id: data.workflow.id,
-        name: parsed.name || data.workflow.name || 'Automation Workflow',
-        description: `n8n workflow generated for: ${data.workflow.name}`,
-        workflow_json: parsed,
-        url: '',
-        relevance_reason: 'Generated from your workflow analysis',
-        node_count: Array.isArray(parsed.nodes) ? parsed.nodes.length : 0,
-        nodes_preview: Array.isArray(parsed.nodes)
-          ? parsed.nodes.map((n: { type?: string }) => n?.type || '').filter(Boolean).slice(0, 5)
-          : [],
-      })
-    } catch { /* ignore malformed canvas */ }
-  }
+  // n8n workflow cards: stored canvas first, else server-side live fetch.
+  const n8nTemplates = await getN8nTemplates(data)
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
