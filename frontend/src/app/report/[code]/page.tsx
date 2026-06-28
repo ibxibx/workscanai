@@ -4,6 +4,7 @@ import { Brain, Search } from 'lucide-react'
 import ReportActions from './ReportActions'
 import WalkthroughCta from './WalkthroughCta'
 import { TaskBreakdown, ContextSections, resolveContext, type SharedTaskResult } from '@/components/report/ReportSections'
+import N8nWorkflowsSection, { type N8nTemplate } from '@/components/report/N8nWorkflowsSection'
 
 interface WorkflowTask { id: number; name: string; description: string }
 
@@ -80,6 +81,26 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
   const quickWins = data.results.filter(r => r.difficulty === 'easy').length
   const shareUrl = `https://workscanai.vercel.app/report/${code}`
 
+  // Build n8n template card from the stored merged canvas (mirrors dashboard path-1).
+  const n8nTemplates: N8nTemplate[] = []
+  if (data.workflow.n8n_workflow_json) {
+    try {
+      const parsed = JSON.parse(data.workflow.n8n_workflow_json)
+      n8nTemplates.push({
+        id: data.workflow.id,
+        name: parsed.name || data.workflow.name || 'Automation Workflow',
+        description: `n8n workflow generated for: ${data.workflow.name}`,
+        workflow_json: parsed,
+        url: '',
+        relevance_reason: 'Generated from your workflow analysis',
+        node_count: Array.isArray(parsed.nodes) ? parsed.nodes.length : 0,
+        nodes_preview: Array.isArray(parsed.nodes)
+          ? parsed.nodes.map((n: { type?: string }) => n?.type || '').filter(Boolean).slice(0, 5)
+          : [],
+      })
+    } catch { /* ignore malformed canvas */ }
+  }
+
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
       {/* Top banner */}
@@ -154,6 +175,9 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
           context={resolveContext(data.workflow.analysis_context)}
           workflowName={data.workflow.name}
         />
+
+        {/* Recommended n8n Workflows (shared with dashboard) */}
+        <N8nWorkflowsSection templates={n8nTemplates} workflowName={data.workflow.name} />
 
         {/* Download + Share actions */}
         <ReportActions
