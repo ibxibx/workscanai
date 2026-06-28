@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, notFound } from 'next/navigation'
-import { Download, Share2, Map, Check, Users, Building2, User, ArrowRight, Search } from 'lucide-react'
+import { Download, Share2, Map, Check, Users, Building2, User, Search } from 'lucide-react'
 import Link from 'next/link'
 import { TaskBreakdown, ContextSections, resolveContext, type SharedTaskResult } from '@/components/report/ReportSections'
+import N8nWorkflowsSection from '@/components/report/N8nWorkflowsSection'
 
 interface WorkflowTask { id: number; name: string; description: string }
 
@@ -273,64 +274,8 @@ export default function ResultsPage() {
 
 
 
- {/* n8n Community Templates — shown for all analysis types when templates available */}
- {suggestedTemplates.length > 0 && (
- <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
- <div className="flex items-center gap-[10px] mb-[6px]">
- <div className="w-[36px] h-[36px] rounded-full bg-[#0071e3] flex items-center justify-center">
- <Download className="h-[18px] w-[18px] text-white" />
- </div>
- <h2 className="text-[22px] font-semibold italic tracking-tight">Recommended n8n Workflows</h2>
- </div>
- <p className="text-[13px] text-[#86868b] mb-[20px]">
- Real community-tested automations for this role. Import directly into n8n.
- </p>
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
- {suggestedTemplates.map(tpl => (
- <div key={tpl.id} className="border border-[#e8e8ed] rounded-[14px] p-[18px] bg-[#fafafa] flex flex-col gap-[10px]">
- {tpl.task_name && (
- <div className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest border-b border-[#e8e8ed] pb-[8px]">
- Task: {tpl.task_name}
- </div>
- )}
- <div className="flex items-start justify-between gap-[8px]">
- <p className="text-[13px] font-semibold text-[#1d1d1f] leading-snug">{tpl.name}</p>
- <a href={tpl.url} target="_blank" rel="noopener noreferrer"
- className="text-[#0071e3] hover:text-[#0077ed] shrink-0 mt-[1px]"
- title="View on n8n.io">
- <ArrowRight className="h-[14px] w-[14px]" />
- </a>
- </div>
- {tpl.relevance_reason && (
- <p className="text-[12px] text-[#6e6e73]">{tpl.relevance_reason}</p>
- )}
- {tpl.nodes_preview.length > 0 && (
- <div className="flex flex-wrap gap-[6px]">
- {tpl.nodes_preview.slice(0, 5).map((n, i) => (
- <span key={i} className="text-[10px] font-semibold px-[8px] py-[3px] rounded-full bg-[#f0f7ff] text-[#0071e3] border border-[#cce0ff]">
- {n.replace('n8n-nodes-base.', '')}
- </span>
- ))}
- </div>
- )}
- <button
- onClick={() => {
- const blob = new Blob([JSON.stringify(tpl.workflow_json, null, 2)], { type: 'application/json' })
- const url = URL.createObjectURL(blob)
- const a = document.createElement('a')
- a.href = url
- a.download = `${analysisData!.workflow.name.replace(/\s+/g, '_')}_n8n_${tpl.id}.json`
- document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
- }}
- className="mt-auto flex items-center justify-center gap-[6px] w-full bg-[#f5f5f7] hover:bg-[#e8e8ed] text-[#1d1d1f] text-[12px] font-semibold px-[12px] py-[8px] rounded-[8px] transition border border-[#d2d2d7]"
- >
- <Download className="h-[13px] w-[13px]" /> Import into n8n
- </button>
- </div>
- ))}
- </div>
- </div>
- )}
+		{/* Recommended n8n Workflows (shared with public report) */}
+		<N8nWorkflowsSection templates={suggestedTemplates} workflowName={analysisData.workflow.name} />
 
  {/* Actions */}
  <div className="mt-[40px] sm:mt-[56px] pb-[8px]">
