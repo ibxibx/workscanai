@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Download, Share2, Check, FileText, FileJson, Loader2 } from 'lucide-react'
-import { trackReportShared, trackReportExported, trackWorkflowDownloaded, trackResultViewed } from '@/lib/analytics'
+import { Download, Share2, Check, FileText, FileJson, Loader2, Linkedin } from 'lucide-react'
+import { trackReportShared, trackReportExported, trackWorkflowDownloaded, trackResultViewed, trackReportSharedLinkedin } from '@/lib/analytics'
 
 interface ReportActionsProps {
   workflowId: number
@@ -11,6 +11,9 @@ interface ReportActionsProps {
   shareCode: string
   isJobScan: boolean
   n8nWorkflowJson?: string
+  automationScore: number
+  annualSavings: number
+  hoursSaved: number
   topTaskResults: Array<{
     taskName: string
     score: number
@@ -25,9 +28,13 @@ export default function ReportActions({
   shareCode,
   isJobScan,
   n8nWorkflowJson,
+  automationScore,
+  annualSavings,
+  hoursSaved,
   topTaskResults,
 }: ReportActionsProps) {
   const [copied, setCopied] = useState(false)
+  const [liShared, setLiShared] = useState(false)
   const [downloading, setDownloading] = useState<string | null>(null)
 
   // result_viewed — fires once when a finished public report renders.
@@ -45,6 +52,46 @@ export default function ReportActions({
     } catch {
       prompt('Copy this link:', shareUrl)
     }
+  }
+
+  // Pre-written caption for the LinkedIn post. The OG image renders automatically
+  // from shareUrl in LinkedIn's composer; we copy this text so the user pastes a
+  // ready-to-go caption rather than writing one from scratch.
+  const buildLinkedinCaption = (): string => {
+    const savings = annualSavings.toLocaleString()
+    const topLine = isJobScan
+      ? `I ran my role through WorkScanAI to see how automatable it actually is.`
+      : `I just analysed "${workflowName}" with WorkScanAI to find its automation potential.`
+    return [
+      topLine,
+      ``,
+      `The results:`,
+      `\u2022 ${automationScore}% automation potential`,
+      `\u2022 \u20ac${savings} in potential annual savings`,
+      `\u2022 ${hoursSaved} hours a year that could be reclaimed`,
+      ``,
+      `It breaks every task down by score, flags the quick wins, and even generates ready-to-import automation workflows.`,
+      ``,
+      `Check the full breakdown \u2014 or run your own (it's free):`,
+      shareUrl,
+      ``,
+      `#automation #AI #productivity #futureofwork`,
+    ].join('\n')
+  }
+
+  const handleLinkedinShare = async () => {
+    trackReportSharedLinkedin({ share_code: shareCode, workflow_id: workflowId })
+    const caption = buildLinkedinCaption()
+    // Copy the caption first so it's on the clipboard when the composer opens.
+    try {
+      await navigator.clipboard.writeText(caption)
+      setLiShared(true)
+      setTimeout(() => setLiShared(false), 4000)
+    } catch {
+      // Clipboard may be blocked; the composer still opens with the OG preview.
+    }
+    const liUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`
+    window.open(liUrl, '_blank', 'noopener,noreferrer,width=600,height=640')
   }
 
   const downloadReport = async (fmt: 'docx' | 'pdf') => {
@@ -179,6 +226,19 @@ export default function ReportActions({
             }
           </button>
         )}
+
+        {/* LinkedIn one-click share — copies a ready caption + opens the composer */}
+        <button
+          onClick={handleLinkedinShare}
+          disabled={isAnyDownloading}
+          title="Copies a ready-to-paste caption and opens LinkedIn with the report preview"
+          className="inline-flex items-center justify-center gap-[8px] bg-[#0a66c2] hover:bg-[#0958a8] active:bg-[#074a8f] disabled:opacity-60 disabled:cursor-not-allowed text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm hover:shadow-md min-w-[200px]"
+        >
+          {liShared
+            ? <><Check className="h-[15px] w-[15px] shrink-0" /><span>Caption copied &mdash; paste it!</span></>
+            : <><Linkedin className="h-[15px] w-[15px] shrink-0" /><span>Share on LinkedIn</span></>
+          }
+        </button>
 
         {/* Share */}
         <button
