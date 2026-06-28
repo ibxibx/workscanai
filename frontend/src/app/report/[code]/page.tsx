@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Brain, ShieldCheck, ShieldAlert, ShieldX, Search } from 'lucide-react'
 import ReportActions from './ReportActions'
+import WalkthroughCta from './WalkthroughCta'
 
 // Recommendation renderer — splits on Option 1/2/3 and Decision layer
 function RecommendationBlocks({ text }: { text: string }) {
@@ -163,6 +164,13 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
             </div>
           ))}
         </div>
+
+        {/* Walkthrough CTA — rides the dopamine of the summary numbers */}
+        <WalkthroughCta
+          shareCode={code}
+          workflowId={data.workflow_id}
+          isJobScan={data.workflow.input_mode === 'job_scan'}
+        />
 
         {/* Task Breakdown */}
         <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[20px] sm:p-[40px] mb-[24px] sm:mb-[32px]">

@@ -67,6 +67,10 @@ export const trackReportShared = (props?: Record<string, unknown>) =>
 export const trackReportSharedLinkedin = (props?: Record<string, unknown>) =>
   capture('report_shared_linkedin', props)
 
+// 4c) "Book a walkthrough" CTA clicked on a report
+export const trackWalkthroughCtaClicked = (props?: Record<string, unknown>) =>
+  capture('walkthrough_cta_clicked', props)
+
 // 5) Report exported (PDF / DOCX)
 export const trackReportExported = (props?: Record<string, unknown>) =>
   capture('report_exported', props)
