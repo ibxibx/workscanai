@@ -232,7 +232,7 @@ export default function ReportActions({
           onClick={handleLinkedinShare}
           disabled={isAnyDownloading}
           title="Copies a ready-to-paste caption and opens LinkedIn with the report preview"
-          className="inline-flex items-center justify-center gap-[8px] bg-[#0a66c2] hover:bg-[#0958a8] active:bg-[#074a8f] disabled:opacity-60 disabled:cursor-not-allowed text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm hover:shadow-md min-w-[200px]"
+          className="inline-flex items-center justify-center gap-[8px] bg-[#0a66c2] hover:bg-[#0958a8] active:bg-[#074a8f] disabled:opacity-60 disabled:cursor-not-allowed text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm hover:shadow-md w-full sm:w-auto sm:min-w-[200px]"
         >
           {liShared
             ? <><Check className="h-[15px] w-[15px] shrink-0" /><span>Caption copied &mdash; paste it!</span></>
