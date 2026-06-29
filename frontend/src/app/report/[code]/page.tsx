@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { Brain, Search } from 'lucide-react'
 import ReportActions from './ReportActions'
 import WalkthroughCta from './WalkthroughCta'
+import EmailGateCard from './EmailGateCard'
 import { TaskBreakdown, ContextSections, resolveContext, type SharedTaskResult } from '@/components/report/ReportSections'
 import N8nWorkflowsSection, { type N8nTemplate } from '@/components/report/N8nWorkflowsSection'
 
@@ -207,6 +208,10 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
 
         {/* Recommended n8n Workflows (shared with dashboard) */}
         <N8nWorkflowsSection templates={n8nTemplates} workflowName={data.workflow.name} />
+
+        {/* Email-gate — capture the wowed visitor at peak intent, right after
+            they've seen the full report + their importable n8n workflows. */}
+        <EmailGateCard shareCode={code} workflowId={data.workflow_id} />
 
         {/* Download + Share actions */}
         <ReportActions

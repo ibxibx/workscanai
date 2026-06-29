@@ -134,6 +134,26 @@ class AnalysisResult(Base):
     task = relationship("Task", back_populates="analysis_result")
 
 
+class ReportLead(Base):
+    """Email leads captured from the report email-gate (#2).
+
+    When a wowed anonymous visitor asks us to email them the full report + the
+    importable n8n files, we capture their email here. This is the single point
+    in the funnel that turns an anonymous session into a named, contactable
+    lead — the highest-value dialogue surface in the product.
+    """
+    __tablename__ = "report_leads"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), nullable=False, index=True)
+    share_code = Column(String(16), nullable=True, index=True)   # report they requested
+    workflow_id = Column(Integer, nullable=True, index=True)
+    audience = Column(String(50), nullable=True)                 # PostHog audience segment if known
+    source = Column(String(50), nullable=True)                   # 'report' | 'scan' etc.
+    sent_ok = Column(Boolean, default=False)                     # did the email actually go out
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
 class PageView(Base):
     """Lightweight first-party traffic log for the /admin growth dashboard.
 
