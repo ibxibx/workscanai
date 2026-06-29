@@ -152,6 +152,7 @@ class ReportLead(Base):
     audience = Column(String(50), nullable=True)                 # PostHog audience segment if known
     source = Column(String(50), nullable=True)                   # 'report' | 'scan' etc.
     sent_ok = Column(Boolean, default=False)                     # did the email actually go out
+    digest_sent_at = Column(DateTime(timezone=True), nullable=True)  # #9 quick-win T+3 digest sent timestamp
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
