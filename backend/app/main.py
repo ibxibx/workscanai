@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.database import engine, Base
-from app.api.routes import workflows, extraction, reports, auth, admin, job_scan, track
+from app.api.routes import workflows, extraction, reports, auth, admin, job_scan, track, cron
 from mangum import Mangum
 from sqlalchemy import text
 
@@ -54,6 +54,8 @@ try:
             "ALTER TABLE workflows ADD COLUMN referred_by_code VARCHAR(16)",
             # #10 score confidence — derived from sub-score dispersion
             "ALTER TABLE analysis_results ADD COLUMN score_confidence VARCHAR(10)",
+            # #9 quick-win T+3 digest — when the retention email was sent
+            "ALTER TABLE report_leads ADD COLUMN digest_sent_at DATETIME",
         ]:
             try:
                 conn.execute(text(ddl))
@@ -136,6 +138,7 @@ app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(admin.router, prefix="/api", tags=["admin"])
 app.include_router(job_scan.router, prefix="/api", tags=["job-scan"])
 app.include_router(track.router, prefix="/api", tags=["track"])
+app.include_router(cron.router, prefix="/api", tags=["cron"])
 
 # Vercel serverless handler
 handler = Mangum(app, lifespan="off")
