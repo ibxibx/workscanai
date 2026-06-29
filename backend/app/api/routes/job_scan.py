@@ -335,6 +335,7 @@ async def job_scan_analyze(
             pivot_skills=ta.get("pivot_skills"),
             pivot_roles=ta.get("pivot_roles"),
             decision_layer=ta.get("decision_layer"),
+            score_confidence=ta.get("score_confidence"),
         )
         db.add(ar)
 

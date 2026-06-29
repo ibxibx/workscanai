@@ -35,6 +35,7 @@ export interface SharedTaskResult {
   pivot_skills?: string
   pivot_roles?: string
   decision_layer?: string
+  score_confidence?: string
 }
 
 export interface ReportData {
@@ -108,6 +109,30 @@ export function CountdownBadge({ window: w }: { window?: string }) {
   )
 }
 
+// ── Score-confidence badge (#10) ──
+// Derived server-side from the spread of the four sub-scores: when they agree
+// the composite is solid (high), when they diverge it's genuinely uncertain
+// (low). Honest uncertainty signals rigor and invites the user to correct us.
+const CONFIDENCE_MAP: Record<string, { label: string; color: string; dot: string }> = {
+  'high':   { label: 'High confidence',   color: 'bg-green-50 border-green-200 text-green-700',   dot: 'bg-green-500' },
+  'medium': { label: 'Medium confidence', color: 'bg-slate-50 border-slate-200 text-slate-600',   dot: 'bg-slate-400' },
+  'low':    { label: 'Low confidence',    color: 'bg-amber-50 border-amber-200 text-amber-700',    dot: 'bg-amber-400' },
+}
+
+export function ConfidenceBadge({ level }: { level?: string }) {
+  if (!level) return null
+  const m = CONFIDENCE_MAP[level] || CONFIDENCE_MAP['medium']
+  return (
+    <span
+      title="How much the four sub-scores agree. Lower confidence means this task is harder to call — tell us if your context differs."
+      className={`inline-flex items-center gap-[6px] px-[10px] py-[4px] rounded-full border text-[11px] font-bold ${m.color}`}
+    >
+      <span className={`w-[6px] h-[6px] rounded-full ${m.dot}`} />
+      {m.label}
+    </span>
+  )
+}
+
 
 // ── SECTION A — Task Breakdown (all contexts) ──
 export function TaskBreakdown({ results }: { results: SharedTaskResult[] }) {
@@ -133,6 +158,7 @@ export function TaskBreakdown({ results }: { results: SharedTaskResult[] }) {
                 <h3 className="text-[15px] sm:text-[19px] font-semibold italic text-[#1d1d1f] break-words">{taskName}</h3>
                 <div className="flex flex-wrap gap-[8px] items-center">
                   {result.countdown_window && <CountdownBadge window={result.countdown_window} />}
+                  {result.score_confidence && <ConfidenceBadge level={result.score_confidence} />}
                   <span className={`px-[12px] py-[6px] rounded-full text-[13px] font-semibold ${
                     result.ai_readiness_score >= 80 ? 'bg-green-100 text-green-700'
                     : result.ai_readiness_score >= 60 ? 'bg-yellow-100 text-yellow-700'

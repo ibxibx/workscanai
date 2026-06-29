@@ -72,6 +72,8 @@ def _build_analysis_data(workflow: Workflow, analysis: Analysis) -> dict:
             # F3 risk flags
             'risk_level': result.risk_level,
             'risk_flag': result.risk_flag,
+            # #10 score confidence
+            'score_confidence': result.score_confidence,
             # F9 agentification
             'agent_phase': result.agent_phase,
             'agent_label': result.agent_label,

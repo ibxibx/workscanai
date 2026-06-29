@@ -128,6 +128,7 @@ class AnalysisResult(Base):
     pivot_skills = Column(Text, nullable=True)              # JSON skills to develop
     pivot_roles = Column(Text, nullable=True)               # JSON adjacent roles
     decision_layer = Column(String(20), nullable=True)      # 'none'|'partial'|'full'
+    score_confidence = Column(String(10), nullable=True)    # 'high'|'medium'|'low' — derived from sub-score dispersion (#10)
     
     # Relationships
     analysis = relationship("Analysis", back_populates="results")

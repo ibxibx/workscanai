@@ -84,6 +84,7 @@ class AnalysisResultResponse(BaseModel):
     pivot_skills: Optional[str] = None
     pivot_roles: Optional[str] = None
     decision_layer: Optional[str] = None   # 'none'|'partial'|'full'
+    score_confidence: Optional[str] = None  # 'high'|'medium'|'low' (#10)
     
     class Config:
         from_attributes = True
