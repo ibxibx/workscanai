@@ -71,6 +71,12 @@ export const trackReportSharedLinkedin = (props?: Record<string, unknown>) =>
 export const trackWalkthroughCtaClicked = (props?: Record<string, unknown>) =>
   capture('walkthrough_cta_clicked', props)
 
+// Email-gate (#2): visitor asked us to email the full report + n8n files
+export const trackReportEmailRequested = (props?: Record<string, unknown>) =>
+  capture('report_email_requested', props)
+export const trackReportEmailCaptured = (props?: Record<string, unknown>) =>
+  capture('report_email_captured', props)
+
 // 5) Report exported (PDF / DOCX)
 export const trackReportExported = (props?: Record<string, unknown>) =>
   capture('report_exported', props)
