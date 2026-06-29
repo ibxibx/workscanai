@@ -52,6 +52,8 @@ try:
             "ALTER TABLE page_views ADD COLUMN city VARCHAR(100)",
             # k-factor: which shared report (share_code) referred this new analysis
             "ALTER TABLE workflows ADD COLUMN referred_by_code VARCHAR(16)",
+            # #10 score confidence — derived from sub-score dispersion
+            "ALTER TABLE analysis_results ADD COLUMN score_confidence VARCHAR(10)",
         ]:
             try:
                 conn.execute(text(ddl))

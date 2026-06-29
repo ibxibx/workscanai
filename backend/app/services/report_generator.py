@@ -194,6 +194,16 @@ class ReportGenerator:
                         ('LEFTPADDING',(0,0),(-1,-1),10),('RIGHTPADDING',(0,0),(-1,-1),10),
                         ('BACKGROUND',(0,0),(-1,-1),GRAY_100),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
 
+            # #10 Score confidence — derived from sub-score agreement
+            conf = result.get('score_confidence')
+            if conf:
+                conf_hex = {'high': '34c759', 'medium': '6e6e73', 'low': 'ff9f0a'}.get(conf, '6e6e73')
+                conf_color = {'high': GREEN, 'medium': GRAY_600, 'low': AMBER}.get(conf, GRAY_600)
+                block.append(Paragraph(
+                    f'<font color="#{conf_hex}">Score confidence: <b>{conf.capitalize()}</b></font> '
+                    f'<font size="7" color="#86868b">(how much the four sub-scores agree)</font>',
+                    style_fn(f'conf{idx}', fontSize=8, fontName='Helvetica', textColor=conf_color, leading=11)))
+
             # F3 Risk
             risk_flag = result.get('risk_flag')
             if risk_flag:
@@ -965,6 +975,15 @@ class ReportGenerator:
                     ph=c.paragraphs[0]; ph.alignment=WD_ALIGN_PARAGRAPH.CENTER
                     run(ph,f'{val:.0f}\n',bold=True,size=14,color=('34c759' if val>=70 else ('ff9f0a' if val>=45 else 'ff3b30')))
                     run(ph,lbl2,size=8,color='6e6e73')
+
+            # #10 Score confidence — derived from sub-score agreement
+            conf = result.get('score_confidence')
+            if conf:
+                conf_hex = {'high': '34c759', 'medium': '6e6e73', 'low': 'ff9f0a'}.get(conf, '6e6e73')
+                p=doc.add_paragraph()
+                run(p, 'Score confidence: ', size=9, color='6e6e73')
+                run(p, conf.capitalize(), bold=True, size=9, color=conf_hex)
+                run(p, '  (how much the four sub-scores agree)', size=8, color='86868b')
 
             # Recommendation
             if result.get('recommendation'):

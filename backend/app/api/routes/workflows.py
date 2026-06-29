@@ -243,6 +243,7 @@ def _perform_analysis_sync(workflow_id, hourly_rate, db):
             pivot_skills=task_analysis.get('pivot_skills'),
             pivot_roles=task_analysis.get('pivot_roles'),
             decision_layer=task_analysis.get('decision_layer'),
+            score_confidence=task_analysis.get('score_confidence'),
         )
         db.add(result)
     db.commit()

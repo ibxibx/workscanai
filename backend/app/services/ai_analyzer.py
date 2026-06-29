@@ -236,6 +236,32 @@ class AIAnalyzer:
             score = result.get('ai_readiness_score', 50)
             result['decision_layer'] = 'none' if score >= 75 else ('partial' if score >= 45 else 'full')
 
+        # Score confidence (#10) — derived, no extra LLM call. The four sub-scores
+        # measure independent dimensions; when they AGREE the composite is solid,
+        # when they DIVERGE the composite is genuinely uncertain (e.g. very
+        # repeatable but very error-sensitive). We express that as a spread-based
+        # confidence band. Honest uncertainty signals rigor and invites the user
+        # to correct us.
+        if 'score_confidence' not in result:
+            subs = [
+                result.get('score_repeatability'),
+                result.get('score_data_availability'),
+                result.get('score_error_tolerance'),
+                result.get('score_integration'),
+            ]
+            subs = [s for s in subs if s is not None]
+            if len(subs) >= 3:
+                mean = sum(subs) / len(subs)
+                variance = sum((s - mean) ** 2 for s in subs) / len(subs)
+                spread = variance ** 0.5   # standard deviation, 0–~50
+                # Tight agreement → high; wide divergence → low.
+                result['score_confidence'] = (
+                    'high' if spread < 12 else 'medium' if spread < 22 else 'low'
+                )
+            else:
+                # Not enough sub-scores to judge dispersion — stay honest.
+                result['score_confidence'] = 'medium'
+
         for k, v in self._defaults().items():
             result.setdefault(k, v)
         return result
@@ -377,6 +403,7 @@ class AIAnalyzer:
             'risk_flag': 'Safe to automate fully.',
             'recommendation': 'Review task manually for automation opportunities.',
             'decision_layer': 'partial',
+            'score_confidence': 'medium',
             'agent_phase': 1,
             'agent_label': 'Phase 1: Human-in-Loop AI Draft',
             'agent_milestone': 'Pilot AI drafts on 20% of volume; measure error rate before scaling.',
