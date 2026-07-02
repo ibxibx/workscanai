@@ -67,6 +67,23 @@ BENCH_SECTOR_LOW_PCT = 20
 BENCH_SECTOR_HIGH_PCT = 31
 BENCH_SOURCE = "McKinsey Global Institute, \u201CAgents, Robots, and Us\u201D (Nov 2025)"
 
+# Automation ROI gap between committed adopters and laggards (#6 / competitor
+# framing). Real, citable — NOT invented multipliers. Source: Bain & Company,
+# "Automation Scorecard 2024" (verified at
+# https://www.bain.com/insights/automation-scorecard-2024-lessons-learned-can-inform-deployment-of-generative-ai/):
+#   - Automation leaders cut process costs ~22% vs ~8% for laggards; top quartile ~37%.
+#   - Leaders defined as investing >=20% of IT budget in automation; laggards <5%.
+# The gap widens over time as leaders compound their advantage.
+GAP_LEADER_PCT = 22
+GAP_LAGGARD_PCT = 8
+GAP_TOP_QUARTILE_PCT = 37
+GAP_SOURCE = "Bain & Company, \u201CAutomation Scorecard 2024\u201D"
+
+# Standard net-productive hours per FTE per year — a stated assumption used to
+# translate reclaimed hours into role-equivalents. Not a precise per-company
+# figure; labelled as an estimate wherever "FTE equivalent" is shown.
+ANNUAL_PRODUCTIVE_HOURS = 1800
+
 
 def score_color(score):
     if score >= 70: return GREEN, GREEN_LIGHT
@@ -413,7 +430,7 @@ class ReportGenerator:
             # C1 — Velocity Impact
             story.append(Paragraph('Team Velocity Impact', style_fn('tv_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=6, spaceAfter=6)))
-            fte = hours / 1800
+            fte = hours / ANNUAL_PRODUCTIVE_HOURS
             vel_data = [
                 ['Hours freed / yr', f'{hours:.0f}h', 'Available for product & growth'],
                 ['FTE equivalent',   f'{fte:.1f}',    'Roles redeployable to strategic work'],
@@ -488,33 +505,37 @@ class ReportGenerator:
             story.append(Paragraph('Strategic Business Analysis', ST['section_title']))
             story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
 
-            # D1 — Competitor Gap
-            story.append(Paragraph('AI-First Competitor Gap', style_fn('cg_ttl', fontSize=13,
+            # D1 — Automation ROI Gap (sourced: Bain leaders vs laggards)
+            story.append(Paragraph('The Leader\u2013Laggard Gap', style_fn('cg_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=6, spaceAfter=6)))
             comp_data = [
-                ('If you automate now',      savings,         'Your annual advantage',                    GREEN, GREEN_LIGHT),
-                ('If you wait 12 months',    savings * 0.35,  '65% of advantage lost to delayed adoption',AMBER, AMBER_LIGHT),
-                ('AI-first competitor edge', savings * 1.4,   'Over you if they move first',              RED,   RED_LIGHT),
+                ('Committed adopters',   f'\u2212{GAP_LEADER_PCT}%',       'Process-cost reduction (leaders)',   GREEN, GREEN_LIGHT),
+                ('Top quartile',         f'\u2212{GAP_TOP_QUARTILE_PCT}%', 'Best-in-class result',               BLUE,  colors.HexColor('#e8f1fc')),
+                ('Laggards',             f'\u2212{GAP_LAGGARD_PCT}%',      'Under-investors (<5% of IT budget)', AMBER, AMBER_LIGHT),
             ]
             comp_rows = []
-            comp_hex = {GREEN: '34c759', AMBER: 'ff9f0a', RED: 'ff3b30'}
+            comp_hex = {GREEN: '34c759', BLUE: '0071e3', AMBER: 'ff9f0a', RED: 'ff3b30'}
             for label, val, note, c_fg, c_bg in comp_data:
                 comp_rows.append([
                     Paragraph(f'<b>{label}</b>', style_fn(f'cl{label[:6]}', fontSize=9, fontName='Helvetica-Bold', textColor=GRAY_900)),
-                    Paragraph(f'<font color="#{comp_hex.get(c_fg,"0071e3")}"><b>\u20ac{val:,.0f}/yr</b></font>',
+                    Paragraph(f'<font color="#{comp_hex.get(c_fg,"0071e3")}"><b>{val}</b></font>',
                         style_fn(f'cv{label[:6]}', fontSize=12, fontName='Helvetica-Bold')),
                     Paragraph(note, style_fn(f'cn{label[:6]}', fontSize=9, fontName='Helvetica', textColor=GRAY_600)),
                 ])
-            story.append(Table(comp_rows, colWidths=[W*0.32, W*0.25, W*0.43],
-                style=TableStyle([('ROWBACKGROUNDS',(0,0),(-1,-1),[GREEN_LIGHT,AMBER_LIGHT,RED_LIGHT]),
+            story.append(Table(comp_rows, colWidths=[W*0.32, W*0.18, W*0.50],
+                style=TableStyle([('ROWBACKGROUNDS',(0,0),(-1,-1),[GREEN_LIGHT,colors.HexColor('#e8f1fc'),AMBER_LIGHT]),
                     ('TOPPADDING',(0,0),(-1,-1),8),('BOTTOMPADDING',(0,0),(-1,-1),8),
                     ('LEFTPADDING',(0,0),(-1,-1),10),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
+            story.append(Paragraph(f'Source: {GAP_SOURCE}. The gap between committed adopters and laggards '
+                f'widens over time as leaders compound their advantage \u2014 the cost of waiting is falling behind, '
+                f'not a fixed penalty.',
+                style_fn('cg_src', fontSize=7.5, fontName='Helvetica-Oblique', textColor=GRAY_600, spaceBefore=4)))
             story.append(Spacer(1, 6*mm))
 
             # D2 — Headcount Signal
             story.append(Paragraph('Headcount Signal', style_fn('hc_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
-            fte2 = hours / 1800
+            fte2 = hours / ANNUAL_PRODUCTIVE_HOURS
             hc_data = [
                 ['Hours freed / yr',    f'{hours:.0f}h',         'Total across all tasks'],
                 ['FTE equivalent',      f'{fte2:.1f}',           'At 1,800 working hrs/yr'],
@@ -584,7 +605,7 @@ class ReportGenerator:
                 ('Automation potential',f'{score:.0f}% of workflow tasks'),
                 ('Annual savings',      f'\u20ac{savings:,.0f}'),
                 ('Hours reclaimed',     f'{hours:.0f}h/yr'),
-                ('FTE equivalent',      f'{hours/1800:.1f} roles'),
+                ('FTE equivalent',      f'{hours/ANNUAL_PRODUCTIVE_HOURS:.1f} roles'),
                 ('Quick wins (90 days)',f'{quick_wins} tasks'),
                 ('Risk flags',          f'{risk_flags} tasks require compliance review'),
                 ('Recommendation',      'Begin 90-day automation sprint. Prioritise quick wins. Redeploy freed capacity to strategic functions.'),
@@ -1149,7 +1170,7 @@ class ReportGenerator:
 
         elif context == 'team':
             heading('Team Automation Strategy', size=14, color='1d1d1f')
-            fte3=hours/1800
+            fte3=hours/ANNUAL_PRODUCTIVE_HOURS
             p=doc.add_paragraph(); run(p,'Team Velocity Impact',bold=True,size=12,color='1d1d1f')
             kv_table([
                 ('Hours freed / yr',  f'{hours:.0f}h',            'e8f1fc'),
@@ -1186,15 +1207,18 @@ class ReportGenerator:
         elif context == 'company':
             heading('Strategic Business Analysis', size=14, color='1d1d1f')
 
-            p=doc.add_paragraph(); run(p,'AI-First Competitor Gap',bold=True,size=12,color='1d1d1f')
+            p=doc.add_paragraph(); run(p,'The Leader\u2013Laggard Gap',bold=True,size=12,color='1d1d1f')
             kv_table([
-                ('If you automate now',      f'\u20ac{savings:,.0f}/yr',         'e8f9ed'),
-                ('If you wait 12 months',    f'\u20ac{savings*0.35:,.0f}/yr',    'fff4e0'),
-                ('AI-first competitor edge', f'\u20ac{savings*1.4:,.0f}/yr',     'ffe5e3'),
+                ('Committed adopters',  f'\u2212{GAP_LEADER_PCT}% process cost',        'e8f9ed'),
+                ('Top quartile',        f'\u2212{GAP_TOP_QUARTILE_PCT}% process cost',   'e8f1fc'),
+                ('Laggards (<5% of IT budget)', f'\u2212{GAP_LAGGARD_PCT}% process cost', 'fff4e0'),
             ], col_widths=(5.5,9.5))
+            p=doc.add_paragraph(); run(p,f'Source: {GAP_SOURCE}. The leader\u2013laggard gap widens over time '
+                'as leaders compound their advantage \u2014 the cost of waiting is falling behind, not a fixed penalty.',
+                italic=True,size=8,color='6e6e73')
             doc.add_paragraph()
 
-            fte4=hours/1800
+            fte4=hours/ANNUAL_PRODUCTIVE_HOURS
             p=doc.add_paragraph(); run(p,'Headcount Signal',bold=True,size=12,color='1d1d1f')
             kv_table([
                 ('Hours freed / yr',  f'{hours:.0f}h',                          'e8f1fc'),
