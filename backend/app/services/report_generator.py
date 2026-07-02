@@ -49,6 +49,25 @@ ORANGE      = colors.HexColor('#ff6b35')
 ORANGE_LIGHT= colors.HexColor('#fff0eb')
 
 
+# ── External automation benchmark (#6) ──────────────────────────────────────
+# Real, citable anchors — NOT invented percentiles. Source:
+# McKinsey Global Institute, "Agents, Robots, and Us: Skill Partnerships in the
+# Age of AI" (Nov 2025). Figures verified at
+# https://www.mckinsey.com/mgi/our-research/agents-robots-and-us-skill-partnerships-in-the-age-of-ai
+#   - ~57% of US work hours are technically automatable with currently
+#     demonstrated technologies today.
+#   - ~44% of US work hours could be handled by AI *agents* (non-physical work) —
+#     the relevant frontier for knowledge-work automation.
+#   - Sector adoption of automation by 2030 ranges ~20% (healthcare) to
+#     ~31% (manufacturing).
+# Update these if MGI refreshes the numbers.
+BENCH_TECH_POTENTIAL_PCT = 57
+BENCH_AGENT_POTENTIAL_PCT = 44
+BENCH_SECTOR_LOW_PCT = 20
+BENCH_SECTOR_HIGH_PCT = 31
+BENCH_SOURCE = "McKinsey Global Institute, \u201CAgents, Robots, and Us\u201D (Nov 2025)"
+
+
 def score_color(score):
     if score >= 70: return GREEN, GREEN_LIGHT
     elif score >= 40: return AMBER, AMBER_LIGHT
@@ -520,15 +539,18 @@ class ReportGenerator:
                 style_fn('hc_note', fontSize=9, fontName='Helvetica-Oblique', textColor=GRAY_600, leading=13,
                     spaceAfter=8, spaceBefore=4)))
 
-            # D3 — Industry Benchmark
-            story.append(Paragraph('Industry Benchmark', style_fn('ib_ttl', fontSize=13,
+            # D3 — Automation Benchmark (#6, sourced — not invented percentiles)
+            story.append(Paragraph('Automation Benchmark', style_fn('ib_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
-            gap = max(0, 81 - round(score))
             bm_data = [
-                ('Your score',        f'{score:.0f}%', 'This workflow',         BLUE),
-                ('Sector average',    '58%',           'Cognitive workflows',   GRAY_600),
-                ('Top 10% orgs',      '81%',           'AI-first companies',    GREEN),
-                ('Gap to close',      f'{gap}%',       'To reach top 10%',      AMBER),
+                ('Your workflow',        f'{score:.0f}%',
+                 'AI-readiness of these tasks',                 BLUE),
+                ('Technically automatable', f'{BENCH_TECH_POTENTIAL_PCT}%',
+                 'US work hours, today',                        GRAY_600),
+                ('Agent-automatable',    f'{BENCH_AGENT_POTENTIAL_PCT}%',
+                 'Non-physical / knowledge work',               GRAY_600),
+                ('Sector adoption by 2030', f'{BENCH_SECTOR_LOW_PCT}\u2013{BENCH_SECTOR_HIGH_PCT}%',
+                 'Healthcare \u2192 manufacturing',             GREEN),
             ]
             bm_rows = [[Paragraph('<b>Benchmark</b>', ST['label']),
                          Paragraph('<b>Score</b>', ST['label']),
@@ -544,6 +566,9 @@ class ReportGenerator:
                     ('ROWBACKGROUNDS',(0,1),(-1,-1),[WHITE,GRAY_100]),
                     ('TOPPADDING',(0,0),(-1,-1),7),('BOTTOMPADDING',(0,0),(-1,-1),7),
                     ('LEFTPADDING',(0,0),(-1,-1),10),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
+            story.append(Paragraph(f'Source: {BENCH_SOURCE}. Your score measures the AI-readiness of '
+                f'this specific workflow\u2019s tasks; the frontier figures are economy-wide technical potential.',
+                style_fn('bm_src', fontSize=7.5, fontName='Helvetica-Oblique', textColor=GRAY_600, spaceBefore=4)))
             story.append(Spacer(1, 6*mm))
 
             # D4 — Board Summary
@@ -1178,14 +1203,16 @@ class ReportGenerator:
             ], col_widths=(5.0,10.0))
             doc.add_paragraph()
 
-            gap2=max(0,81-round(score))
-            p=doc.add_paragraph(); run(p,'Industry Benchmark',bold=True,size=12,color='1d1d1f')
+            p=doc.add_paragraph(); run(p,'Automation Benchmark',bold=True,size=12,color='1d1d1f')
             kv_table([
-                ('Your score',     f'{score:.0f}%',  'e8f1fc'),
-                ('Sector average', '58%',             'f5f5f7'),
-                ('Top 10% orgs',   '81%',             'e8f9ed'),
-                ('Gap to close',   f'{gap2}%',        'fff4e0'),
+                ('Your workflow',            f'{score:.0f}%',  'e8f1fc'),
+                ('Technically automatable',  f'{BENCH_TECH_POTENTIAL_PCT}%',  'f5f5f7'),
+                ('Agent-automatable',        f'{BENCH_AGENT_POTENTIAL_PCT}%', 'f5f5f7'),
+                ('Sector adoption by 2030',  f'{BENCH_SECTOR_LOW_PCT}\u2013{BENCH_SECTOR_HIGH_PCT}%', 'e8f9ed'),
             ], col_widths=(5.0,10.0))
+            p=doc.add_paragraph(); run(p,f'Source: {BENCH_SOURCE}. Your score reflects the AI-readiness of '
+                'this workflow\u2019s tasks; frontier figures are economy-wide technical potential.',
+                italic=True,size=8,color='6e6e73')
             doc.add_paragraph()
 
             # Board summary
