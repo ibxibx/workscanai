@@ -27,7 +27,7 @@ from app.services.ai_analyzer import AIAnalyzer
 router = APIRouter()
 
 DAILY_ANALYSIS_LIMIT = 5
-ADMIN_SECRET = os.getenv("ADMIN_SECRET", "REDACTED_ADMIN_SECRET")
+ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")
 
 
 def _get_ip_daily_count(ip: str, db: Session) -> int:
