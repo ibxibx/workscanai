@@ -36,7 +36,7 @@ export const VERTICALS: Vertical[] = [
     shareCode: '06c952',
     score: 68,
     annualSavings: 25495,
-    hoursSaved: 509,
+    hoursSaved: 510,
     tasks: 5,
     featured: true,
   },
@@ -46,9 +46,9 @@ export const VERTICALS: Vertical[] = [
     audience: 'ops_manager',
     blurb: 'Ticket triage, macro replies, escalations and CSAT reporting.',
     shareCode: 'ceaefa',
-    score: 75,
+    score: 74,
     annualSavings: 8098,
-    hoursSaved: 161,
+    hoursSaved: 162,
     tasks: 5,
   },
   {
@@ -59,7 +59,7 @@ export const VERTICALS: Vertical[] = [
     shareCode: '0c6c25',
     score: 75,
     annualSavings: 7579,
-    hoursSaved: 151,
+    hoursSaved: 152,
     tasks: 5,
   },
   {
@@ -70,7 +70,7 @@ export const VERTICALS: Vertical[] = [
     shareCode: 'fa6d5d',
     score: 82,
     annualSavings: 7426,
-    hoursSaved: 148,
+    hoursSaved: 149,
     tasks: 5,
   },
   {
@@ -92,7 +92,7 @@ export const VERTICALS: Vertical[] = [
     shareCode: '4696b7',
     score: 76,
     annualSavings: 8945,
-    hoursSaved: 178,
+    hoursSaved: 179,
     tasks: 5,
   },
 ]
