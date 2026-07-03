@@ -75,6 +75,63 @@ async def backfill_n8n_canvas(
     }
 
 
+@router.post("/admin/backfill-confidence/{workflow_id}")
+async def backfill_confidence(
+    workflow_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(_require_admin),
+):
+    """
+    Recompute score_confidence for a workflow's analysis results from their four
+    sub-scores. For reports generated before feature #10 (confidence badge) shipped,
+    score_confidence is NULL and the badge silently doesn't render. This backfills
+    it in place (same share code / URL) using the EXACT derivation in
+    ai_analyzer.py: population std-dev of the sub-scores → high (<12) / medium
+    (<22) / low. Idempotent and safe to re-run. Admin-only.
+    """
+    analysis = (
+        db.query(Analysis)
+        .join(Workflow, Analysis.workflow_id == Workflow.id)
+        .filter(Workflow.id == workflow_id)
+        .first()
+    )
+    if not analysis:
+        raise HTTPException(status_code=404, detail="No analysis for that workflow")
+
+    results = db.query(AnalysisResult).filter(AnalysisResult.analysis_id == analysis.id).all()
+    if not results:
+        raise HTTPException(status_code=422, detail="No analysis results found")
+
+    def derive(r) -> str:
+        subs = [r.score_repeatability, r.score_data_availability,
+                r.score_error_tolerance, r.score_integration]
+        subs = [s for s in subs if s is not None]
+        if len(subs) < 3:
+            return "medium"
+        mean = sum(subs) / len(subs)
+        spread = (sum((s - mean) ** 2 for s in subs) / len(subs)) ** 0.5
+        return "high" if spread < 12 else "medium" if spread < 22 else "low"
+
+    updated, skipped = 0, 0
+    for r in results:
+        if r.score_confidence:            # already set — leave it (idempotent)
+            skipped += 1
+            continue
+        r.score_confidence = derive(r)
+        updated += 1
+    db.commit()
+
+    return {
+        "ok": True,
+        "workflow_id": workflow_id,
+        "analysis_id": analysis.id,
+        "results": len(results),
+        "updated": updated,
+        "already_set": skipped,
+        "confidence_values": [r.score_confidence for r in results],
+    }
+
+
 @router.post("/admin/reset-rate-limits")
 async def reset_rate_limits(
     db: Session = Depends(get_db),
@@ -103,7 +160,7 @@ async def reset_rate_limits(
         "ok": True,
         "message": "Rate limits use x-admin-secret bypass — include that header in job-scan requests to skip the limit.",
         "current_ip_counts_last_24h": ip_counts,
-        "tip": "Add header x-admin-secret: REDACTED_ADMIN_SECRET to any /api/job-scan/research or /api/job-scan/analyze call to bypass the limit."
+        "tip": "Add header x-admin-secret: <ADMIN_SECRET> (the value from your environment) to any /api/job-scan/research or /api/job-scan/analyze call to bypass the limit."
     }
 
 
