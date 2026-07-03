@@ -97,6 +97,13 @@ export default function LandingPage() {
                 <span className="md:hidden">Scan job</span>
               </Link>
               <Link
+                href="/templates"
+                className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
+              >
+                <span className="hidden md:inline">Templates</span>
+                <span className="md:hidden">Templates</span>
+              </Link>
+              <Link
                 href="/dashboard"
                 className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
               >
@@ -167,6 +174,12 @@ export default function LandingPage() {
                 >
                   See how it works
                 </a>
+                <Link
+                  href="/templates"
+                  className="text-white/80 hover:text-white text-[17px] leading-[1.17] font-normal transition-colors underline underline-offset-4 decoration-white/40"
+                >
+                  Browse by industry
+                </Link>
               </div>
             </div>
           </div>
