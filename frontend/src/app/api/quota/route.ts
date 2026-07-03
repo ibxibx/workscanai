@@ -11,11 +11,25 @@ const BACKEND_URL = (process.env.API_URL || 'http://localhost:8000').replace(/\/
  * This route reads the real IP from the incoming Vercel request headers and
  * injects it as x-real-ip so the backend owner-bypass check works correctly.
  */
-// Owner IPs that get unlimited analyses — bypass quota check entirely in the frontend
-// so it works regardless of Render deploy state or in-memory rate limiter.
-// Falls back to hardcoded IP if OWNER_IP env var not set on Vercel.
-const OWNER_IPS = (process.env.OWNER_IP || 'REDACTED_OWNER_IP')
+// Owner IPs that get unlimited analyses — bypass quota check entirely in the
+// frontend so it works regardless of Render deploy state or in-memory limiter.
+// Configured ONLY via the OWNER_IP env var (never hardcoded — a real IP in the
+// public repo is a privacy leak). Empty by default. Each entry may be an exact
+// IP, a prefix like "84.59." / "84.59.*", or "*" (matches everything).
+const OWNER_IPS = (process.env.OWNER_IP || '')
   .split(',').map(s => s.trim()).filter(Boolean)
+
+// Prefix/wildcard-aware match (mirrors backend is_owner_ip), so ISP IP churn
+// doesn't silently disable the owner bypass.
+function isOwnerIp(ip: string): boolean {
+  if (!ip) return false
+  return OWNER_IPS.some((entry) => {
+    if (entry === '*') return true
+    if (entry.endsWith('*')) return ip.startsWith(entry.slice(0, -1))
+    if (entry.endsWith('.')) return ip.startsWith(entry)
+    return ip === entry
+  })
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,7 +39,7 @@ export async function GET(request: NextRequest) {
       ''
 
     // Owner bypass — return "not exceeded" immediately without hitting backend
-    if (OWNER_IPS.length > 0 && OWNER_IPS.includes(realIp)) {
+    if (isOwnerIp(realIp)) {
       return NextResponse.json({ used: 0, limit: 5, remaining: 5, exceeded: false })
     }
 

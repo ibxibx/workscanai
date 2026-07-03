@@ -24,6 +24,37 @@ def get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def is_owner_ip(ip: str) -> bool:
+    """
+    True if `ip` matches the owner allowlist in settings.OWNER_IP.
+
+    OWNER_IP is a comma-separated list. Each entry supports:
+      - exact match:   "<your.public.ip.here>"
+      - prefix match:  "84.59."  or  "84.59.*"  (matches the whole ISP block, so
+                       it survives the ISP reassigning you a new address in-block)
+      - full wildcard: "*" (matches any IP — use only in trusted/dev contexts)
+    This makes the owner bypass resilient to ISP IP churn: set OWNER_IP=84.
+    (or a tighter prefix) once and it keeps working after reassignment.
+    """
+    if not ip:
+        return False
+    for raw in settings.OWNER_IP.split(','):
+        entry = raw.strip()
+        if not entry:
+            continue
+        if entry == '*':
+            return True
+        if entry.endswith('*'):
+            if ip.startswith(entry[:-1]):
+                return True
+        elif entry.endswith('.'):
+            if ip.startswith(entry):
+                return True
+        elif ip == entry:
+            return True
+    return False
+
+
 def check_rate_limit(request: Request) -> None:
     """
     Call this at the top of the /api/analyze endpoint.
@@ -32,11 +63,8 @@ def check_rate_limit(request: Request) -> None:
     """
     ip = get_client_ip(request)
 
-    # ── Owner bypass — unlimited scans ────────────────────────────────────
-    # Supports comma-separated list: OWNER_IP=REDACTED_OWNER_IP,1.2.3.4
-    # Update in Render env vars if your ISP reassigns your IP.
-    owner_ips = [o.strip() for o in settings.OWNER_IP.split(',') if o.strip()]
-    if ip in owner_ips:
+    # ── Owner bypass — unlimited scans (prefix-aware, ISP-churn resistant) ──
+    if is_owner_ip(ip):
         return  # no rate limit, no logging
     # ──────────────────────────────────────────────────────────────────────
 
