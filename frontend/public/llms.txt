@@ -1,0 +1,30 @@
+# WorkScanAI
+
+> WorkScanAI is a free, self-serve tool that analyzes any job title or workflow and returns a per-task automation analysis: an automation-potential score, hours and cost saved per year, risk and confidence flags, and importable n8n automation workflows. Unlike competitors that gate their automation assessment behind a sales call, WorkScanAI gives the full report instantly and free.
+
+## Core tools
+
+- [Job Scanner](https://workscanai.vercel.app/scan): Enter any job title. AI researches the role, extracts real tasks, scores automation potential per task, and surfaces importable n8n workflows. Answers "is my job automatable?" in about a minute, free, no signup.
+- [Sample reports by industry](https://workscanai.vercel.app/templates): One-click, pre-generated automation reports for customer support, finance & accounting, HR & recruiting, marketing, sales operations, and automation agencies. Each shows real scores, annual savings, hours reclaimed, and n8n workflows.
+- [Which jobs are automatable?](https://workscanai.vercel.app/automatable): Role-by-role automation analysis hub, with a task-by-task breakdown of what AI can automate today versus what stays human-led.
+
+## Role automation pages
+
+- [Is a Marketing Manager automatable?](https://workscanai.vercel.app/automatable/marketing-manager): ~65% of tasks automatable; content, scheduling and reporting automate, strategy and creative stay human.
+- [Is a Bookkeeper automatable?](https://workscanai.vercel.app/automatable/bookkeeper): ~75% automatable; invoice coding, reconciliation and reporting automate, judgement and sign-off stay human.
+- [Is a Recruiter automatable?](https://workscanai.vercel.app/automatable/recruiter): ~72% automatable; screening, scheduling and status emails automate, culture-fit and hiring decisions stay human.
+- [Is a Customer Support Agent automatable?](https://workscanai.vercel.app/automatable/customer-support-agent): ~75% automatable; triage, macro replies and reporting automate, complex and emotional cases stay human.
+- [Is a Sales Development Rep automatable?](https://workscanai.vercel.app/automatable/sales-development-rep): ~76% automatable; lead routing, follow-ups and CRM hygiene automate, discovery and negotiation stay human.
+- [Is a Data Analyst automatable?](https://workscanai.vercel.app/automatable/data-analyst): ~62% automatable; cleaning, dashboards and standard reports automate, framing questions and interpretation stay human.
+- [Is an Executive Assistant automatable?](https://workscanai.vercel.app/automatable/executive-assistant): ~60% automatable; scheduling, inbox triage and notes automate, discretion and relationships stay human.
+- [Is a Content Writer automatable?](https://workscanai.vercel.app/automatable/content-writer): ~58% automatable; drafts, repurposing and SEO briefs automate, original angles and brand voice stay human.
+- [Is an Operations Manager automatable?](https://workscanai.vercel.app/automatable/operations-manager): ~52% automatable; reporting, scheduling and process docs automate, cross-team decisions and people leadership stay human.
+- [Is a Paralegal automatable?](https://workscanai.vercel.app/automatable/paralegal): ~58% automatable; document review, data extraction and research automate, legal judgement and client advice stay human.
+
+## Methodology
+
+WorkScanAI scores each task across repeatability, data availability, error tolerance and integration complexity, then derives an overall automation score, ROI (hours and cost saved), risk level, and an agentification phase. Benchmarks are sourced from published research (McKinsey 2025 work-automation estimates; Bain automation studies). User-facing numbers are computed from the user's own input or disclosed as model assumptions — never fabricated.
+
+## About
+
+Built by Ian Baumeister (https://ianworks.dev). Stack: Next.js frontend, FastAPI/Python backend, Claude for analysis. Repository: https://github.com/ibxibx/workscanai

@@ -61,6 +61,7 @@ test_extract.py
 test_parse.py
 trigger_deploy.py
 *.txt
+!frontend/public/llms.txt
 *.gif
 
 # DB
