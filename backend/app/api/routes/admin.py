@@ -114,16 +114,25 @@ async def backfill_confidence(
             continue
         r.score_confidence = derive(r)
         updated += 1
+
+    # Capture everything we return BEFORE commit. With expire_on_commit=True
+    # (SQLAlchemy default), touching ORM attributes after commit triggers a lazy
+    # reload — which can 500 on the libSQL/Turso driver even though the write
+    # already succeeded. Snapshot first, then commit.
+    analysis_id = analysis.id
+    n_results = len(results)
+    confidence_values = [r.score_confidence for r in results]
+
     db.commit()
 
     return {
         "ok": True,
         "workflow_id": workflow_id,
-        "analysis_id": analysis.id,
-        "results": len(results),
+        "analysis_id": analysis_id,
+        "results": n_results,
         "updated": updated,
         "already_set": skipped,
-        "confidence_values": [r.score_confidence for r in results],
+        "confidence_values": confidence_values,
     }
 
 
