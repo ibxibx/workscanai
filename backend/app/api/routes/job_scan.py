@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, Field
 
 from app.core.database import get_db
-from app.core.security import get_client_ip
+from app.core.security import get_client_ip, is_owner_ip
 from app.core.config import settings
 from app.models.workflow import Workflow, Task, Analysis, AnalysisResult, User, _gen_share_code
 from app.services.job_scanner import JobScanner
@@ -126,8 +126,7 @@ async def get_quota(http_request: Request, db: Session = Depends(get_db)):
     client_ip = get_client_ip(http_request)
     is_admin = http_request.headers.get("x-admin-secret") == ADMIN_SECRET
     # Also bypass for owner IP(s) — same logic as check_rate_limit in security.py
-    owner_ips = [o.strip() for o in settings.OWNER_IP.split(',') if o.strip()]
-    is_owner = client_ip in owner_ips
+    is_owner = is_owner_ip(client_ip)
     used = 0 if (is_admin or is_owner) else _get_ip_daily_count(client_ip, db)
     return {
         "used": used,
@@ -171,8 +170,7 @@ async def job_scan_research(request: ResearchRequest, http_request: Request, db:
     """
     client_ip = get_client_ip(http_request)
     is_admin = http_request.headers.get("x-admin-secret") == ADMIN_SECRET
-    owner_ips = [o.strip() for o in settings.OWNER_IP.split(',') if o.strip()]
-    is_owner = client_ip in owner_ips
+    is_owner = is_owner_ip(client_ip)
     if not is_admin and not is_owner and _get_ip_daily_count(client_ip, db) >= DAILY_ANALYSIS_LIMIT:
         raise HTTPException(status_code=429, detail=_RATE_LIMIT_DETAIL(DAILY_ANALYSIS_LIMIT))
 
@@ -222,8 +220,7 @@ async def job_scan_analyze(
     # ── Rate limiting ─────────────────────────────────────────────
     client_ip = get_client_ip(http_request)
     is_admin = http_request.headers.get("x-admin-secret") == ADMIN_SECRET
-    owner_ips = [o.strip() for o in settings.OWNER_IP.split(',') if o.strip()]
-    is_owner = client_ip in owner_ips
+    is_owner = is_owner_ip(client_ip)
     if not is_admin and not is_owner and _get_ip_daily_count(client_ip, db) >= DAILY_ANALYSIS_LIMIT:
         raise HTTPException(status_code=429, detail=_RATE_LIMIT_DETAIL(DAILY_ANALYSIS_LIMIT))
     if not is_admin and not is_owner and x_user_email:

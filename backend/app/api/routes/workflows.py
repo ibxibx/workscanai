@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.core.database import get_db
 from app.core.config import settings
-from app.core.security import check_rate_limit, verify_recaptcha
+from app.core.security import check_rate_limit, verify_recaptcha, is_owner_ip
 from app.models.workflow import Workflow, Task, Analysis, AnalysisResult, User, _gen_share_code
 from app.schemas.workflow import (
     WorkflowCreate, WorkflowResponse,
@@ -332,8 +332,7 @@ async def analyze_workflow(
     # Lets the owner generate sample/template reports without hitting the public
     # 5/24h cap. is_admin uses the x-admin-secret header; is_owner matches OWNER_IP.
     _is_admin = bool(ADMIN_SECRET) and http_request.headers.get("x-admin-secret") == ADMIN_SECRET
-    _owner_ips = [o.strip() for o in settings.OWNER_IP.split(',') if o.strip()]
-    _is_owner = client_ip in _owner_ips
+    _is_owner = is_owner_ip(client_ip)
     _bypass = _is_admin or _is_owner
 
     ip_count = 0 if _bypass else _get_ip_daily_analyses(client_ip, db)
