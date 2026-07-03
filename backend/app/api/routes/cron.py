@@ -17,19 +17,16 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.core.database import get_db
+from app.core.auth import require_admin as _require_admin
+from app.core.config import settings
 from app.models.workflow import ReportLead, Workflow, Analysis, AnalysisResult
 
 router = APIRouter()
 
-RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
-FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@workscanai.com")
-APP_URL = os.getenv("APP_URL", "https://workscanai.vercel.app")
-
-
-def _require_admin(x_admin_secret: Optional[str] = Header(None)):
-    secret = os.getenv("ADMIN_SECRET", "")
-    if not secret or x_admin_secret != secret:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+# All config via typed settings (env-backed) — never scattered os.getenv.
+RESEND_API_KEY = settings.RESEND_API_KEY
+FROM_EMAIL = settings.FROM_EMAIL
+APP_URL = settings.APP_URL
 
 
 def _pick_quick_win(results):

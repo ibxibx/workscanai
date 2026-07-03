@@ -10,15 +10,10 @@ from typing import Optional
 from datetime import datetime, timedelta, timezone
 
 from app.core.database import get_db
+from app.core.auth import require_admin as _require_admin
 from app.models.workflow import User, Workflow, Task, Analysis, AnalysisResult
 
 router = APIRouter()
-
-
-def _require_admin(x_admin_secret: Optional[str] = Header(None)):
-    secret = os.getenv("ADMIN_SECRET", "")
-    if not secret or x_admin_secret != secret:
-        raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 @router.post("/admin/backfill-n8n/{workflow_id}")

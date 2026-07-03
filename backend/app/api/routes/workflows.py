@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 from app.core.database import get_db
 from app.core.config import settings
 from app.core.security import check_rate_limit, verify_recaptcha, is_owner_ip
+from app.core.auth import is_admin_secret
 from app.models.workflow import Workflow, Task, Analysis, AnalysisResult, User, _gen_share_code
 from app.schemas.workflow import (
     WorkflowCreate, WorkflowResponse,
@@ -24,7 +25,6 @@ from app.core.posthog_client import capture_event
 
 router = APIRouter()
 DAILY_ANALYSIS_LIMIT = 5
-ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")
 
 
 def _get_user_daily_analyses(email: str, db: Session) -> int:
@@ -331,7 +331,7 @@ async def analyze_workflow(
     # Owner / admin bypass — unlimited scans (same logic as job_scan.py + security.py).
     # Lets the owner generate sample/template reports without hitting the public
     # 5/24h cap. is_admin uses the x-admin-secret header; is_owner matches OWNER_IP.
-    _is_admin = bool(ADMIN_SECRET) and http_request.headers.get("x-admin-secret") == ADMIN_SECRET
+    _is_admin = is_admin_secret(http_request.headers.get("x-admin-secret"))
     _is_owner = is_owner_ip(client_ip)
     _bypass = _is_admin or _is_owner
 

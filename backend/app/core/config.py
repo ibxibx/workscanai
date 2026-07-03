@@ -36,12 +36,34 @@ class Settings(BaseSettings):
     RECAPTCHA_SECRET_KEY: str = ""
     RECAPTCHA_MIN_SCORE: float = 0.5
 
+    # Admin auth — the ONE home for the admin secret. Read everywhere via
+    # app.core.auth (never os.getenv scattered across routes, never a hardcoded
+    # fallback). Empty default = admin endpoints reject all requests (fail closed).
+    ADMIN_SECRET: str = ""
+
     # Owner IP — unlimited scans (set via .env / Render env var, never hardcoded)
     OWNER_IP: str = ""
+
+    # Email (Resend) + links
+    RESEND_API_KEY: str = ""
+    FROM_EMAIL: str = "noreply@workscanai.com"
+    APP_URL: str = "https://workscanai.vercel.app"
 
     # PostHog server-side analytics
     POSTHOG_API_KEY: str = ""
     POSTHOG_HOST: str = ""
+
+    def require_production_secrets(self) -> list[str]:
+        """Return the names of secrets that are REQUIRED in production but unset.
+        Called at startup so a misconfigured prod deploy fails loud instead of
+        silently running with broken auth. Never substitutes a real value."""
+        if self.ENVIRONMENT != "production":
+            return []
+        required = {
+            "ANTHROPIC_API_KEY": self.ANTHROPIC_API_KEY,
+            "ADMIN_SECRET": self.ADMIN_SECRET,
+        }
+        return [name for name, val in required.items() if not val]
 
     class Config:
         env_file = ".env"
