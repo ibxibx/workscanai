@@ -1,0 +1,22 @@
+#!/bin/sh
+# Pre-commit secret guard. Blocks commits that stage anything resembling a secret.
+# Enable once (from repo root):   git config core.hooksPath .githooks
+#
+# Finds a Python interpreter, then runs the staged-content scanner. If the
+# scanner exits non-zero, the commit is aborted. Bypass (use sparingly, only
+# after manual review):   git commit --no-verify
+
+# Prefer the project venv, fall back to python/python3 on PATH.
+if [ -x "backend/venv/Scripts/python.exe" ]; then
+  PY="backend/venv/Scripts/python.exe"
+elif command -v python >/dev/null 2>&1; then
+  PY="python"
+elif command -v python3 >/dev/null 2>&1; then
+  PY="python3"
+else
+  echo "pre-commit: no python interpreter found; skipping secret scan (install python)."
+  exit 0
+fi
+
+"$PY" scripts/secret_scan_precommit.py
+exit $?

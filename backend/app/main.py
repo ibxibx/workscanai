@@ -79,6 +79,23 @@ except Exception as e:
 
 app = FastAPI(title="WorkScanAI API", version="1.0.0")
 
+# Fail-loud config validation. In production, a missing required secret (e.g.
+# ADMIN_SECRET, ANTHROPIC_API_KEY) means broken auth or a dead feature — surface
+# it at startup in the logs instead of silently 401ing later. We warn rather than
+# hard-crash so a partial outage (one missing var) doesn't take the whole service
+# down, but it's LOUD and unmistakable in the Render logs.
+try:
+    from app.core.config import settings as _settings
+    _missing = _settings.require_production_secrets()
+    if _missing:
+        print("=" * 70)
+        print(f"[CONFIG WARNING] Missing required production secrets: {', '.join(_missing)}")
+        print("  Set them in the Render environment. Endpoints depending on them")
+        print("  will fail until configured. Secrets are NEVER hardcoded in source.")
+        print("=" * 70)
+except Exception as _e:
+    print(f"[CONFIG WARNING] Could not validate production secrets: {_e}")
+
 # Global exception handler — ensures ALL errors return JSON, never plain text.
 # This prevents "Unexpected token 'I', 'Internal S...'" on the frontend.
 @app.exception_handler(Exception)
