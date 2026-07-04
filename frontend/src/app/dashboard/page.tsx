@@ -41,6 +41,12 @@ interface WorkflowSummary {
   annual_savings: number | null
   task_count: number
   analysisState: 'ready' | 'none' | 'unreachable'
+  // When the private results endpoint is forbidden (workflow owned by another
+  // account) but a public share code exists, we render via /report/{shareCode}.
+  shareCode: string | null
+  // Where the card should navigate when opened (private results page normally,
+  // public report page when recovered via share code). null = not openable.
+  href: string | null
 }
 
 // Load one workflow's summary and classify its analysis state. Shared by the
@@ -71,6 +77,8 @@ async function enrichWorkflow(
         task_count: aData.workflow?.tasks?.length ?? 0,
         // 200 with a score → ready; 200 with null score → genuinely un-analyzed
         analysisState: hasScore ? 'ready' : 'none',
+        shareCode: aData.workflow?.share_code ?? null,
+        href: hasScore ? `/dashboard/results/${id}` : null,
       }
     }
 
@@ -78,10 +86,42 @@ async function enrichWorkflow(
     // 5xx, etc.) means it likely DOES exist but we couldn't load it here.
     const trulyMissing = aRes.status === 404
 
-    // Try to still show the workflow's name/metadata via the workflows endpoint.
+    // Fetch the workflow's own metadata (public) for name + share code.
     const wfRes = await fetchWithWake(`/api/workflows/${id}`, { onWarming })
-    if (wfRes.ok) {
-      const wf = await wfRes.json()
+    const wf = wfRes.ok ? await wfRes.json() : null
+    const shareCode: string | null = wf?.share_code ?? null
+
+    // Recovery path: a 403 means the private results endpoint is owned by
+    // another account, but the analysis is usually still public via its share
+    // code. Pull the real score from the public share endpoint and present it
+    // as a normal, fully-working card that opens the public report.
+    if (!trulyMissing && shareCode) {
+      try {
+        const sRes = await fetchWithWake(`/api/share/${shareCode}`, { onWarming })
+        if (sRes.ok) {
+          const sData = await sRes.json()
+          const hasScore = sData.automation_score !== null && sData.automation_score !== undefined
+          if (hasScore) {
+            return {
+              id,
+              name: sData.workflow?.name ?? wf?.name ?? `Workflow ${id}`,
+              description: sData.workflow?.description ?? wf?.description ?? null,
+              created_at: sData.workflow?.created_at ?? wf?.created_at ?? new Date().toISOString(),
+              automation_score: sData.automation_score,
+              hours_saved: sData.hours_saved ?? null,
+              annual_savings: sData.annual_savings ?? null,
+              task_count: sData.workflow?.tasks?.length ?? wf?.tasks?.length ?? 0,
+              analysisState: 'ready',
+              shareCode,
+              href: `/report/${shareCode}`,
+            }
+          }
+        }
+      } catch { /* fall through to unreachable */ }
+    }
+
+    // Have metadata but couldn't recover a score → refreshable card.
+    if (wf) {
       return {
         id,
         name: wf.name ?? `Workflow ${id}`,
@@ -92,6 +132,10 @@ async function enrichWorkflow(
         annual_savings: null,
         task_count: wf.tasks?.length ?? 0,
         analysisState: trulyMissing ? 'none' : 'unreachable',
+        shareCode,
+        href: trulyMissing
+          ? null
+          : (shareCode ? `/report/${shareCode}` : `/dashboard/results/${id}`),
       }
     }
 
@@ -107,6 +151,10 @@ async function enrichWorkflow(
       annual_savings: null,
       task_count: 0,
       analysisState: trulyMissing ? 'none' : 'unreachable',
+      shareCode,
+      href: trulyMissing
+        ? null
+        : (shareCode ? `/report/${shareCode}` : `/dashboard/results/${id}`),
     }
   } catch {
     // Network error / retries exhausted → unreachable, not "no analysis".
@@ -120,6 +168,8 @@ async function enrichWorkflow(
       annual_savings: null,
       task_count: 0,
       analysisState: 'unreachable',
+      shareCode: null,
+      href: `/dashboard/results/${id}`,
     }
   }
 }
@@ -557,10 +607,10 @@ export default function DashboardPage() {
                   </div>
                 )
 
-                return openable ? (
+                return openable && wf.href ? (
                   <Link
                     key={wf.id}
-                    href={`/dashboard/results/${wf.id}`}
+                    href={wf.href}
                     className="block group cursor-pointer"
                   >
                     {cardInner}
