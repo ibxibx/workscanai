@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Sparkles, Clock, Plus, TrendingUp, DollarSign, Zap, Download, Loader2 } from 'lucide-react'
+import { Sparkles, Clock, Plus, TrendingUp, DollarSign, Zap, Download, Loader2, RefreshCw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth'
 import { wakeBackend, fetchWithWake } from '@/lib/wake-ping'
@@ -26,6 +26,11 @@ function getLocalWorkflowIds(): number[] {
   } catch { return [] }
 }
 
+// analysisState distinguishes the three cases that used to all show "No analysis":
+//   'ready'      — analysis exists and its score loaded (green badge, clickable)
+//   'none'       — backend confirmed no analysis exists (404 / 200 with null score)
+//   'unreachable'— score fetch failed or was blocked (network/5xx/403); the
+//                  analysis likely EXISTS but we couldn't load it here → offer refresh
 interface WorkflowSummary {
   id: number
   name: string
@@ -35,6 +40,88 @@ interface WorkflowSummary {
   hours_saved: number | null
   annual_savings: number | null
   task_count: number
+  analysisState: 'ready' | 'none' | 'unreachable'
+}
+
+// Load one workflow's summary and classify its analysis state. Shared by the
+// initial dashboard fan-out and the per-card "refresh" action so both agree on
+// what "no analysis" actually means.
+async function enrichWorkflow(
+  id: number,
+  email: string | null,
+  onWarming?: (w: boolean) => void,
+): Promise<WorkflowSummary | null> {
+  const resultHeaders: Record<string, string> = {}
+  if (email) resultHeaders['x-user-email'] = email
+
+  try {
+    const aRes = await fetchWithWake(`/api/results/${id}`, { headers: resultHeaders, onWarming })
+
+    if (aRes.ok) {
+      const aData = await aRes.json()
+      const hasScore = aData.automation_score !== null && aData.automation_score !== undefined
+      return {
+        id,
+        name: aData.workflow?.name ?? `Workflow ${id}`,
+        description: aData.workflow?.description ?? null,
+        created_at: aData.workflow?.created_at ?? new Date().toISOString(),
+        automation_score: hasScore ? aData.automation_score : null,
+        hours_saved: aData.hours_saved ?? null,
+        annual_savings: aData.annual_savings ?? null,
+        task_count: aData.workflow?.tasks?.length ?? 0,
+        // 200 with a score → ready; 200 with null score → genuinely un-analyzed
+        analysisState: hasScore ? 'ready' : 'none',
+      }
+    }
+
+    // 404 → the analysis truly doesn't exist. Anything else (403 ownership,
+    // 5xx, etc.) means it likely DOES exist but we couldn't load it here.
+    const trulyMissing = aRes.status === 404
+
+    // Try to still show the workflow's name/metadata via the workflows endpoint.
+    const wfRes = await fetchWithWake(`/api/workflows/${id}`, { onWarming })
+    if (wfRes.ok) {
+      const wf = await wfRes.json()
+      return {
+        id,
+        name: wf.name ?? `Workflow ${id}`,
+        description: wf.description ?? null,
+        created_at: wf.created_at ?? new Date().toISOString(),
+        automation_score: null,
+        hours_saved: null,
+        annual_savings: null,
+        task_count: wf.tasks?.length ?? 0,
+        analysisState: trulyMissing ? 'none' : 'unreachable',
+      }
+    }
+
+    // Couldn't load metadata either. Still surface the card so the user isn't
+    // left thinking the analysis vanished — mark it refreshable.
+    return {
+      id,
+      name: `Workflow ${id}`,
+      description: null,
+      created_at: new Date().toISOString(),
+      automation_score: null,
+      hours_saved: null,
+      annual_savings: null,
+      task_count: 0,
+      analysisState: trulyMissing ? 'none' : 'unreachable',
+    }
+  } catch {
+    // Network error / retries exhausted → unreachable, not "no analysis".
+    return {
+      id,
+      name: `Workflow ${id}`,
+      description: null,
+      created_at: new Date().toISOString(),
+      automation_score: null,
+      hours_saved: null,
+      annual_savings: null,
+      task_count: 0,
+      analysisState: 'unreachable',
+    }
+  }
 }
 
 export default function DashboardPage() {
@@ -42,6 +129,7 @@ export default function DashboardPage() {
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [warming, setWarming] = useState(false)
+  const [refreshingId, setRefreshingId] = useState<number | null>(null)
   const [downloadingCombined, setDownloadingCombined] = useState<'docx' | 'pdf' | null>(null)
 
   useEffect(() => {
@@ -83,46 +171,9 @@ export default function DashboardPage() {
           return
         }
 
-        // Enrich each ID with analysis data
+        // Enrich each ID with analysis data (shared classifier)
         const enriched: WorkflowSummary[] = (
-          await Promise.all(
-            mergedIds.map(async (id) => {
-              try {
-                // Pass email so the ownership check on the backend passes
-                const resultHeaders: Record<string, string> = {}
-                if (email) resultHeaders['x-user-email'] = email
-                const aRes = await fetchWithWake(`/api/results/${id}`, { headers: resultHeaders, onWarming: setWarming })
-                if (aRes.ok) {
-                  const aData = await aRes.json()
-                  return {
-                    id,
-                    name: aData.workflow?.name ?? `Workflow ${id}`,
-                    description: aData.workflow?.description ?? null,
-                    created_at: aData.workflow?.created_at ?? new Date().toISOString(),
-                    automation_score: aData.automation_score,
-                    hours_saved: aData.hours_saved,
-                    annual_savings: aData.annual_savings,
-                    task_count: aData.workflow?.tasks?.length ?? 0,
-                  }
-                }
-                const wfRes = await fetchWithWake(`/api/workflows/${id}`, { onWarming: setWarming })
-                if (wfRes.ok) {
-                  const wf = await wfRes.json()
-                  return {
-                    id,
-                    name: wf.name,
-                    description: wf.description ?? null,
-                    created_at: wf.created_at,
-                    automation_score: null,
-                    hours_saved: null,
-                    annual_savings: null,
-                    task_count: wf.tasks?.length ?? 0,
-                  }
-                }
-              } catch {}
-              return null
-            })
-          )
+          await Promise.all(mergedIds.map((id) => enrichWorkflow(id, email, setWarming)))
         ).filter(Boolean) as WorkflowSummary[]
 
         enriched.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -137,7 +188,29 @@ export default function DashboardPage() {
     fetchWorkflows()
   }, [email, isLoaded])
 
-  const analyzed = workflows.filter(w => w.automation_score !== null)
+  // Re-fetch a single card that couldn't load its analysis (cold backend,
+  // ownership blip, transient 5xx). Wakes the box first, then re-classifies.
+  const refreshCard = async (id: number) => {
+    if (refreshingId !== null) return
+    setRefreshingId(id)
+    try {
+      await wakeBackend().catch(() => {})
+      const fresh = await enrichWorkflow(id, email, setWarming)
+      if (fresh) {
+        setWorkflows(prev => {
+          const next = prev.map(w => (w.id === id ? fresh : w))
+          next.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          return next
+        })
+      }
+    } finally {
+      setRefreshingId(null)
+    }
+  }
+
+  const analyzed = workflows.filter(w => w.analysisState === 'ready')
+  const pendingCount = workflows.filter(w => w.analysisState === 'none').length
+  const unreachableCount = workflows.filter(w => w.analysisState === 'unreachable').length
   const totalHours = analyzed.reduce((sum, w) => sum + (w.hours_saved ?? 0), 0)
   const avgScore =
     analyzed.length > 0
@@ -255,9 +328,11 @@ export default function DashboardPage() {
               <div className="stat-number text-[32px] sm:text-[40px] font-semibold tracking-tight mb-[4px]">{analyzed.length}</div>
             )}
             <div className="text-[13px] text-[#86868b]">
-              {workflows.length - analyzed.length > 0
-                ? `${workflows.length - analyzed.length} pending analysis`
-                : 'All workflows analyzed'}
+              {unreachableCount > 0
+                ? `${unreachableCount} to reload`
+                : pendingCount > 0
+                  ? `${pendingCount} pending analysis`
+                  : 'All workflows analyzed'}
             </div>
           </div>
 
@@ -401,22 +476,30 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-[16px]">
-              {workflows.map((wf) => (
-                <Link
-                  key={wf.id}
-                  href={wf.automation_score !== null ? `/dashboard/results/${wf.id}` : '#'}
-                  className={`block group ${wf.automation_score !== null ? 'cursor-pointer' : 'cursor-default'}`}
-                >
+              {workflows.map((wf) => {
+                // A card is openable if its analysis is ready OR merely
+                // unreachable-from-here (it likely exists; the results page has
+                // its own cold-start retry, so let the user through).
+                const openable = wf.analysisState === 'ready' || wf.analysisState === 'unreachable'
+                const isRefreshing = refreshingId === wf.id
+
+                const cardInner = (
                   <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[32px] hover-lift hover-glow transition-all">
                     <div className="flex items-start justify-between gap-[16px]">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-[12px] mb-[8px]">
-                          <h3 className="text-[19px] font-semibold italic text-[#1d1d1f] truncate group-hover:text-[#0071e3] transition-colors">
+                          <h3 className={`text-[19px] font-semibold italic text-[#1d1d1f] truncate transition-colors ${openable ? 'group-hover:text-[#0071e3]' : ''}`}>
                             {wf.name}
                           </h3>
-                          {wf.automation_score === null && (
+                          {wf.analysisState === 'none' && (
                             <span className="shrink-0 px-[10px] py-[4px] bg-[#e8e8ed] text-[#86868b] text-[12px] font-semibold rounded-full border border-[#d2d2d7]">
                               No analysis
+                            </span>
+                          )}
+                          {wf.analysisState === 'unreachable' && (
+                            <span className="shrink-0 inline-flex items-center gap-[5px] px-[10px] py-[4px] bg-amber-50 text-amber-700 text-[12px] font-semibold rounded-full border border-amber-200">
+                              <RefreshCw className={`h-[11px] w-[11px] ${isRefreshing ? 'animate-spin' : ''}`} />
+                              {isRefreshing ? 'Loading…' : 'Tap to open'}
                             </span>
                           )}
                         </div>
@@ -440,9 +523,21 @@ export default function DashboardPage() {
                             </>
                           )}
                         </div>
+
+                        {/* Refresh affordance for cards we couldn't classify */}
+                        {wf.analysisState === 'unreachable' && (
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); refreshCard(wf.id) }}
+                            disabled={isRefreshing}
+                            className="mt-[14px] inline-flex items-center gap-[7px] text-[13px] font-semibold text-[#0071e3] hover:text-[#0077ed] disabled:text-[#86868b] transition-colors"
+                          >
+                            <RefreshCw className={`h-[13px] w-[13px] ${isRefreshing ? 'animate-spin' : ''}`} />
+                            {isRefreshing ? 'Checking the server…' : 'Click to refresh — this analysis may still be loading'}
+                          </button>
+                        )}
                       </div>
 
-                      {wf.automation_score !== null && (
+                      {wf.analysisState === 'ready' && wf.automation_score !== null && (
                         <div className="shrink-0 text-right">
                           <div className={`inline-flex items-center px-[14px] py-[8px] rounded-full border text-[15px] font-semibold ${getScoreBadge(wf.automation_score)}`}>
                             {Math.round(wf.automation_score)}%
@@ -450,10 +545,32 @@ export default function DashboardPage() {
                           <div className="text-[11px] text-[#86868b] mt-[4px]">automation ready</div>
                         </div>
                       )}
+
+                      {wf.analysisState === 'unreachable' && (
+                        <div className="shrink-0 text-right">
+                          <div className="inline-flex items-center px-[14px] py-[8px] rounded-full border border-amber-200 bg-amber-50 text-amber-700 text-[13px] font-semibold">
+                            View →
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </Link>
-              ))}
+                )
+
+                return openable ? (
+                  <Link
+                    key={wf.id}
+                    href={`/dashboard/results/${wf.id}`}
+                    className="block group cursor-pointer"
+                  >
+                    {cardInner}
+                  </Link>
+                ) : (
+                  <div key={wf.id} className="block cursor-default">
+                    {cardInner}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
