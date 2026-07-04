@@ -679,6 +679,19 @@ export function AIReadinessSection({ data, context }: { data: ReportData; contex
   )
 }
 
+// ── Footer disclaimer — appears at the very bottom of every report surface ──
+export function ReportDisclaimer() {
+  return (
+    <div className="mt-[24px] pt-[16px] border-t border-[#e8e8ed]">
+      <p className="text-[11px] leading-[1.5] text-[#86868b] text-center">
+        WorkScanAI estimates are for general guidance only and do not constitute
+        investment, employment, financial, legal, or business advice &mdash; verify
+        independently before acting.
+      </p>
+    </div>
+  )
+}
+
 // ── Convenience: render every context-aware section in canonical order ──
 // (Task Breakdown is rendered separately by callers that want it in a specific
 //  spot; this renders the context-specific blocks B/C/D + E after it.)

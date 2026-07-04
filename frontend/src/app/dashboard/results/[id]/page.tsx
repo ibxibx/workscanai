@@ -299,6 +299,13 @@ export default function ResultsPage() {
  </Link>
  </div>
  </div>
+
+ {/* Legal / accuracy disclaimer — very bottom of the report */}
+ <p className="mt-[24px] text-[11px] leading-[1.5] text-[#86868b] text-center max-w-[560px] mx-auto">
+ WorkScanAI estimates are for general guidance only and do not constitute
+ investment, employment, financial, legal, or business advice &mdash; verify
+ independently before acting.
+ </p>
  </div>
  </div>
  )
