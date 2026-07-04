@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { Sparkles, Clock, Plus, TrendingUp, DollarSign, Zap, Download, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth'
+import { wakeBackend, fetchWithWake } from '@/lib/wake-ping'
+import BackendWarming from '@/components/BackendWarming'
 
 // ── Local storage key — kept as a fallback cache for speed ───────────────────
 const MY_WORKFLOWS_KEY = 'workscan_my_workflow_ids'
@@ -39,6 +41,7 @@ export default function DashboardPage() {
   const { email, isLoaded } = useAuth()
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [warming, setWarming] = useState(false)
   const [downloadingCombined, setDownloadingCombined] = useState<'docx' | 'pdf' | null>(null)
 
   useEffect(() => {
@@ -46,12 +49,18 @@ export default function DashboardPage() {
 
     const fetchWorkflows = async () => {
       try {
+        // Pre-warm the Render free-tier box before firing the fan-out of
+        // per-workflow requests. Without this, a cold backend makes every
+        // enrichment call fail and each workflow falsely renders "No analysis".
+        await wakeBackend().catch(() => {})
+
         let ids: number[] = []
 
         if (email) {
           // ── Primary: fetch all workflows from the account via email ──────
-          const accountRes = await fetch('/api/workflows', {
+          const accountRes = await fetchWithWake('/api/workflows', {
             headers: { 'x-user-email': email },
+            onWarming: setWarming,
           })
           if (accountRes.ok) {
             try {
@@ -82,7 +91,7 @@ export default function DashboardPage() {
                 // Pass email so the ownership check on the backend passes
                 const resultHeaders: Record<string, string> = {}
                 if (email) resultHeaders['x-user-email'] = email
-                const aRes = await fetch(`/api/results/${id}`, { headers: resultHeaders })
+                const aRes = await fetchWithWake(`/api/results/${id}`, { headers: resultHeaders, onWarming: setWarming })
                 if (aRes.ok) {
                   const aData = await aRes.json()
                   return {
@@ -96,7 +105,7 @@ export default function DashboardPage() {
                     task_count: aData.workflow?.tasks?.length ?? 0,
                   }
                 }
-                const wfRes = await fetch(`/api/workflows/${id}`)
+                const wfRes = await fetchWithWake(`/api/workflows/${id}`, { onWarming: setWarming })
                 if (wfRes.ok) {
                   const wf = await wfRes.json()
                   return {
@@ -178,6 +187,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]">
+      <BackendWarming show={warming} />
       <div className="max-w-[980px] mx-auto px-6">
 
         {/* Header */}

@@ -35,10 +35,34 @@ interface AnalysisData {
 
 const BACKEND_BASE = process.env.API_URL || 'https://workscanai.onrender.com'
 
+// Server-side cold-start-resilient fetch. This runs on Vercel's server during
+// SSR, so the browser wakeBackend()/toast path doesn't apply — instead we retry
+// through the Render free-tier cold boot (network errors + 5xx) so a shared
+// report link doesn't 404 just because the backend was asleep.
+async function fetchWithRetry(url: string, init: RequestInit & { next?: { revalidate: number } }, retries = 4): Promise<Response | null> {
+  const COLD = new Set([500, 502, 503, 504])
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, { ...init, signal: AbortSignal.timeout(60_000) })
+      if (COLD.has(res.status) && attempt < retries) {
+        await new Promise(r => setTimeout(r, Math.min(1500 + attempt * 2000, 8000)))
+        continue
+      }
+      return res
+    } catch {
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, Math.min(1500 + attempt * 2000, 8000)))
+        continue
+      }
+    }
+  }
+  return null
+}
+
 async function getAnalysisByCode(code: string): Promise<AnalysisData | null> {
   try {
-    const res = await fetch(`${BACKEND_BASE}/api/share/${code}`, { next: { revalidate: 3600 } })
-    if (!res.ok) return null
+    const res = await fetchWithRetry(`${BACKEND_BASE}/api/share/${code}`, { next: { revalidate: 3600 } })
+    if (!res || !res.ok) return null
     const data = await res.json()
     const taskMap: Record<number, WorkflowTask> = {}
     if (data.workflow?.tasks) { for (const t of data.workflow.tasks) taskMap[t.id] = t }
@@ -82,13 +106,13 @@ async function getN8nTemplates(data: AnalysisData): Promise<N8nTemplate[]> {
   })).filter(t => t.name)
   if (taskDicts.length === 0) return []
   try {
-    const res = await fetch(`${BACKEND_BASE}/api/job-scan/n8n-templates`, {
+    const res = await fetchWithRetry(`${BACKEND_BASE}/api/job-scan/n8n-templates`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ job_title: jobTitle, tasks: taskDicts }),
       next: { revalidate: 3600 },
     })
-    if (!res.ok) return []
+    if (!res || !res.ok) return []
     const payload = await res.json()
     const templates = (payload?.suggested_templates || []) as N8nTemplate[]
     return Array.isArray(templates) ? templates : []

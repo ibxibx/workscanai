@@ -7,6 +7,8 @@ import {
   ArrowLeft, Zap, Clock, TrendingUp, Wrench,
   CheckCircle2, Circle, ArrowRight
 } from 'lucide-react'
+import { fetchWithWake } from '@/lib/wake-ping'
+import BackendWarming from '@/components/BackendWarming'
 
 // ── Recommendation renderer — splits on Option 1/2/3 and Decision layer ─────
 function RecommendationBlocks({ text }: { text: string }) {
@@ -125,6 +127,7 @@ export default function RoadmapPage() {
   const [data, setData] = useState<AnalysisData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [warming, setWarming] = useState(false)
   const [checked, setChecked] = useState<Record<string, boolean>>({})
   const fetchedRef = useRef(false)
 
@@ -133,7 +136,7 @@ export default function RoadmapPage() {
     fetchedRef.current = true
     const load = async () => {
       try {
-        const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/results/${id}`)
+        const r = await fetchWithWake(`${process.env.NEXT_PUBLIC_API_URL}/api/results/${id}`, { onWarming: setWarming })
         if (!r.ok) throw new Error()
         const d = await r.json()
 
@@ -146,7 +149,7 @@ export default function RoadmapPage() {
         }
 
         // Enrich each result with its task object
-        d.results = (d.results || []).map((r: any) => ({
+        d.results = (d.results || []).map((r: TaskResult & { task_id: number }) => ({
           ...r,
           task: taskMap[r.task_id] ?? {
             name: `Task ${r.task_id}`,
@@ -172,18 +175,29 @@ export default function RoadmapPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white pt-[88px] flex items-center justify-center">
-        <div className="text-[17px] text-[#86868b]">Loading roadmap…</div>
+        <BackendWarming show={warming} />
+        <div className="text-[17px] text-[#86868b] text-center px-6">
+          {warming
+            ? 'Waking the server — this can take 20–40 seconds on the free tier…'
+            : 'Loading roadmap…'}
+        </div>
       </div>
     )
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-white pt-[88px] flex flex-col items-center justify-center gap-[16px]">
+      <div className="min-h-screen bg-white pt-[88px] flex flex-col items-center justify-center gap-[16px] px-6 text-center">
         <div className="text-[17px] text-red-600">{error}</div>
-        <Link href={`/dashboard/results/${id}`} className="text-[#0071e3] hover:underline text-[15px]">
-          Back to results
-        </Link>
+        <p className="text-[14px] text-[#86868b] max-w-[420px]">The server may still be waking up — reloading usually fixes this.</p>
+        <div className="flex flex-wrap justify-center gap-[12px]">
+          <button onClick={() => window.location.reload()} className="bg-[#0071e3] hover:bg-[#0077ed] text-white px-[20px] py-[10px] rounded-full text-[14px] font-medium transition-all">
+            Try again
+          </button>
+          <Link href={`/dashboard/results/${id}`} className="border border-[#d2d2d7] hover:border-[#b8b8bd] text-[#1d1d1f] px-[20px] py-[10px] rounded-full text-[14px] font-medium transition-all">
+            Back to results
+          </Link>
+        </div>
       </div>
     )
   }

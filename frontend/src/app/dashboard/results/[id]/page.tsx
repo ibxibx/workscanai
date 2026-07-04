@@ -6,6 +6,8 @@ import { Download, Share2, Map, Check, Users, Building2, User, Search } from 'lu
 import Link from 'next/link'
 import { TaskBreakdown, ContextSections, resolveContext, type SharedTaskResult } from '@/components/report/ReportSections'
 import N8nWorkflowsSection from '@/components/report/N8nWorkflowsSection'
+import { fetchWithWake } from '@/lib/wake-ping'
+import BackendWarming from '@/components/BackendWarming'
 
 interface WorkflowTask { id: number; name: string; description: string }
 
@@ -64,6 +66,7 @@ export default function ResultsPage() {
  const [loading, setLoading] = useState(true)
  const [error, setError] = useState<string | null>(null)
  const [copied, setCopied] = useState(false)
+ const [warming, setWarming] = useState(false)
  const [suggestedTemplates, setSuggestedTemplates] = useState<SuggestedTemplate[]>([])
 
  const handleShare = useCallback(async () => {
@@ -87,7 +90,7 @@ export default function ResultsPage() {
  const guestId = typeof window !== 'undefined' ? (localStorage.getItem('wsai_guest_id') || '') : ''
  const headers: Record<string, string> = {}
  if (guestId) headers['x-user-email'] = guestId
- const response = await fetch(`/api/results/${id}`, { signal: controller.signal, headers })
+ const response = await fetchWithWake(`/api/results/${id}`, { signal: controller.signal, headers, onWarming: setWarming })
  if (response.status === 404) notFound()
  if (!response.ok) throw new Error('Failed to fetch analysis results')
  const data = await response.json()
@@ -129,14 +132,39 @@ export default function ResultsPage() {
 
  if (loading) return (
   <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]">
+    <BackendWarming show={warming} />
     <div className="max-w-[980px] mx-auto px-6 text-center pt-[80px]">
       <div className="w-[48px] h-[48px] rounded-full border-[3px] border-[#e8e8ed] border-t-[#0071e3] animate-spin mx-auto mb-[24px]" />
       <div className="text-[20px] font-semibold text-[#1d1d1f] mb-[8px]">Loading your analysis…</div>
-      <div className="text-[14px] text-[#86868b]">This may take a few seconds if the server is warming up.</div>
+      <div className="text-[14px] text-[#86868b]">
+        {warming
+          ? 'The server is waking up from sleep — this can take 20–40 seconds on the free tier.'
+          : 'This may take a few seconds if the server is warming up.'}
+      </div>
     </div>
   </div>
  )
- if (error || !analysisData) return <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]"><div className="max-w-[980px] mx-auto px-6 text-center"><div className="text-[24px] text-red-600 mb-4">{error || 'No analysis data found'}</div><Link href="/" className="text-[#0071e3] hover:underline">Go back to home</Link></div></div>
+ if (error || !analysisData) return (
+   <div className="min-h-screen bg-white text-[#1d1d1f] pt-[88px] pb-[60px]">
+     <div className="max-w-[980px] mx-auto px-6 text-center pt-[40px]">
+       <div className="text-[24px] text-red-600 mb-3">{error || 'No analysis data found'}</div>
+       <p className="text-[14px] text-[#86868b] mb-6 max-w-[460px] mx-auto">
+         The analysis server may still be waking up. Reloading usually resolves this once it&apos;s ready.
+       </p>
+       <div className="flex flex-wrap justify-center gap-[12px]">
+         <button
+           onClick={() => window.location.reload()}
+           className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[24px] py-[12px] rounded-full text-[15px] font-medium transition-all"
+         >
+           Try again
+         </button>
+         <Link href="/dashboard" className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] text-[#1d1d1f] px-[24px] py-[12px] rounded-full text-[15px] font-medium transition-all">
+           Back to dashboard
+         </Link>
+       </div>
+     </div>
+   </div>
+ )
 
  const context = analysisData.workflow.analysis_context || 'individual'
  const totalTasks = analysisData.results.length
