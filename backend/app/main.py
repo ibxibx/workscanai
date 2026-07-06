@@ -101,11 +101,15 @@ except Exception as _e:
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     import traceback
+    from app.core.config import settings as _s
+    # Always log the full trace server-side (Render logs).
     print(f"[UNHANDLED ERROR] {request.method} {request.url}\n{traceback.format_exc()}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": f"Internal server error: {str(exc)}"},
-    )
+    # Only expose the exception message to clients outside production. In prod,
+    # str(exc) can leak internals (SQL fragments, file paths, secret-ish detail),
+    # so return a generic message. The trace is still in the logs for debugging.
+    is_prod = _s.ENVIRONMENT == "production"
+    detail = "Internal server error" if is_prod else f"Internal server error: {str(exc)}"
+    return JSONResponse(status_code=500, content={"detail": detail})
 
 # CORS settings
 # Always include the Vercel production origin so direct browser-to-Render calls
