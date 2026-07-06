@@ -34,6 +34,32 @@ class OTPVerifyRequest(BaseModel):
     code: str
 
 
+# ── OTP brute-force guard ─────────────────────────────────────────────────────
+# A 4-digit code is only 10,000 possibilities, so without a cap an attacker can
+# try them all inside the 15-min TTL. Track failed attempts per email in-memory
+# (same approach as the analyze rate limiter) and lock after MAX_OTP_ATTEMPTS
+# until a new code is requested.
+import time as _time
+MAX_OTP_ATTEMPTS = 5
+_otp_attempts: dict[str, list[float]] = {}
+_OTP_ATTEMPT_WINDOW = TOKEN_TTL_MINUTES * 60
+
+
+def _otp_attempts_exceeded(email: str) -> bool:
+    now = _time.time()
+    hits = [t for t in _otp_attempts.get(email, []) if now - t < _OTP_ATTEMPT_WINDOW]
+    _otp_attempts[email] = hits
+    return len(hits) >= MAX_OTP_ATTEMPTS
+
+
+def _record_otp_failure(email: str) -> None:
+    _otp_attempts.setdefault(email, []).append(_time.time())
+
+
+def _clear_otp_attempts(email: str) -> None:
+    _otp_attempts.pop(email, None)
+
+
 def _get_or_create_user(email: str, db: Session) -> User:
     user = db.query(User).filter(User.email == email).first()
     if not user:
@@ -98,13 +124,17 @@ async def request_magic_link(body: MagicLinkRequest, db: Session = Depends(get_d
         raise HTTPException(status_code=422, detail="Invalid email address.")
     _get_or_create_user(email, db)
 
+    # New code issued → reset the brute-force attempt counter for this email.
+    _clear_otp_attempts(email)
+
     # Invalidate old unused tokens for this email
     db.query(MagicToken).filter(MagicToken.email == email, MagicToken.used == False).delete()
     db.commit()
 
     token = secrets.token_urlsafe(32)
-    # Generate a 4-digit OTP code
-    otp_code = ''.join(random.choices(string.digits, k=4))
+    # Generate a 4-digit OTP code using a cryptographically-secure RNG
+    # (random.choices uses the Mersenne Twister, which is predictable).
+    otp_code = ''.join(secrets.choice(string.digits) for _ in range(4))
     expires = datetime.now(timezone.utc) + timedelta(minutes=TOKEN_TTL_MINUTES)
     magic = MagicToken(email=email, token=token, expires_at=expires, otp_code=otp_code)
     db.add(magic)
@@ -143,6 +173,14 @@ def verify_magic_token(token: str = Query(...), db: Session = Depends(get_db)):
 def verify_otp(body: OTPVerifyRequest, db: Session = Depends(get_db)):
     email = body.email.lower().strip()
     code = body.code.strip()
+
+    # Brute-force lock: too many wrong codes → refuse until a new code is issued.
+    if _otp_attempts_exceeded(email):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many incorrect attempts. Please request a new code.",
+        )
+
     row = (
         db.query(MagicToken)
         .filter(MagicToken.email == email, MagicToken.used == False)
@@ -153,9 +191,12 @@ def verify_otp(body: OTPVerifyRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="No active code found. Please request a new one.")
     if row.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Code has expired. Please request a new one.")
-    if row.otp_code != code:
+    # Constant-time comparison to avoid leaking the code via timing.
+    if not secrets.compare_digest(str(row.otp_code), code):
+        _record_otp_failure(email)
         raise HTTPException(status_code=400, detail="Incorrect code. Please try again.")
 
+    _clear_otp_attempts(email)
     row.used = True
     db.commit()
     _get_or_create_user(row.email, db)
