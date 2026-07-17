@@ -459,4 +459,14 @@ export const de: Messages = {
     faqQ4: "Wird KI {role} ersetzen?",
     faqA4: "Nicht vollständig. Die Rolle als {role} ist aufgabenbezogen etwa zu {score} % automatisierbar, was in der Regel bedeutet, dass KI repetitive Arbeit übernimmt und sich die Rolle stärker zu den anspruchsvolleren Aufgaben verlagert, statt zu verschwinden.",
   },
+  chrome: {
+    notFoundTitle: "Seite nicht gefunden",
+    notFoundDesc: "Die gesuchte Seite existiert nicht oder wurde möglicherweise verschoben.",
+    backHome: "Zurück zur Startseite",
+    viewDashboard: "Dashboard ansehen",
+    errTitle: "Etwas ist schiefgelaufen",
+    errDesc: "Das Dashboard konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
+    errTryAgain: "Erneut versuchen",
+    errGoHome: "Zur Startseite",
+  },
 }
