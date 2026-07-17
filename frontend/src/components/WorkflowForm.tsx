@@ -7,6 +7,7 @@ import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown,
 import { saveMyWorkflowId } from '@/app/dashboard/page'
 import { persistSession } from '@/lib/auth'
 import { trackInputStarted, trackAnalysisSubmitted } from '@/lib/analytics'
+import { useT } from '@/i18n/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type AnalysisContext = 'individual' | 'team' | 'company'
@@ -146,6 +147,12 @@ const CONTEXT_OPTIONS = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function WorkflowForm({ onAnalysisComplete, onError, referredByCode, initialMode, initialJobTitle }: WorkflowFormProps) {
+  const t = useT('form')
+  // Localised label/desc for CONTEXT_OPTIONS (which is a module-scope constant)
+  const ctxLabel = (v: AnalysisContext) =>
+    v === 'individual' ? t('ctxIndLabel') : v === 'team' ? t('ctxTeamLabel') : t('ctxCompanyLabel')
+  const ctxDesc = (v: AnalysisContext) =>
+    v === 'individual' ? t('ctxIndDesc') : v === 'team' ? t('ctxTeamDesc') : t('ctxCompanyDesc')
   // Guest session: stable anonymous ID stored in localStorage for workflow ownership
   const getGuestId = (): string => {
     let id = localStorage.getItem('wsai_guest_id')
@@ -1002,10 +1009,10 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
         {/* Input Mode — dark bold tabs */}
         <div className="bg-[#1d1d1f] border border-[#3a3a3c] rounded-[20px] p-[6px] sm:p-[8px] grid grid-cols-2 sm:flex sm:flex-wrap gap-[4px] sm:gap-[6px] shadow-lg">
           {([
-            { mode:'manual' as const,    icon:FileText, label:'Manual Entry',     mobileLabel:'Manual',   sublabel:'Type tasks directly' },
-            { mode:'voice' as const,     icon:Mic,      label:'Voice Input',      mobileLabel:'Voice',    sublabel:'Speak your workflow' },
-            { mode:'document' as const,  icon:Upload,   label:'Upload Document',  mobileLabel:'Upload',   sublabel:'PDF, Word, CV, Excel…' },
-            { mode:'jobscan' as const,   icon:Search,   label:'Job Scanner',      mobileLabel:'Scanner',  sublabel:'Auto-scan any job title' },
+            { mode:'manual' as const,    icon:FileText, label:t('modeManual'),   mobileLabel:t('modeManualMobile'), sublabel:t('modeManualSub') },
+            { mode:'voice' as const,     icon:Mic,      label:t('modeVoice'),    mobileLabel:t('modeVoiceMobile'),  sublabel:t('modeVoiceSub') },
+            { mode:'document' as const,  icon:Upload,   label:t('modeDoc'),      mobileLabel:t('modeDocMobile'),    sublabel:t('modeDocSub') },
+            { mode:'jobscan' as const,   icon:Search,   label:t('modeScan'),     mobileLabel:t('modeScanMobile'),   sublabel:t('modeScanSub') },
           ]).map(({mode,icon:Icon,label,mobileLabel,sublabel}) => (
             <button key={mode} type="button" onClick={()=>{
                 setInputMode(mode)
@@ -1166,20 +1173,20 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
               <button type="button" onClick={isRecording?stopVoiceRecording:startVoiceRecording} className={`inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border mb-[16px] transition-all hover:scale-105 active:scale-95 ${isRecording?'border-red-300':'border-[#d2d2d7] hover:border-[#0071e3]'}`}>
                 <Mic className={`h-[28px] w-[28px] ${isRecording?'text-red-500 animate-pulse':'text-[#6e6e73]'}`}/>
               </button>
-              <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Voice Recording</h3>
-              <p className="text-[15px] text-[#6e6e73] max-w-[420px] mx-auto">Describe your workflow and tasks verbally. Tasks will populate automatically when you stop.</p>
+              <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">{t('voiceRecording')}</h3>
+              <p className="text-[15px] text-[#6e6e73] max-w-[420px] mx-auto">{t('voiceDesc')}</p>
             </div>
-            {!isRecording&&<button type="button" onClick={startVoiceRecording} className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all"><Mic className="h-[18px] w-[18px]"/>Start Recording</button>}
+            {!isRecording&&<button type="button" onClick={startVoiceRecording} className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all"><Mic className="h-[18px] w-[18px]"/>{t('voiceStart')}</button>}
             {isRecording&&(
               <div className="space-y-[16px]">
-                <div className="flex items-center justify-center gap-[10px]"><div className="w-[10px] h-[10px] bg-red-500 rounded-full animate-pulse"/><span className="text-[17px] font-medium text-red-600">Recording… speak now</span></div>
+                <div className="flex items-center justify-center gap-[10px]"><div className="w-[10px] h-[10px] bg-red-500 rounded-full animate-pulse"/><span className="text-[17px] font-medium text-red-600">{t('voiceRecordingNow')}</span></div>
                 {transcript&&<div ref={el => { if (el) el.scrollTop = el.scrollHeight }} className="bg-white border border-[#d2d2d7] rounded-[12px] p-[16px] text-left text-[14px] text-[#1d1d1f] min-h-[80px] max-h-[400px] overflow-y-auto transition-all duration-200 whitespace-pre-wrap">{transcript}</div>}
-                <button type="button" onClick={stopVoiceRecording} className="inline-flex items-center gap-[8px] bg-red-500 hover:bg-red-600 text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all">Stop &amp; Extract Tasks</button>
+                <button type="button" onClick={stopVoiceRecording} className="inline-flex items-center gap-[8px] bg-red-500 hover:bg-red-600 text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all">{t('voiceStop')}</button>
               </div>
             )}
             {!isRecording&&isExtractingTasks&&(
               <div className={`mt-[20px] inline-flex items-center gap-[10px] px-[20px] py-[12px] rounded-full text-[15px] font-medium transition-all ${extractStatus==='done'?'bg-green-50 border border-green-200 text-green-700':'bg-blue-50 border border-blue-200 text-[#0071e3]'}`}>
-                {extractStatus==='done'?<><CheckCircle2 className="h-[18px] w-[18px]"/>Tasks populated — scroll down to review</>:<><Loader2 className="animate-spin h-[18px] w-[18px]"/>Extracting and populating tasks…</>}
+                {extractStatus==='done'?<><CheckCircle2 className="h-[18px] w-[18px]"/>{t('voiceTasksPopulated')}</>:<><Loader2 className="animate-spin h-[18px] w-[18px]"/>{t('voiceExtractingPop')}</>}
               </div>
             )}
           </div>
@@ -1191,16 +1198,16 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
             <input type="file" ref={fileInputRef} onChange={handleDocumentUpload} accept=".txt,.md,.rst,.rtf,.csv,.tsv,.json,.xml,.html,.yaml,.yml,.log,.pdf,.doc,.docx,.odt,.xls,.xlsx,.xlsm,.xlsb,.ods,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.webp,.bmp,.tiff,.tif,.heic,.heif,.avif,.ico,.svg" className="hidden"/>
             <div className="mb-[20px]">
               <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border border-[#d2d2d7] mb-[16px]"><Upload className="h-[28px] w-[28px] text-[#6e6e73]"/></div>
-              <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Upload Document</h3>
-              <p className="text-[15px] text-[#6e6e73] max-w-[440px] mx-auto">Upload any business document — AI extracts and structures your workflow tasks automatically.</p>
+              <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">{t('modeDoc')}</h3>
+              <p className="text-[15px] text-[#6e6e73] max-w-[440px] mx-auto">{t('uploadDocSub')}</p>
             </div>
-            <button type="button" onClick={()=>fileInputRef.current?.click()} className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all mb-[20px]"><Upload className="h-[18px] w-[18px]"/>Choose File</button>
+            <button type="button" onClick={()=>fileInputRef.current?.click()} className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[28px] py-[14px] rounded-full font-semibold text-[17px] transition-all mb-[20px]"><Upload className="h-[18px] w-[18px]"/>{t('chooseFile')}</button>
             <div className="text-[12px] text-[#86868b] space-y-[4px]">
-              <p>📄 Documents · PDF · Word (.doc/.docx) · ODT · RTF · TXT · Markdown</p>
-              <p>📊 Spreadsheets · Excel (.xlsx/.xls/.xlsm) · ODS · CSV · TSV</p>
-              <p>📑 Presentations · PowerPoint (.pptx/.ppt)</p>
-              <p>🖼 Images · PNG · JPG · WebP · GIF · BMP · TIFF · HEIC · SVG · ICO</p>
-                  <p>🗂 Data · JSON · XML · YAML · HTML · LOG</p>
+              <p>{t('docFormats')}</p>
+              <p>{t('docFmtSpreadsheets')}</p>
+              <p>{t('docFmtPresentations')}</p>
+              <p>{t('docFmtImages')}</p>
+                  <p>{t('docFmtData')}</p>
             </div>
           </div>
         )}
@@ -1213,20 +1220,20 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
               <div className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full bg-white border border-[#d2d2d7] mb-[16px]">
                 <Search className="h-[28px] w-[28px] text-[#0071e3]"/>
               </div>
-              <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">Job Scanner</h3>
+              <h3 className="text-[19px] font-semibold text-[#1d1d1f] mb-[8px]">{t('modeScan')}</h3>
               <p className="text-[15px] text-[#6e6e73] max-w-[440px] mx-auto">
-                Enter any job title — AI researches the role online, extracts real tasks, scores automation potential, and surfaces real n8n community workflows you can import instantly.
+                {t('jobScannerDesc')}
               </p>
             </div>
             {jobScanStep==='idle'&&(
               <div className="max-w-[480px] mx-auto space-y-[16px]">
                 <div>
-                  <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-[6px]">Job Title <span className="text-red-500">*</span></label>
+                  <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-[6px]">{t('jobTitleLabel')} <span className="text-red-500">*</span></label>
                   <input
                     type="text" value={jobTitle}
                     onChange={e=>{fireInputStarted('jobscan');setJobTitle(e.target.value)}}
                     onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();handleJobScan()}}}
-                    placeholder="e.g. Marketing Manager, Data Analyst, Software Engineer"
+                    placeholder={t('jobTitlePh')}
                     className="w-full px-[16px] py-[14px] rounded-[12px] border border-[#d2d2d7] bg-white text-[15px] text-[#1d1d1f] placeholder:text-[#a1a1a6] focus:outline-none focus:ring-2 focus:ring-[#0071e3] transition"
                   />
                 </div>
@@ -1234,7 +1241,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
 
                 {/* Inline context selector — auto-set to Solo, user can change */}
                 <div>
-                  <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-[10px]">Analysing as</label>
+                  <label className="block text-[13px] font-semibold text-[#1d1d1f] mb-[10px]">{t('analysingAs')}</label>
                   <div className="grid grid-cols-3 gap-[8px]">
                     {CONTEXT_OPTIONS.map(opt => (
                       <button
@@ -1251,8 +1258,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
                           {opt.icon}
                         </div>
                         <div className="text-center">
-                          <div className="text-[12px] font-semibold text-[#1d1d1f] leading-tight">{opt.label}</div>
-                          <div className="text-[10px] text-[#86868b]">{opt.desc}</div>
+                          <div className="text-[12px] font-semibold text-[#1d1d1f] leading-tight">{ctxLabel(opt.value)}</div>
+                          <div className="text-[10px] text-[#86868b]">{ctxDesc(opt.value)}</div>
                         </div>
                         {analysisContext === opt.value && (
                           <CheckCircle2 className="h-[14px] w-[14px] text-[#0071e3]" />
@@ -1264,7 +1271,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
 
                 <button type="button" onClick={handleJobScan} disabled={!jobTitle.trim()}
                   className="w-full flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-[17px] py-[14px] rounded-full transition-all">
-                  <Search className="h-[18px] w-[18px]"/>Scan This Job
+                  <Search className="h-[18px] w-[18px]"/>{t('scanThisJob')}
                 </button>
               </div>
             )}
@@ -1275,14 +1282,14 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
                 </div>
                 <div>
                   <p className="text-[17px] font-semibold text-[#1d1d1f] mb-[4px]">
-                    {jobScanStep==='researching'?'Researching role online…':'Running AI analysis…'}
+                    {jobScanStep==='researching'?t('jobResearching'):t('jobAnalyzing')}
                   </p>
                   <p className="text-[13px] text-[#6e6e73]">
-                    {jobScanStep==='researching'?'Searching job boards for real task data':`Scoring ${jobScanTasks.length} tasks for automation potential`}
+                    {jobScanStep==='researching'?t('jobResearchingSub'):t('jobAnalyzingSub',{n:jobScanTasks.length})}
                   </p>
                 </div>
                 <div className="flex items-center justify-center gap-[10px]">
-                  {[{id:'researching',label:'Research'},{id:'analyzing',label:'Analysis'}].map((s,i)=>{
+                  {[{id:'researching',label:t('jobStepResearch')},{id:'analyzing',label:t('jobStepAnalysis')}].map((s,i)=>{
                     const isActive=jobScanStep===s.id; const isDone=jobScanStep==='analyzing'&&s.id==='researching'
                     return (
                       <div key={s.id} className="flex items-center gap-[8px]">
@@ -1298,14 +1305,14 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
                 </div>
                 {jobScanStep==='analyzing'&&jobScanTasks.length>0&&(
                   <div className="bg-white border border-[#e8e8ed] rounded-[14px] p-[16px] text-left">
-                    <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider mb-[10px]">{jobScanTasks.length} tasks found</p>
+                    <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider mb-[10px]">{t('tasksFound',{n:jobScanTasks.length})}</p>
                     <div className="space-y-[6px]">
                       {jobScanTasks.slice(0,5).map((t,i)=>(
                         <div key={i} className="flex items-center gap-[8px] text-[13px] text-[#1d1d1f]">
                           <div className="w-[5px] h-[5px] rounded-full bg-[#0071e3] shrink-0"/>{t.name}
                         </div>
                       ))}
-                      {jobScanTasks.length>5&&<div className="text-[11px] text-[#a1a1a6] pl-[13px]">+{jobScanTasks.length-5} more…</div>}
+                      {jobScanTasks.length>5&&<div className="text-[11px] text-[#a1a1a6] pl-[13px]">{t('moreTasks',{n:jobScanTasks.length-5})}</div>}
                     </div>
                   </div>
                 )}
@@ -1316,18 +1323,18 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
 
         {inputMode!=='jobscan'&&<div id="context-selector" className={`rounded-[18px] p-[20px] sm:p-[32px] border-2 transition-all duration-300 ${contextError?'border-red-400 bg-red-50/60':'border-[#d2d2d7] bg-[#f5f5f7]'}`}>
           <div className="flex items-start justify-between gap-[12px] mb-[6px]">
-            <h2 className="text-[17px] font-semibold text-[#1d1d1f]">Who is this analysis for? <span className="text-red-500">*</span></h2>
+            <h2 className="text-[17px] font-semibold text-[#1d1d1f]">{t('ctxQuestion')} <span className="text-red-500">*</span></h2>
             {contextError&&(
               <span className="flex items-center gap-[6px] text-[12px] font-semibold text-red-600 bg-red-100 border border-red-300 px-[12px] py-[5px] rounded-full shrink-0 animate-pulse">
                 <svg viewBox="0 0 20 20" fill="currentColor" className="w-[13px] h-[13px]"><path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/></svg>
-                Please select one
+                {t('ctxSelectOne')}
               </span>
             )}
           </div>
-          <p className="text-[13px] text-[#86868b] mb-[24px]">WorkScanAI adapts its scoring, framing, and recommendations based on the context of your submission.</p>
+          <p className="text-[13px] text-[#86868b] mb-[24px]">{t('ctxAdapts')}</p>
 
           <div className="grid grid-cols-3 gap-[8px] sm:gap-[12px] mb-[20px]">
-            {CONTEXT_OPTIONS.map(({value,label,desc,gradient,ring,icon})=>(
+            {CONTEXT_OPTIONS.map(({value,gradient,ring,icon})=>(
               <button key={value} type="button"
                 onClick={()=>{setAnalysisContext(value);setContextError(false)}}
                 className={`flex flex-col items-center text-center px-[8px] sm:px-[12px] py-[16px] sm:py-[22px] rounded-[14px] sm:rounded-[18px] border-2 transition-all duration-200 ${
@@ -1339,8 +1346,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
                 <div className={`w-[44px] h-[44px] sm:w-[58px] sm:h-[58px] rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center mb-[8px] sm:mb-[14px] shadow-md transition-all duration-200 ${analysisContext===value?'scale-110 shadow-lg':''}`}>
                   {icon}
                 </div>
-                <span className="text-[10px] sm:text-[14px] font-semibold text-[#1d1d1f] leading-tight text-center whitespace-nowrap">{label}</span>
-                <span className="text-[9px] sm:text-[11px] text-[#86868b] mt-[2px] sm:mt-[4px] hidden sm:block">{desc}</span>
+                <span className="text-[10px] sm:text-[14px] font-semibold text-[#1d1d1f] leading-tight text-center whitespace-nowrap">{ctxLabel(value)}</span>
+                <span className="text-[9px] sm:text-[11px] text-[#86868b] mt-[2px] sm:mt-[4px] hidden sm:block">{ctxDesc(value)}</span>
               </button>
             ))}
           </div>
@@ -1349,28 +1356,28 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
           {(analysisContext==='team'||analysisContext==='company')&&(
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-[14px] pt-[4px]">
               <div>
-                <label className={labelClass}>Team / Company Size</label>
+                <label className={labelClass}>{t('teamCompanySize')}</label>
                 <div className="relative">
                   <select value={teamSize} onChange={e=>setTeamSize(e.target.value)} className={selectClass}>
-                    <option value="">Select size…</option>
-                    <option value="2-10">2–10 people</option><option value="11-50">11–50 people</option>
-                    <option value="51-200">51–200 people</option><option value="201-1000">201–1,000 people</option>
-                    <option value="1000+">1,000+ people</option>
+                    <option value="">{t('selectSize')}</option>
+                    <option value="2-10">{t('size2_10')}</option><option value="11-50">{t('size11_50')}</option>
+                    <option value="51-200">{t('size51_200')}</option><option value="201-1000">{t('size201_1000')}</option>
+                    <option value="1000+">{t('size1000plus')}</option>
                   </select>
                   <ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none"/>
                 </div>
               </div>
               <div>
-                <label className={labelClass}>Industry / Department</label>
+                <label className={labelClass}>{t('industryDept')}</label>
                 <div className="relative">
                   <select value={industry} onChange={e=>setIndustry(e.target.value)} className={selectClass}>
-                    <option value="">Select industry…</option>
-                    <option value="marketing">Marketing</option><option value="sales">Sales</option>
-                    <option value="finance">Finance & Accounting</option><option value="hr">HR & Recruiting</option>
-                    <option value="operations">Operations & Logistics</option><option value="legal">Legal & Compliance</option>
-                    <option value="engineering">Engineering & Product</option><option value="customer_support">Customer Support</option>
-                    <option value="consulting">Consulting & Advisory</option><option value="healthcare">Healthcare</option>
-                    <option value="education">Education</option><option value="other">Other</option>
+                    <option value="">{t('selectIndustry')}</option>
+                    <option value="marketing">{t('indMarketing')}</option><option value="sales">{t('indSales')}</option>
+                    <option value="finance">{t('indFinance')}</option><option value="hr">{t('indHr')}</option>
+                    <option value="operations">{t('indOps')}</option><option value="legal">{t('indLegal')}</option>
+                    <option value="engineering">{t('indEng')}</option><option value="customer_support">{t('indSupport')}</option>
+                    <option value="consulting">{t('indConsulting')}</option><option value="healthcare">{t('indHealth')}</option>
+                    <option value="education">{t('indEducation')}</option><option value="other">{t('indOther')}</option>
                   </select>
                   <ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none"/>
                 </div>
@@ -1382,21 +1389,18 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
         {/* Workflow Details — hidden in jobscan mode */}
         {inputMode!=='jobscan'&&(
         <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
-          <h2 className="text-[21px] font-semibold text-[#1d1d1f] mb-[6px]">Workflow Details</h2>
+          <h2 className="text-[21px] font-semibold text-[#1d1d1f] mb-[6px]">{t('wfDetails')}</h2>
           {taskCount > 0 && (
             <p className="text-[15px] font-bold text-[#1d1d1f] mb-[28px]">
-              Analysing{' '}
-              <span className="text-[#0071e3]">{taskCount}</span>{' '}
-              task{taskCount !== 1 ? 's' : ''} for your role — estimated{' '}
-              <span className="text-[#0071e3]">{taskCount * 3}–{taskCount * 6}s</span>
+              {t('analysingTasksTop', {n: taskCount, a: taskCount * 3, b: taskCount * 6})}
             </p>
           )}
           <div className="space-y-[20px]">
-            <div><label className={labelClass}>Workflow Name <span className="text-red-500">*</span></label>
-              <input type="text" value={workflowName} onChange={e=>setWorkflowName(e.target.value)} placeholder="e.g., Marketing Team Workflow" className={inputClass} required/></div>
-            <div><label className={labelClass}>Description <span className="text-[#86868b] normal-case font-normal">(optional)</span></label>
-              <textarea value={workflowDescription} onChange={e=>setWorkflowDescription(e.target.value)} placeholder="Describe your workflow or team…" rows={3} className={`${inputClass} resize-none`}/></div>
-            <div><label className={labelClass}>Hourly Rate (€) — for ROI calculation</label>
+            <div><label className={labelClass}>{t('wfName')} <span className="text-red-500">*</span></label>
+              <input type="text" value={workflowName} onChange={e=>setWorkflowName(e.target.value)} placeholder={t('wfNamePh')} className={inputClass} required/></div>
+            <div><label className={labelClass}>{t('descLabel')} <span className="text-[#86868b] normal-case font-normal">{t('optional')}</span></label>
+              <textarea value={workflowDescription} onChange={e=>setWorkflowDescription(e.target.value)} placeholder={t('wfDescPh')} rows={3} className={`${inputClass} resize-none`}/></div>
+            <div><label className={labelClass}>{t('hourlyRate')}</label>
               <div className="relative"><span className="absolute left-[14px] top-1/2 -translate-y-1/2 text-[15px] text-[#86868b]">€</span>
               <input type="number" value={hourlyRate} onChange={e=>setHourlyRate(Number(e.target.value))} min="1" className={`${inputClass} pl-[28px]`}/></div></div>
           </div>
@@ -1407,29 +1411,29 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
         {(inputMode==='manual'||inputMode==='voice')&&(
           <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[40px]">
             <div className="flex items-center justify-between mb-[28px]">
-              <h2 className="text-[21px] font-semibold text-[#1d1d1f]">Tasks</h2>
-              <button type="button" onClick={addTask} className="inline-flex items-center gap-[6px] border border-[#d2d2d7] bg-white hover:bg-[#f5f5f7] px-[16px] py-[8px] rounded-full text-[14px] font-medium transition-all"><Plus className="h-[14px] w-[14px]"/>Add Task</button>
+              <h2 className="text-[21px] font-semibold text-[#1d1d1f]">{t('tasksHeading')}</h2>
+              <button type="button" onClick={addTask} className="inline-flex items-center gap-[6px] border border-[#d2d2d7] bg-white hover:bg-[#f5f5f7] px-[16px] py-[8px] rounded-full text-[14px] font-medium transition-all"><Plus className="h-[14px] w-[14px]"/>{t('addTask')}</button>
             </div>
             <div className="space-y-[20px]">
               {tasks.map((task,idx)=>(
                 <div key={idx} className="bg-white border border-[#d2d2d7] rounded-[14px] p-[28px]">
                   <div className="flex items-center justify-between mb-[20px]">
-                    <span className="text-[13px] font-semibold text-[#86868b] uppercase tracking-wide">Task {idx+1}</span>
-                    {tasks.length>1&&<button type="button" onClick={()=>removeTask(idx)} className="flex items-center gap-[4px] text-[13px] text-[#86868b] hover:text-red-500 transition-colors"><Trash2 className="h-[14px] w-[14px]"/>Remove</button>}
+                    <span className="text-[13px] font-semibold text-[#86868b] uppercase tracking-wide">{t('taskN')} {idx+1}</span>
+                    {tasks.length>1&&<button type="button" onClick={()=>removeTask(idx)} className="flex items-center gap-[4px] text-[13px] text-[#86868b] hover:text-red-500 transition-colors"><Trash2 className="h-[14px] w-[14px]"/>{t('removeTask')}</button>}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
-                    <div className="md:col-span-2"><label className={labelClass}>Task Name <span className="text-red-500">*</span></label>
-                      <textarea value={task.name} onChange={e=>updateTask(idx,'name',e.target.value)} placeholder="e.g., Write social media posts" rows={2} className={`${inputClass} resize-none leading-snug`} required/></div>
-                    <div className="md:col-span-2"><label className={labelClass}>Description <span className="text-[#86868b] normal-case font-normal">(optional)</span></label>
-                      <textarea value={task.description} onChange={e=>updateTask(idx,'description',e.target.value)} placeholder="Additional context or details…" rows={3} className={`${inputClass} resize-none leading-snug`}/></div>
-                    <div><label className={labelClass}>Frequency</label>
-                      <div className="relative"><select value={task.frequency} onChange={e=>updateTask(idx,'frequency',e.target.value)} className={selectClass}><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select><ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none"/></div></div>
-                    <div><label className={labelClass}>Time per Task (minutes)</label>
+                    <div className="md:col-span-2"><label className={labelClass}>{t('taskName')} <span className="text-red-500">*</span></label>
+                      <textarea value={task.name} onChange={e=>updateTask(idx,'name',e.target.value)} placeholder={t('taskNamePh')} rows={2} className={`${inputClass} resize-none leading-snug`} required/></div>
+                    <div className="md:col-span-2"><label className={labelClass}>{t('descLabel')} <span className="text-[#86868b] normal-case font-normal">{t('optional')}</span></label>
+                      <textarea value={task.description} onChange={e=>updateTask(idx,'description',e.target.value)} placeholder={t('taskDescPh')} rows={3} className={`${inputClass} resize-none leading-snug`}/></div>
+                    <div><label className={labelClass}>{t('frequency')}</label>
+                      <div className="relative"><select value={task.frequency} onChange={e=>updateTask(idx,'frequency',e.target.value)} className={selectClass}><option value="daily">{t('freqDaily')}</option><option value="weekly">{t('freqWeekly')}</option><option value="monthly">{t('freqMonthly')}</option></select><ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none"/></div></div>
+                    <div><label className={labelClass}>{t('timePerTask')}</label>
                       <input type="number" value={task.time_per_task} onChange={e=>updateTask(idx,'time_per_task',Number(e.target.value))} min="1" className={inputClass}/></div>
-                    <div><label className={labelClass}>Category</label>
-                      <div className="relative"><select value={task.category} onChange={e=>updateTask(idx,'category',e.target.value)} className={selectClass}><option value="general">General</option><option value="data_entry">Data Entry</option><option value="communication">Communication</option><option value="analysis">Analysis</option><option value="creative">Creative</option><option value="administrative">Administrative</option></select><ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none"/></div></div>
-                    <div><label className={labelClass}>Complexity</label>
-                      <div className="relative"><select value={task.complexity} onChange={e=>updateTask(idx,'complexity',e.target.value)} className={selectClass}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select><ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none"/></div></div>
+                    <div><label className={labelClass}>{t('category')}</label>
+                      <div className="relative"><select value={task.category} onChange={e=>updateTask(idx,'category',e.target.value)} className={selectClass}><option value="general">{t('catGeneral')}</option><option value="data_entry">{t('catDataEntry')}</option><option value="communication">{t('catComm')}</option><option value="analysis">{t('catAnalysis')}</option><option value="creative">{t('catCreative')}</option><option value="administrative">{t('catAdmin')}</option></select><ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none"/></div></div>
+                    <div><label className={labelClass}>{t('complexity')}</label>
+                      <div className="relative"><select value={task.complexity} onChange={e=>updateTask(idx,'complexity',e.target.value)} className={selectClass}><option value="low">{t('compLow')}</option><option value="medium">{t('compMedium')}</option><option value="high">{t('compHigh')}</option></select><ChevronDown className="absolute right-[12px] top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b] pointer-events-none"/></div></div>
                   </div>
                 </div>
               ))}
@@ -1440,11 +1444,11 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
         {/* Submit — hidden in jobscan mode (scan button handles it) */}
         {inputMode!=='jobscan'&&(
         <div className="flex flex-col items-end gap-[10px] pt-[8px]">
-          {taskCount>0&&<p className="text-[13px] text-[#86868b]">Analysing {taskCount} task{taskCount!==1?'s':''} for {analysisContext==='individual'?'your role':analysisContext==='team'?'your team':analysisContext==='company'?'your company':'…'} — estimated {taskCount*3}–{taskCount*6}s</p>}
+          {taskCount>0&&<p className="text-[13px] text-[#86868b]">{t('submitAnalysing', {n: taskCount, who: analysisContext==='individual'?t('whoRole'):analysisContext==='team'?t('whoTeam'):analysisContext==='company'?t('whoCompany'):'…', a: taskCount*3, b: taskCount*6})}</p>}
           <button type="submit" disabled={isAnalyzing||isUploading||isExtractingTasks} className="inline-flex items-center gap-[10px] bg-[#0071e3] hover:bg-[#0077ed] disabled:bg-[#86868b] disabled:cursor-not-allowed text-white px-[36px] py-[16px] rounded-full font-semibold text-[17px] transition-all">
-            {isAnalyzing?<><Loader2 className="animate-spin h-[18px] w-[18px]"/>Running Analysis…</>:isExtractingTasks?<><Loader2 className="animate-spin h-[18px] w-[18px]"/>Extracting tasks…</>:'Analyse Workflow/s →'}
+            {isAnalyzing?<><Loader2 className="animate-spin h-[18px] w-[18px]"/>{t('runningAnalysis')}</>:isExtractingTasks?<><Loader2 className="animate-spin h-[18px] w-[18px]"/>{t('extractingTasks')}</>:t('analyzeBtn')}
           </button>
-          {!isAnalyzing&&<p className="text-[13px] text-[#86868b]">Free tier · 5 analyses per 24 hours · No account needed.</p>}
+          {!isAnalyzing&&<p className="text-[13px] text-[#86868b]">{t('freeTierNote')}</p>}
         </div>
         )}
 
