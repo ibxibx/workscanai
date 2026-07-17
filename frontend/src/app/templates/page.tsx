@@ -3,7 +3,9 @@
 import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { Brain, ArrowRight, Sparkles } from 'lucide-react'
-import { VERTICALS, verticalHref, type Vertical } from './verticals'
+import { VERTICALS, verticalHref, vLabel, vBlurb, type Vertical } from './verticals'
+import LanguageToggle from '@/components/LanguageToggle'
+import { useT, useLocale } from '@/i18n/client'
 
 // #31 Vertical templates — the picker ("cards"). One click loads a real,
 // pre-generated industry report (value before input, zero cold-start, no quota
@@ -15,12 +17,12 @@ import { VERTICALS, verticalHref, type Vertical } from './verticals'
 
 const money = (n: number) => '\u20AC' + n.toLocaleString('en-US')
 
-function StatRow({ v }: { v: Vertical }) {
+function StatRow({ v, readyLabel, perYrLabel }: { v: Vertical; readyLabel: string; perYrLabel: string }) {
   return (
     <div className="flex items-center gap-[16px] text-[12px] text-[#6e6e73]">
-      <span><span className="font-semibold text-[#1d1d1f]">{v.score}%</span> ready</span>
+      <span><span className="font-semibold text-[#1d1d1f]">{v.score}%</span> {readyLabel}</span>
       <span className="text-[#d2d2d7]">·</span>
-      <span><span className="font-semibold text-[#1d1d1f]">{money(v.annualSavings)}</span>/yr</span>
+      <span><span className="font-semibold text-[#1d1d1f]">{money(v.annualSavings)}</span>{perYrLabel}</span>
       <span className="text-[#d2d2d7]">·</span>
       <span><span className="font-semibold text-[#1d1d1f]">{v.hoursSaved}h</span></span>
     </div>
@@ -30,6 +32,8 @@ function StatRow({ v }: { v: Vertical }) {
 export default function TemplatesPage() {
   const [spotlightPos, setSpotlightPos] = useState({ x: 50, y: 50 })
   const [spotlightVisible, setSpotlightVisible] = useState(false)
+  const t = useT('templates')
+  const locale = useLocale()
 
   // Pre-warm the Render backend on landing, so if a visitor jumps from a sample
   // straight into their own analysis the dyno is already awake.
@@ -61,9 +65,10 @@ export default function TemplatesPage() {
               WorkScanAI
             </Link>
             <div className="flex gap-[12px] md:gap-[32px] text-[11px] md:text-[12px] shrink-0">
-              <Link href="/" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">Home</Link>
-              <Link href="/scan" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">Scan a role</Link>
-              <Link href="/#analyze" className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors whitespace-nowrap">Analyze yours</Link>
+              <LanguageToggle />
+              <Link href="/" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">{t('navHome')}</Link>
+              <Link href="/scan" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">{t('navScanRole')}</Link>
+              <Link href="/#analyze" className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors whitespace-nowrap">{t('navAnalyzeYours')}</Link>
             </div>
           </div>
         </div>
@@ -76,14 +81,13 @@ export default function TemplatesPage() {
       >
         <div className="max-w-[820px] mx-auto px-6 py-[64px] sm:py-[96px] text-center">
           <p className="text-[12px] sm:text-[13px] font-semibold uppercase tracking-[0.14em] text-[#0071e3] mb-[18px]">
-            Sample reports by industry
+            {t('eyebrow')}
           </p>
           <h1 className="text-[32px] sm:text-[52px] leading-[1.05] font-semibold italic tracking-tight mb-[20px] text-[#1d1d1f]">
-            See a real analysis for your world.
+            {t('heroTitle')}
           </h1>
           <p className="text-[15px] sm:text-[20px] text-[#6e6e73] max-w-[560px] mx-auto leading-[1.5]">
-            Pick your function. Open a full WorkScanAI report — scored tasks, hours reclaimed,
-            annual savings and importable n8n workflows — with no typing and no signup.
+{t('heroSub')}
           </p>
         </div>
       </section>
@@ -115,25 +119,25 @@ export default function TemplatesPage() {
                 <div className="min-w-0">
                   <div className="inline-flex items-center gap-[6px] text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7fb8ff] mb-[12px]">
                     <Sparkles className="h-[13px] w-[13px]" />
-                    For automation builders
+                    {t('featuredEyebrow')}
                   </div>
                   <h2 className="text-[24px] sm:text-[30px] font-semibold italic tracking-tight text-white mb-[8px]">
-                    {featured.label}
+                    {vLabel(featured, locale)}
                   </h2>
                   <p className="text-[14px] sm:text-[15px] text-white/70 leading-[1.5] max-w-[520px]">
-                    {featured.blurb} You get the same importable n8n workflows you could hand a client.
+                    {vBlurb(featured, locale)}{t('featuredBlurbSuffix')}
                   </p>
                 </div>
                 <ArrowRight className="h-[22px] w-[22px] text-white/60 shrink-0 mt-[6px] group-hover:translate-x-[3px] transition-transform" />
               </div>
               <div className="mt-[22px] flex flex-wrap items-center gap-[16px] text-[13px] text-white/60">
-                <span><span className="font-semibold text-white">{featured.score}%</span> automatable</span>
+                <span><span className="font-semibold text-white">{featured.score}%</span> {t('automatableLabel')}</span>
                 <span className="text-white/25">·</span>
-                <span><span className="font-semibold text-white">{money(featured.annualSavings)}</span> / yr</span>
+                <span><span className="font-semibold text-white">{money(featured.annualSavings)}</span> {t('perYr')}</span>
                 <span className="text-white/25">·</span>
-                <span><span className="font-semibold text-white">{featured.hoursSaved}h</span> reclaimed</span>
+                <span><span className="font-semibold text-white">{featured.hoursSaved}h</span> {t('reclaimedLabel')}</span>
                 <span className="text-white/25">·</span>
-                <span>{featured.tasks} tasks</span>
+                <span>{featured.tasks} {t('tasksLabel')}</span>
               </div>
             </Link>
           )}
@@ -148,12 +152,12 @@ export default function TemplatesPage() {
               >
                 <div>
                   <div className="flex items-center justify-between mb-[10px]">
-                    <h3 className="text-[18px] font-semibold italic tracking-tight text-[#1d1d1f]">{v.label}</h3>
+                    <h3 className="text-[18px] font-semibold italic tracking-tight text-[#1d1d1f]">{vLabel(v, locale)}</h3>
                     <ArrowRight className="h-[16px] w-[16px] text-[#86868b] group-hover:text-[#0071e3] group-hover:translate-x-[2px] transition-all" />
                   </div>
-                  <p className="text-[13px] text-[#6e6e73] leading-[1.45] mb-[18px]">{v.blurb}</p>
+                  <p className="text-[13px] text-[#6e6e73] leading-[1.45] mb-[18px]">{vBlurb(v, locale)}</p>
                 </div>
-                <StatRow v={v} />
+                <StatRow v={v} readyLabel={t('readyLabel')} perYrLabel={t('perYr')} />
               </Link>
             ))}
           </div>
@@ -161,13 +165,13 @@ export default function TemplatesPage() {
           {/* Escape hatch — analyze your own instead of a sample */}
           <div className="mt-[36px] text-center">
             <p className="text-[13px] text-[#6e6e73] mb-[12px]">
-              None of these is your exact workflow?
+              {t('noneMatch')}
             </p>
             <Link
               href="/#analyze"
               className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[15px] font-medium px-[24px] py-[12px] rounded-full transition-all"
             >
-              Analyze your own
+              {t('analyzeOwn')}
               <ArrowRight className="h-[16px] w-[16px]" />
             </Link>
           </div>
