@@ -1,3 +1,5 @@
+'use client'
+
 // Shared, presentational report sections — used by BOTH the public
 // /report/[code] server page AND the dashboard results client page so the
 // two can never drift. No hooks, props only. Each context-gated section
@@ -7,8 +9,10 @@ import {
   ShieldCheck, ShieldAlert, ShieldX, Clock, Target, TrendingUp, Users,
   ArrowRight, Zap, AlertTriangle, BarChart3, Briefcase, Globe2,
 } from 'lucide-react'
+import { useT } from '@/i18n/client'
 
-export type ReportContext = 'individual' | 'team' | 'company'
+import type { ReportContext } from './reportContext'
+export type { ReportContext }
 
 export interface SharedTask { id: number; name: string; description?: string }
 
@@ -49,12 +53,6 @@ export interface ReportData {
   readiness_team_skills?: number
   results: SharedTaskResult[]
   industry?: string
-}
-
-// Normalise context coming from the API (analysis_context) to our union.
-export function resolveContext(raw?: string): ReportContext {
-  if (raw === 'team' || raw === 'company') return raw
-  return 'individual'
 }
 
 // ── Recommendation renderer — splits on Option N / Decision layer ──
@@ -100,11 +98,14 @@ const COUNTDOWN_MAP: Record<string, { label: string; color: string; dot: string 
 }
 
 export function CountdownBadge({ window: w }: { window?: string }) {
-  const m = COUNTDOWN_MAP[w || '24-48'] || COUNTDOWN_MAP['24-48']
+  const t = useT('reportBody')
+  const key = (w && COUNTDOWN_MAP[w]) ? w : '24-48'
+  const m = COUNTDOWN_MAP[key]
+  const labels: Record<string, string> = { 'now': t('cdNow'), '12-24': t('cd1224'), '24-48': t('cd2448'), '48+': t('cd48') }
   return (
     <span className={`inline-flex items-center gap-[6px] px-[10px] py-[4px] rounded-full border text-[11px] font-bold ${m.color}`}>
       <span className={`w-[6px] h-[6px] rounded-full ${m.dot}`} />
-      {m.label}
+      {labels[key]}
     </span>
   )
 }
@@ -120,15 +121,18 @@ const CONFIDENCE_MAP: Record<string, { label: string; color: string; dot: string
 }
 
 export function ConfidenceBadge({ level }: { level?: string }) {
+  const t = useT('reportBody')
   if (!level) return null
-  const m = CONFIDENCE_MAP[level] || CONFIDENCE_MAP['medium']
+  const key = CONFIDENCE_MAP[level] ? level : 'medium'
+  const m = CONFIDENCE_MAP[key]
+  const labels: Record<string, string> = { high: t('confHigh'), medium: t('confMed'), low: t('confLow') }
   return (
     <span
-      title="How much the four sub-scores agree. Lower confidence means this task is harder to call — tell us if your context differs."
+      title={t('confTooltip')}
       className={`inline-flex items-center gap-[6px] px-[10px] py-[4px] rounded-full border text-[11px] font-bold ${m.color}`}
     >
       <span className={`w-[6px] h-[6px] rounded-full ${m.dot}`} />
-      {m.label}
+      {labels[key]}
     </span>
   )
 }
@@ -136,14 +140,15 @@ export function ConfidenceBadge({ level }: { level?: string }) {
 
 // ── SECTION A — Task Breakdown (all contexts) ──
 export function TaskBreakdown({ results }: { results: SharedTaskResult[] }) {
+  const t = useT('reportBody')
   return (
     <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
       <div className="flex items-center gap-[10px] mb-[8px]">
         <BarChart3 className="h-[20px] w-[20px] text-[#0071e3]" />
-        <h2 className="text-[24px] font-semibold italic tracking-tight">Task-by-Task Breakdown</h2>
+        <h2 className="text-[24px] font-semibold italic tracking-tight">{t('tbTitle')}</h2>
       </div>
       <p className="text-[14px] text-[#86868b] mb-[32px]">
-        Each task scored across repeatability, data access, error tolerance, and integration ease.
+        {t('tbSub')}
       </p>
       <div className="space-y-[16px]">
         {results.map((result, index) => {
@@ -163,7 +168,7 @@ export function TaskBreakdown({ results }: { results: SharedTaskResult[] }) {
                     result.ai_readiness_score >= 80 ? 'bg-green-100 text-green-700'
                     : result.ai_readiness_score >= 60 ? 'bg-yellow-100 text-yellow-700'
                     : 'bg-red-100 text-red-700'}`}>
-                    {Math.round(result.ai_readiness_score)}% Ready
+                    {Math.round(result.ai_readiness_score)}% {t('ready')}
                   </span>
                 </div>
               </div>
@@ -171,10 +176,10 @@ export function TaskBreakdown({ results }: { results: SharedTaskResult[] }) {
               {result.score_repeatability != null && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-[6px] mb-[12px]">
                   {[
-                    { label: 'Repeatability', val: result.score_repeatability },
-                    { label: 'Data Access', val: result.score_data_availability },
-                    { label: 'Error Tolerance', val: result.score_error_tolerance },
-                    { label: 'Integration', val: result.score_integration },
+                    { label: t('ssRepeat'), val: result.score_repeatability },
+                    { label: t('ssData'), val: result.score_data_availability },
+                    { label: t('ssError'), val: result.score_error_tolerance },
+                    { label: t('ssInteg'), val: result.score_integration },
                   ].map(({ label, val }) => (
                     <div key={label} className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[8px] p-[10px] text-center">
                       <div className={`text-[18px] font-bold mb-[2px] ${val == null ? 'text-[#86868b]' : val >= 70 ? 'text-green-600' : val >= 45 ? 'text-yellow-600' : 'text-red-500'}`}>
@@ -187,9 +192,9 @@ export function TaskBreakdown({ results }: { results: SharedTaskResult[] }) {
               )}
 
               <div className="grid md:grid-cols-3 gap-[16px] text-[14px] mb-[12px]">
-                <div><span className="text-[#86868b]">Time Saved: </span><span className="font-medium">{Math.round(result.time_saved_percentage)}%</span></div>
-                <div><span className="text-[#86868b]">Difficulty: </span><span className="font-medium capitalize">{result.difficulty}</span></div>
-                <div><span className="text-[#86868b]">Hours/yr: </span><span className="font-medium">{Math.round(result.estimated_hours_saved)} hrs</span></div>
+                <div><span className="text-[#86868b]">{t('timeSaved')}</span><span className="font-medium">{Math.round(result.time_saved_percentage)}%</span></div>
+                <div><span className="text-[#86868b]">{t('diffLabel')}</span><span className="font-medium">{result.difficulty === 'easy' ? t('diffEasy') : result.difficulty === 'medium' ? t('diffMedium') : result.difficulty === 'hard' ? t('diffHard') : result.difficulty}</span></div>
+                <div><span className="text-[#86868b]">{t('hoursYr')}</span><span className="font-medium">{Math.round(result.estimated_hours_saved)} {t('hrs')}</span></div>
               </div>
 
               {result.risk_flag && (
@@ -200,7 +205,7 @@ export function TaskBreakdown({ results }: { results: SharedTaskResult[] }) {
               )}
 
               <div className="p-[14px] bg-blue-50 border border-blue-200 rounded-[8px] mb-[8px]">
-                <div className="text-[13px] font-bold text-[#0071e3] mb-[6px]">&#128161; Recommendation</div>
+                <div className="text-[13px] font-bold text-[#0071e3] mb-[6px]">&#128161; {t('recommendation')}</div>
                 <RecommendationBlocks text={result.recommendation} />
               </div>
 
@@ -645,26 +650,27 @@ export function CompanySections({ data, context, workflowName }: { data: ReportD
 
 // ── SECTION E — AI Readiness (all contexts; label adapts) ──
 export function AIReadinessSection({ data, context }: { data: ReportData; context: ReportContext }) {
+  const t = useT('reportBody')
   if (data.readiness_score == null) return null
-  const who = context === 'individual' ? 'Your' : context === 'team' ? 'Team' : 'Organisation'
+  const readinessTitle = context === 'individual' ? t('arTitleInd') : context === 'team' ? t('arTitleTeam') : t('arTitleOrg')
   return (
     <div className="bg-white border border-[#e8e8ed] rounded-[20px] p-[20px] sm:p-[40px] mb-[24px] shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-[16px] mb-[24px]">
         <div>
-          <h2 className="text-[22px] font-semibold italic tracking-tight">{who} AI Readiness</h2>
-          <p className="text-[13px] text-[#86868b] mt-[4px]">How ready are you to adopt and scale AI automation</p>
+          <h2 className="text-[22px] font-semibold italic tracking-tight">{readinessTitle}</h2>
+          <p className="text-[13px] text-[#86868b] mt-[4px]">{t('arSub')}</p>
         </div>
         <div className="text-left sm:text-center shrink-0">
           <div className="text-[40px] sm:text-[52px] font-bold tracking-tight text-[#0071e3] leading-none">{Math.round(data.readiness_score)}%</div>
-          <div className="text-[12px] text-[#86868b]">Overall Readiness</div>
+          <div className="text-[12px] text-[#86868b]">{t('arOverall')}</div>
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-[12px]">
         {[
-          { label: 'Data Quality', val: data.readiness_data_quality, desc: 'How structured & accessible your data is' },
-          { label: 'Process Clarity', val: data.readiness_process_docs, desc: 'How rule-based & repeatable your workflows are' },
-          { label: 'Tool Maturity', val: data.readiness_tool_maturity, desc: 'How easily tools integrate with your stack' },
-          { label: 'Error Tolerance', val: data.readiness_team_skills, desc: 'How tolerant processes are to AI errors' },
+          { label: t('arData'), val: data.readiness_data_quality, desc: t('arDataDesc') },
+          { label: t('arProcess'), val: data.readiness_process_docs, desc: t('arProcessDesc') },
+          { label: t('arTool'), val: data.readiness_tool_maturity, desc: t('arToolDesc') },
+          { label: t('arErr'), val: data.readiness_team_skills, desc: t('arErrDesc') },
         ].map(({ label, val, desc }) => (
           <div key={label} className="bg-[#fafafa] border border-[#e8e8ed] rounded-[14px] p-[16px]">
             <div className={`text-[28px] font-bold mb-[4px] ${val == null ? 'text-[#86868b]' : val >= 70 ? 'text-green-600' : val >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>
@@ -681,12 +687,11 @@ export function AIReadinessSection({ data, context }: { data: ReportData; contex
 
 // ── Footer disclaimer — appears at the very bottom of every report surface ──
 export function ReportDisclaimer() {
+  const t = useT('reportBody')
   return (
     <div className="mt-[24px] pt-[16px] border-t border-[#e8e8ed]">
       <p className="text-[11px] leading-[1.5] text-[#86868b] text-center">
-        WorkScanAI estimates are for general guidance only and do not constitute
-        investment, employment, financial, legal, or business advice &mdash; verify
-        independently before acting.
+        {t('disclaimer')}
       </p>
     </div>
   )
