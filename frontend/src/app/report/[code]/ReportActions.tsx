@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Download, Share2, Check, FileText, FileJson, Loader2, Linkedin, FileSignature } from 'lucide-react'
 import { trackReportShared, trackReportExported, trackWorkflowDownloaded, trackResultViewed, trackReportSharedLinkedin } from '@/lib/analytics'
+import { useT, useLocale } from '@/i18n/client'
 
 interface ReportActionsProps {
   workflowId: number
@@ -40,6 +41,8 @@ export default function ReportActions({
   const [showAudit, setShowAudit] = useState(false)
   const [preparedFor, setPreparedFor] = useState('')
   const [preparedBy, setPreparedBy] = useState('')
+  const t = useT('report')
+  const locale = useLocale()
 
   // result_viewed — fires once when a finished public report renders.
   useEffect(() => {
@@ -54,7 +57,7 @@ export default function ReportActions({
       setCopied(true)
       setTimeout(() => setCopied(false), 2500)
     } catch {
-      prompt('Copy this link:', shareUrl)
+      prompt(t('copyLinkPrompt'), shareUrl)
     }
   }
 
@@ -62,21 +65,19 @@ export default function ReportActions({
   // from shareUrl in LinkedIn's composer; we copy this text so the user pastes a
   // ready-to-go caption rather than writing one from scratch.
   const buildLinkedinCaption = (): string => {
-    const savings = annualSavings.toLocaleString()
-    const topLine = isJobScan
-      ? `I ran my role through WorkScanAI to see how automatable it actually is.`
-      : `I just analysed "${workflowName}" with WorkScanAI to find its automation potential.`
+    const savings = annualSavings.toLocaleString(locale === 'de' ? 'de-DE' : 'en-US')
+    const topLine = isJobScan ? t('liCapJobscan') : t('liCapWorkflow', { name: workflowName })
     return [
       topLine,
       ``,
-      `The results:`,
-      `\u2022 ${automationScore}% automation potential`,
-      `\u2022 \u20ac${savings} in potential annual savings`,
-      `\u2022 ${hoursSaved} hours a year that could be reclaimed`,
+      t('liCapResults'),
+      `\u2022 ${t('liCapPotential', { score: automationScore })}`,
+      `\u2022 ${t('liCapSavings', { savings })}`,
+      `\u2022 ${t('liCapHours', { hours: hoursSaved })}`,
       ``,
-      `It breaks every task down by score, flags the quick wins, and even generates ready-to-import automation workflows.`,
+      t('liCapBreakdown'),
       ``,
-      `Check the full breakdown \u2014 or run your own (it's free):`,
+      t('liCapCta'),
       shareUrl,
       ``,
       `#automation #AI #productivity #futureofwork`,
@@ -119,7 +120,7 @@ export default function ReportActions({
       document.body.appendChild(a); a.click()
       document.body.removeChild(a); URL.revokeObjectURL(url)
     } catch {
-      alert(`Failed to generate ${fmt.toUpperCase()} report. Please try again.`)
+      alert(t('genFail', { fmt: fmt.toUpperCase() }))
     } finally {
       setDownloading(null)
     }
@@ -152,7 +153,7 @@ export default function ReportActions({
       document.body.appendChild(a); a.click()
       document.body.removeChild(a); URL.revokeObjectURL(url)
     } catch {
-      alert('Failed to generate n8n workflow file. Please try again.')
+      alert(t('n8nFail'))
     } finally {
       setDownloading(null)
     }
@@ -189,7 +190,7 @@ export default function ReportActions({
       <div className="border-t border-[#e8e8ed] mb-[32px] sm:mb-[40px]" />
 
       <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-widest mb-[16px] sm:mb-[20px]">
-        Export &amp; Share
+        {t('exportShare')}
       </p>
 
       {/* #32 Automation Audit — optional client-ready framing for the PDF/DOCX cover */}
@@ -200,34 +201,34 @@ export default function ReportActions({
           className="inline-flex items-center gap-[6px] text-[13px] font-medium text-[#0071e3] hover:text-[#0077ed]"
         >
           <FileSignature className="h-[14px] w-[14px] shrink-0" />
-          {showAudit ? 'Hide audit details' : 'Prepare as a client audit (optional)'}
+          {showAudit ? t('auditHide') : t('auditShow')}
         </button>
         {showAudit && (
           <div className="mt-[12px] grid grid-cols-1 sm:grid-cols-2 gap-[12px] max-w-[560px]">
             <label className="flex flex-col gap-[4px]">
-              <span className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wide">Prepared for</span>
+              <span className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wide">{t('preparedFor')}</span>
               <input
                 type="text"
                 value={preparedFor}
                 onChange={(e) => setPreparedFor(e.target.value)}
-                placeholder="Client or company name"
+                placeholder={t('preparedForPh')}
                 maxLength={120}
                 className="px-[12px] py-[9px] rounded-[10px] border border-[#d2d2d7] focus:border-[#0071e3] focus:outline-none text-[14px] text-[#1d1d1f]"
               />
             </label>
             <label className="flex flex-col gap-[4px]">
-              <span className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wide">Prepared by</span>
+              <span className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wide">{t('preparedBy')}</span>
               <input
                 type="text"
                 value={preparedBy}
                 onChange={(e) => setPreparedBy(e.target.value)}
-                placeholder="Your name / consultancy"
+                placeholder={t('preparedByPh')}
                 maxLength={120}
                 className="px-[12px] py-[9px] rounded-[10px] border border-[#d2d2d7] focus:border-[#0071e3] focus:outline-none text-[14px] text-[#1d1d1f]"
               />
             </label>
             <p className="sm:col-span-2 text-[12px] text-[#86868b] leading-[1.5]">
-              Adds an “Automation Opportunity Audit” cover with these fields to your PDF &amp; DOCX — a client-ready leave-behind.
+              {t('auditDesc')}
             </p>
           </div>
         )}
@@ -238,9 +239,9 @@ export default function ReportActions({
         <div className="flex items-center gap-[10px] mb-[18px] px-[16px] py-[12px] bg-[#f0f7ff] border border-[#b8d9ff] rounded-[12px] text-[13px] text-[#0071e3]">
           <Loader2 className="h-[15px] w-[15px] animate-spin shrink-0" />
           <span>
-            {downloading === 'docx' && 'Generating Word document — this takes 10–20 seconds…'}
-            {downloading === 'pdf'  && 'Generating PDF report — this takes 10–20 seconds…'}
-            {downloading === 'n8n'  && 'Preparing n8n workflow canvas…'}
+            {downloading === 'docx' && t('genDocx')}
+            {downloading === 'pdf'  && t('genPdf')}
+            {downloading === 'n8n'  && t('genN8n')}
           </span>
         </div>
       )}
@@ -254,8 +255,8 @@ export default function ReportActions({
           className="inline-flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#005bbf] disabled:opacity-60 disabled:cursor-not-allowed text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm hover:shadow-md min-w-[180px]"
         >
           {downloading === 'docx'
-            ? <><Loader2 className="h-[15px] w-[15px] animate-spin shrink-0" />Generating DOCX…</>
-            : <><FileText className="h-[15px] w-[15px] shrink-0" />Download DOCX</>
+            ? <><Loader2 className="h-[15px] w-[15px] animate-spin shrink-0" />{t('genDocxBtn')}</>
+            : <><FileText className="h-[15px] w-[15px] shrink-0" />{t('dlDocx')}</>
           }
         </button>
 
@@ -266,8 +267,8 @@ export default function ReportActions({
           className="inline-flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#005bbf] disabled:opacity-60 disabled:cursor-not-allowed text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm hover:shadow-md min-w-[180px]"
         >
           {downloading === 'pdf'
-            ? <><Loader2 className="h-[15px] w-[15px] animate-spin shrink-0" />Generating PDF…</>
-            : <><Download className="h-[15px] w-[15px] shrink-0" />Download PDF</>
+            ? <><Loader2 className="h-[15px] w-[15px] animate-spin shrink-0" />{t('genPdfBtn')}</>
+            : <><Download className="h-[15px] w-[15px] shrink-0" />{t('dlPdf')}</>
           }
         </button>
 
@@ -279,8 +280,8 @@ export default function ReportActions({
             className="inline-flex items-center justify-center gap-[8px] bg-[#1d1d1f] hover:bg-[#3a3a3c] active:bg-[#000] disabled:opacity-60 disabled:cursor-not-allowed text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm hover:shadow-md min-w-[200px]"
           >
             {downloading === 'n8n'
-              ? <><Loader2 className="h-[15px] w-[15px] animate-spin shrink-0" />Preparing…</>
-              : <><FileJson className="h-[15px] w-[15px] shrink-0" />n8n Workflow .json</>
+              ? <><Loader2 className="h-[15px] w-[15px] animate-spin shrink-0" />{t('preparing')}</>
+              : <><FileJson className="h-[15px] w-[15px] shrink-0" />{t('n8nBtn')}</>
             }
           </button>
         )}
@@ -289,12 +290,12 @@ export default function ReportActions({
         <button
           onClick={handleLinkedinShare}
           disabled={isAnyDownloading}
-          title="Copies a ready-to-paste caption and opens LinkedIn with the report preview"
+          title={t('liTitle')}
           className="inline-flex items-center justify-center gap-[8px] bg-[#0a66c2] hover:bg-[#0958a8] active:bg-[#074a8f] disabled:opacity-60 disabled:cursor-not-allowed text-white px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm hover:shadow-md w-full sm:w-auto sm:min-w-[200px]"
         >
           {liShared
-            ? <><Check className="h-[15px] w-[15px] shrink-0" /><span>Caption copied &mdash; paste it!</span></>
-            : <><Linkedin className="h-[15px] w-[15px] shrink-0" /><span>Share on LinkedIn</span></>
+            ? <><Check className="h-[15px] w-[15px] shrink-0" /><span>{t('liCopied')}</span></>
+            : <><Linkedin className="h-[15px] w-[15px] shrink-0" /><span>{t('liShare')}</span></>
           }
         </button>
 
@@ -305,8 +306,8 @@ export default function ReportActions({
           className="inline-flex items-center justify-center gap-[8px] border border-[#d2d2d7] hover:border-[#0071e3] hover:bg-[#f0f7ff] active:bg-[#e5f0ff] disabled:opacity-60 disabled:cursor-not-allowed px-[24px] py-[13px] rounded-full font-medium text-[14px] text-[#1d1d1f] transition-all"
         >
           {copied
-            ? <><Check className="h-[15px] w-[15px] text-green-600 shrink-0" /><span className="text-green-600">Link copied!</span></>
-            : <><Share2 className="h-[15px] w-[15px] shrink-0" /><span>Share Report</span></>
+            ? <><Check className="h-[15px] w-[15px] text-green-600 shrink-0" /><span className="text-green-600">{t('linkCopied')}</span></>
+            : <><Share2 className="h-[15px] w-[15px] shrink-0" /><span>{t('shareReport')}</span></>
           }
         </button>
 
