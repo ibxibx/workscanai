@@ -84,3 +84,7 @@ export const trackReportExported = (props?: Record<string, unknown>) =>
 // 6) n8n workflow JSON downloaded
 export const trackWorkflowDownloaded = (props?: Record<string, unknown>) =>
   capture('workflow_downloaded', props)
+
+// 6b) n8n setup guide downloaded (#37/#54) — richer-export instrumentation
+export const trackWorkflowSetupGuideDownloaded = (props?: Record<string, unknown>) =>
+  capture('workflow_setup_guide_downloaded', props)

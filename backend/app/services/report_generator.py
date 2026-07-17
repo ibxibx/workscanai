@@ -674,7 +674,7 @@ class ReportGenerator:
                      'company': 'Company / Department Analysis'}.get(context, 'Workflow Analysis')
         story.append(Paragraph(ctx_label, style('ctx_lbl', fontSize=11, textColor=GRAY_600,
             fontName='Helvetica', spaceAfter=6)))
-        story.append(Paragraph('Workflow Automation Analysis Report',
+        story.append(Paragraph('Automation Opportunity Audit',
             style('ct', fontSize=22, leading=27, textColor=GRAY_900, spaceAfter=6, fontName='Helvetica-Bold')))
         story.append(Paragraph(workflow['name'], style('wn', fontSize=22, leading=26,
             textColor=BLUE, fontName='Helvetica-Bold', spaceAfter=10)))
@@ -701,6 +701,27 @@ class ReportGenerator:
                     ('LINEBEFORE',(0,0),(0,-1),3,BLUE)])))
 
         story.append(Spacer(1, 8*mm))
+        # #32 Automation Audit — prepared for / prepared by (consultant leave-behind)
+        _pf = (analysis_data.get('prepared_for') or '').strip()
+        _pb = (analysis_data.get('prepared_by') or '').strip()
+        if _pf and not _pb:
+            _pb = 'WorkScanAI · workscanai.app'
+        if _pf or _pb:
+            _ap_rows = []
+            if _pf:
+                _pf_e = _pf[:120].replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                _ap_rows.append([Paragraph('PREPARED FOR', ST['label']),
+                    Paragraph(_pf_e, style('pf', fontSize=11, leading=15,
+                        textColor=GRAY_900, fontName='Helvetica-Bold'))])
+            if _pb:
+                _pb_e = _pb[:120].replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                _ap_rows.append([Paragraph('PREPARED BY', ST['label']),
+                    Paragraph(_pb_e, style('pb', fontSize=11, leading=15,
+                        textColor=GRAY_900, fontName='Helvetica-Bold'))])
+            story.append(Table(_ap_rows, colWidths=[W*0.28, W*0.72],
+                style=TableStyle([('TOPPADDING',(0,0),(-1,-1),2),('BOTTOMPADDING',(0,0),(-1,-1),2),
+                    ('LEFTPADDING',(0,0),(-1,-1),0),('VALIGN',(0,0),(-1,-1),'MIDDLE')])))
+            story.append(Spacer(1, 4*mm))
         story.append(Paragraph(f"Generated {datetime.now().strftime('%B %d, %Y')}", ST['cover_meta']))
         story.append(Spacer(1, 14*mm))
 
@@ -942,7 +963,7 @@ class ReportGenerator:
                      'company':'Company / Department Analysis'}.get(context,'Workflow Analysis')
         p = doc.add_paragraph(); run(p, ctx_label, size=10, color='86868b')
         p.paragraph_format.space_before=Pt(2); p.paragraph_format.space_after=Pt(4)
-        p = doc.add_paragraph(); run(p,'Workflow Automation Analysis Report',bold=True,size=22,color='1d1d1f')
+        p = doc.add_paragraph(); run(p,'Automation Opportunity Audit',bold=True,size=22,color='1d1d1f')
         p = doc.add_paragraph(); run(p,workflow['name'],bold=True,size=20,color='0071e3')
         p.paragraph_format.space_before=Pt(2); p.paragraph_format.space_after=Pt(4)
         if workflow.get('description'):
@@ -959,6 +980,17 @@ class ReportGenerator:
             run(cell.paragraphs[0],source_text,size=10,color='1d1d1f')
             doc.add_paragraph()
 
+        # #32 Automation Audit — prepared for / prepared by (consultant leave-behind)
+        _pf = (analysis_data.get('prepared_for') or '').strip()
+        _pb = (analysis_data.get('prepared_by') or '').strip()
+        if _pf and not _pb:
+            _pb = 'WorkScanAI · workscanai.app'
+        if _pf or _pb:
+            _ap_rows = []
+            if _pf: _ap_rows.append(('Prepared for', _pf[:120], None))
+            if _pb: _ap_rows.append(('Prepared by', _pb[:120], None))
+            kv_table(_ap_rows, col_widths=(3.5, 11.5))
+            doc.add_paragraph()
         p=doc.add_paragraph(); run(p,f"Generated {datetime.now().strftime('%B %d, %Y')}",size=9,color='6e6e73')
         p.paragraph_format.space_after=Pt(12)
 
