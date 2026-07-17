@@ -111,6 +111,35 @@ def score_label(score, loc='en'):
     else: return _tr(loc, 'LOW', 'NIEDRIG')
 
 
+def freq_label(freq, loc='en'):
+    """Localise a task frequency value (daily/weekly/monthly)."""
+    f = (freq or 'N/A')
+    if loc == 'de':
+        return {'daily': 'Täglich', 'weekly': 'Wöchentlich',
+                'monthly': 'Monatlich'}.get(f.lower(), f.capitalize())
+    return f.capitalize()
+
+
+def difficulty_label(diff, loc='en'):
+    """Localise a task difficulty value (easy/medium/hard)."""
+    d = (diff or 'N/A')
+    if loc == 'de':
+        return {'easy': 'Einfach', 'medium': 'Mittel',
+                'hard': 'Schwer'}.get(d.lower(), d.title())
+    return d.title()
+
+
+def cat_label(cat, loc='en'):
+    """Localise a task category value (general/data_entry/…)."""
+    c = (cat or 'N/A')
+    if loc == 'de':
+        return {'general': 'Allgemein', 'data_entry': 'Dateneingabe',
+                'communication': 'Kommunikation', 'analysis': 'Analyse',
+                'creative': 'Kreativ', 'admin': 'Administrativ'
+                }.get(c.lower(), c.replace('_', ' ').title())
+    return c.replace('_', ' ').title()
+
+
 def split_rec(text):
     """Split recommendation into (opt1, opt2) or (None, full_text)."""
     m1 = _re.search(r'(Option\s+1\s*[—\-–])', text)
@@ -203,10 +232,10 @@ class ReportGenerator:
             val_sv = hrs_sv * hourly
             details = [
                 [_tr(loc,'Description','Beschreibung'),    task.get('description', '-')],
-                [_tr(loc,'Frequency','Häufigkeit'),      task.get('frequency', 'N/A').capitalize()],
+                [_tr(loc,'Frequency','Häufigkeit'),      freq_label(task.get('frequency'), loc)],
                 [_tr(loc,'Time per Task','Zeit pro Aufgabe'),  f'{task.get("time_per_task", 0)} {_tr(loc,"min","Min.")}'],
-                [_tr(loc,'Category','Kategorie'),       task.get('category', 'N/A').replace('_', ' ').title()],
-                [_tr(loc,'Implementation','Umsetzung'), result.get('difficulty', 'N/A').title()],
+                [_tr(loc,'Category','Kategorie'),       cat_label(task.get('category'), loc)],
+                [_tr(loc,'Implementation','Umsetzung'), difficulty_label(result.get('difficulty'), loc)],
                 [_tr(loc,'Annual Savings','Jährl. Einsparung'), f'{hrs_sv:.1f} {_tr(loc,"hrs","Std.")}  /  \u20ac{val_sv:,.0f}'],
             ]
             block.append(Table(
@@ -253,7 +282,7 @@ class ReportGenerator:
                 conf_hex = {'high': '34c759', 'medium': '6e6e73', 'low': 'ff9f0a'}.get(conf, '6e6e73')
                 conf_color = {'high': GREEN, 'medium': GRAY_600, 'low': AMBER}.get(conf, GRAY_600)
                 block.append(Paragraph(
-                    f'<font color="#{conf_hex}">{_tr(loc,"Score confidence","Score-Konfidenz")}: <b>{conf.capitalize()}</b></font> '
+                    f'<font color="#{conf_hex}">{_tr(loc,"Score confidence","Score-Konfidenz")}: <b>{_tr(loc, conf.capitalize(), {"high":"Hoch","medium":"Mittel","low":"Niedrig"}.get(conf, conf.capitalize()))}</b></font> '
                     f'<font size="7" color="#86868b">({_tr(loc,"how much the four sub-scores agree","wie stark die vier Teilbewertungen übereinstimmen")})</font>',
                     style_fn(f'conf{idx}', fontSize=8, fontName='Helvetica', textColor=conf_color, leading=11)))
 
@@ -368,9 +397,9 @@ class ReportGenerator:
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
             he_rows = [
                 [Paragraph(f'<b>{_tr(loc,"Metric","Kennzahl")}</b>', ST['label']), Paragraph(f'<b>{_tr(loc,"Score","Score")}</b>', ST['label'])],
-                [Paragraph(_tr(loc,'AI Replacement Risk','KI-Ersetzungsrisiko'), style_fn('air', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
+                [Paragraph(_tr(loc,'AI Replacement Risk','KI-Verdrängungsrisiko'), style_fn('air', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
                  Paragraph(f'<font color="#ff3b30"><b>{score:.0f}%</b></font>', style_fn('airv', fontSize=11, fontName='Helvetica-Bold'))],
-                [Paragraph(_tr(loc,'Human Irreplaceability','Menschliche Unersetzbarkeit'), style_fn('hi', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
+                [Paragraph(_tr(loc,'Human Irreplaceability','Menschliche Unersetzlichkeit'), style_fn('hi', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
                  Paragraph(f'<font color="#ff9f0a"><b>{avg_human_edge:.0f}%</b></font>', style_fn('hiv', fontSize=11, fontName='Helvetica-Bold'))],
             ]
             story.append(Table(he_rows, colWidths=[W*0.6, W*0.4],
@@ -482,9 +511,9 @@ class ReportGenerator:
             story.append(Paragraph(_tr(loc,'Automation Rollout Timeline','Zeitplan der Automatisierungseinführung'), style_fn('rt_ttl', fontSize=10,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceAfter=4)))
             phases_team = [
-                (_tr(loc,'Phase 1 — Quick Wins (0–3 months)','Phase 1 — Quick Wins (0–3 Monate)'),  [r for r in sorted_results if r.get('difficulty','').lower()=='easy'],   GREEN,  GREEN_LIGHT),
-                (_tr(loc,'Phase 2 — Medium-term (3–12 months)','Phase 2 — Mittelfristig (3–12 Monate)'),[r for r in sorted_results if r.get('difficulty','').lower()=='medium'], AMBER,  AMBER_LIGHT),
-                (_tr(loc,'Phase 3 — Strategic (12–36 months)','Phase 3 — Strategisch (12–36 Monate)'), [r for r in sorted_results if r.get('difficulty','').lower()=='hard'],   BLUE,   BLUE_LIGHT),
+                (_tr(loc,'Phase 1 — Quick Wins (0–3 months)','Phase 1 – Schnelle Erfolge (0–3 Monate)'),  [r for r in sorted_results if r.get('difficulty','').lower()=='easy'],   GREEN,  GREEN_LIGHT),
+                (_tr(loc,'Phase 2 — Medium-term (3–12 months)','Phase 2 – Mittelfristig (3–12 Monate)'),[r for r in sorted_results if r.get('difficulty','').lower()=='medium'], AMBER,  AMBER_LIGHT),
+                (_tr(loc,'Phase 3 — Strategic (12–36 months)','Phase 3 – Strategisch (12–36 Monate)'), [r for r in sorted_results if r.get('difficulty','').lower()=='hard'],   BLUE,   BLUE_LIGHT),
             ]
             for ph_name, ph_tasks, ph_col, ph_bg in phases_team:
                 ph_hrs = sum(r.get('estimated_hours_saved',0) for r in ph_tasks)
@@ -564,7 +593,7 @@ class ReportGenerator:
             story.append(Spacer(1, 6*mm))
 
             # D2 — Headcount Signal
-            story.append(Paragraph(_tr(loc,'Headcount Signal','Personalsignal'), style_fn('hc_ttl', fontSize=13,
+            story.append(Paragraph(_tr(loc,'Headcount Signal','Personalbedarf-Signal'), style_fn('hc_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
             fte2 = hours / ANNUAL_PRODUCTIVE_HOURS
             hc_data = [
@@ -593,7 +622,7 @@ class ReportGenerator:
                     spaceAfter=8, spaceBefore=4)))
 
             # D3 — Automation Benchmark (#6, sourced — not invented percentiles)
-            story.append(Paragraph(_tr(loc,'Automation Benchmark','Automatisierungs-Benchmark'), style_fn('ib_ttl', fontSize=13,
+            story.append(Paragraph(_tr(loc,'Automation Benchmark','Branchen-Benchmark'), style_fn('ib_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
             bm_data = [
                 (_tr(loc,'Your workflow','Ihr Workflow'),        f'{score:.0f}%',
@@ -642,9 +671,9 @@ class ReportGenerator:
                 (_tr(loc,'Annual savings','Jährliche Einsparung'),      f'\u20ac{savings:,.0f}'),
                 (_tr(loc,'Hours reclaimed','Zurückgewonnene Stunden'),     f'{hours:.0f}h/yr'),
                 (_tr(loc,'FTE equivalent','VZÄ-Äquivalent'),      f'{hours/ANNUAL_PRODUCTIVE_HOURS:.1f} ' + _tr(loc,'roles','Stellen')),
-                (_tr(loc,'Quick wins (90 days)','Quick Wins (90 Tage)'),f'{quick_wins} ' + _tr(loc,'tasks','Aufgaben')),
+                (_tr(loc,'Quick wins (90 days)','Schnelle Erfolge (90 Tage)'),f'{quick_wins} ' + _tr(loc,'tasks','Aufgaben')),
                 (_tr(loc,'Risk flags','Risikomarkierungen'),          f'{risk_flags} ' + _tr(loc,'tasks require compliance review','Aufgaben erfordern eine Compliance-Prüfung')),
-                (_tr(loc,'Recommendation','Empfehlung'),      _tr(loc,'Begin 90-day automation sprint. Prioritise quick wins. Redeploy freed capacity to strategic functions.','Starten Sie einen 90-Tage-Automatisierungssprint. Priorisieren Sie Quick Wins. Setzen Sie freigewordene Kapazität für strategische Funktionen ein.')),
+                (_tr(loc,'Recommendation','Empfehlung'),      _tr(loc,'Begin 90-day automation sprint. Prioritise quick wins. Redeploy freed capacity to strategic functions.','Starten Sie einen 90-Tage-Automatisierungssprint. Priorisieren Sie schnelle Erfolge. Setzen Sie freigewordene Kapazität für strategische Funktionen ein.')),
             ]
             board_rows = []
             for k, v in board_lines:
@@ -867,11 +896,11 @@ class ReportGenerator:
         story.append(Paragraph(_tr(loc, 'Implementation Roadmap', 'Umsetzungs-Roadmap'), ST['section_title']))
         story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
         phases = [
-            (_tr(loc,'Phase 1 — Quick Wins','Phase 1 — Quick Wins'),_tr(loc,'0–3 months','0–3 Monate'),_tr(loc,'High score + easy setup = immediate ROI.','Hoher Score + einfache Einrichtung = sofortiger ROI.'),
+            (_tr(loc,'Phase 1 — Quick Wins','Phase 1 – Schnelle Erfolge'),_tr(loc,'0–3 months','0–3 Monate'),_tr(loc,'High score + easy setup = immediate ROI.','Hoher Score + einfache Einrichtung = sofortiger ROI.'),
              GREEN,GREEN_LIGHT,[r for r in sorted_results if r['ai_readiness_score']>=70 and r.get('difficulty','').lower()=='easy']),
-            (_tr(loc,'Phase 2 — Medium-Term','Phase 2 — Mittelfristig'),_tr(loc,'3–6 months','3–6 Monate'),_tr(loc,'Technical setup required but significant savings.','Technische Einrichtung nötig, aber erhebliche Einsparungen.'),
+            (_tr(loc,'Phase 2 — Medium-Term','Phase 2 – Mittelfristig'),_tr(loc,'3–6 months','3–6 Monate'),_tr(loc,'Technical setup required but significant savings.','Technische Einrichtung nötig, aber erhebliche Einsparungen.'),
              AMBER,AMBER_LIGHT,[r for r in sorted_results if r['ai_readiness_score']>=50 and r.get('difficulty','').lower()=='medium']),
-            (_tr(loc,'Phase 3 — Advanced','Phase 3 — Fortgeschritten'),_tr(loc,'6–12 months','6–12 Monate'),_tr(loc,'Complex automations and custom development.','Komplexe Automatisierungen und individuelle Entwicklung.'),
+            (_tr(loc,'Phase 3 — Advanced','Phase 3 – Fortgeschritten'),_tr(loc,'6–12 months','6–12 Monate'),_tr(loc,'Complex automations and custom development.','Komplexe Automatisierungen und individuelle Entwicklung.'),
              BLUE,BLUE_LIGHT,[r for r in sorted_results if r['ai_readiness_score']>=40 and r.get('difficulty','').lower()=='hard']),
         ]
         for title,timeline,desc,col,col_light,phase_tasks in phases:
@@ -924,7 +953,7 @@ class ReportGenerator:
             ST['body']))
         story.append(Spacer(1, 6*mm))
         _concl_items = [
-            'Beginnen Sie mit den Quick Wins aus Phase 1 — ROI in Wochen, nicht Monaten.',
+            'Beginnen Sie mit den schnellen Erfolgen aus Phase 1 – ROI in Wochen, nicht Monaten.',
             'Nutzen Sie Human-in-the-Loop für Aufgaben mit Score 40–70, um Risiken zu senken.',
             'Erfassen Sie die gesparte Zeit monatlich, um die Wirkung zu messen und zu kommunizieren.',
             'Prüfen Sie vierteljährlich erneut — ständig kommen neue KI-Tools hinzu.',
@@ -1109,10 +1138,10 @@ class ReportGenerator:
             hrs_sv = result.get('estimated_hours_saved',0); val_sv=hrs_sv*hourly
             kv_table([
                 (_tr(loc,'Description','Beschreibung'),   task.get('description','-'), None),
-                (_tr(loc,'Frequency','Häufigkeit'),     task.get('frequency','N/A').capitalize(), None),
+                (_tr(loc,'Frequency','Häufigkeit'),     freq_label(task.get('frequency'), loc), None),
                 (_tr(loc,'Time per Task','Zeit pro Aufgabe'), f'{task.get("time_per_task",0)} ' + _tr(loc,'minutes','Minuten'), None),
-                (_tr(loc,'Category','Kategorie'),      task.get('category','N/A').replace('_',' ').title(), None),
-                (_tr(loc,'Difficulty','Schwierigkeit'),    result.get('difficulty','N/A').title(), None),
+                (_tr(loc,'Category','Kategorie'),      cat_label(task.get('category'), loc), None),
+                (_tr(loc,'Difficulty','Schwierigkeit'),    difficulty_label(result.get('difficulty'), loc), None),
                 (_tr(loc,'Annual Savings','Jährl. Einsparung'),f'{hrs_sv:.1f} ' + _tr(loc,'hrs','Std.') + f'  /  \u20ac{val_sv:,.0f}', None),
             ])
 
@@ -1191,9 +1220,9 @@ class ReportGenerator:
         # ── Roadmap ───────────────────────────────────────────────────────
         heading(_tr(loc,'Implementation Roadmap','Umsetzungs-Roadmap'))
         for ph_title,ph_tasks2,col_hex2 in [
-            (_tr(loc,'Phase 1 — Quick Wins (0–3 months)','Phase 1 — Schnelle Erfolge (0–3 Monate)'),  [r for r in sorted_results if r['ai_readiness_score']>=70 and r.get('difficulty','').lower()=='easy'],   '34c759'),
-            (_tr(loc,'Phase 2 — Medium-Term (3–6 months)','Phase 2 — Mittelfristig (3–6 Monate)'), [r for r in sorted_results if r['ai_readiness_score']>=50 and r.get('difficulty','').lower()=='medium'],  'ff9f0a'),
-            (_tr(loc,'Phase 3 — Advanced (6–12 months)','Phase 3 — Fortgeschritten (6–12 Monate)'),   [r for r in sorted_results if r['ai_readiness_score']>=40 and r.get('difficulty','').lower()=='hard'],    '0071e3'),
+            (_tr(loc,'Phase 1 — Quick Wins (0–3 months)','Phase 1 – Schnelle Erfolge (0–3 Monate)'),  [r for r in sorted_results if r['ai_readiness_score']>=70 and r.get('difficulty','').lower()=='easy'],   '34c759'),
+            (_tr(loc,'Phase 2 — Medium-Term (3–6 months)','Phase 2 – Mittelfristig (3–6 Monate)'), [r for r in sorted_results if r['ai_readiness_score']>=50 and r.get('difficulty','').lower()=='medium'],  'ff9f0a'),
+            (_tr(loc,'Phase 3 — Advanced (6–12 months)','Phase 3 – Fortgeschritten (6–12 Monate)'),   [r for r in sorted_results if r['ai_readiness_score']>=40 and r.get('difficulty','').lower()=='hard'],    '0071e3'),
         ]:
             p=doc.add_paragraph(); p.paragraph_format.space_before=Pt(10)
             run(p,ph_title,bold=True,size=12,color=col_hex2)
@@ -1218,7 +1247,7 @@ class ReportGenerator:
                 cw_map2={'now':_tr(loc,'Automate NOW','JETZT automatisieren'),'12-24':_tr(loc,'12–24 months','12–24 Monate'),'24-48':_tr(loc,'24–48 months','24–48 Monate'),'48+':_tr(loc,'48+ months','48+ Monate')}
                 cw_col2={'now':'ff3b30','12-24':'ff9f0a','24-48':'f5c518','48+':'34c759'}
                 t=doc.add_table(rows=len(cw_tasks)+1,cols=3); t.style='Table Grid'
-                for ci,hdr in enumerate([_tr(loc,'Task','Aufgabe'),_tr(loc,'Risk Window','Risikofenster'),_tr(loc,'Human Edge','Menschlicher Vorteil')]):
+                for ci,hdr in enumerate([_tr(loc,'Task','Aufgabe'),_tr(loc,'Risk Window','Risikofenster'),_tr(loc,'Human Edge','Menschl. Vorsprung')]):
                     set_bg(t.rows[0].cells[ci],'f5f5f7')
                     run(t.rows[0].cells[ci].paragraphs[0],hdr,bold=True,size=9,color='6e6e73')
                 for ri,r in enumerate(cw_tasks,1):
@@ -1233,13 +1262,13 @@ class ReportGenerator:
                 doc.add_paragraph()
 
             # Human Edge
-            p=doc.add_paragraph(); run(p,_tr(loc,'Human Edge Analysis','Analyse des menschlichen Vorteils'),bold=True,size=12,color='1d1d1f')
+            p=doc.add_paragraph(); run(p,_tr(loc,'Human Edge Analysis','Analyse des menschlichen Vorsprungs'),bold=True,size=12,color='1d1d1f')
             kv_table([
-                (_tr(loc,'AI Replacement Risk','KI-Ersetzungsrisiko'),    f'{score:.0f}%',            'ffe5e3'),
-                (_tr(loc,'Human Irreplaceability','Menschliche Unersetzbarkeit'), f'{avg_human_edge:.0f}%',   'fff4e0'),
+                (_tr(loc,'AI Replacement Risk','KI-Verdrängungsrisiko'),    f'{score:.0f}%',            'ffe5e3'),
+                (_tr(loc,'Human Irreplaceability','Menschliche Unersetzlichkeit'), f'{avg_human_edge:.0f}%',   'fff4e0'),
             ], col_widths=(5.0,10.0))
             insight2=(_tr(loc,'Strong human-essential components — amplify these while AI handles the rest.','Starke, menschlich-essenzielle Komponenten — stärken Sie diese, während die KI den Rest übernimmt.')
-                      if avg_human_edge>=60 else _tr(loc,'Highly automatable role — pivot to higher human-edge functions now.','Stark automatisierbare Rolle — orientieren Sie sich jetzt zu Funktionen mit höherem menschlichem Vorteil.'))
+                      if avg_human_edge>=60 else _tr(loc,'Highly automatable role — pivot to higher human-edge functions now.','Stark automatisierbare Rolle — orientieren Sie sich jetzt zu Funktionen mit höherem menschlichem Vorsprung.'))
             p=doc.add_paragraph(); run(p,insight2,size=9,color='6e6e73',italic=True)
             doc.add_paragraph()
 
@@ -1282,15 +1311,15 @@ class ReportGenerator:
             p=doc.add_paragraph(); run(p,_tr(loc,'Team Velocity Impact','Auswirkung auf die Team-Geschwindigkeit'),bold=True,size=12,color='1d1d1f')
             kv_table([
                 (_tr(loc,'Hours freed / yr','Freigesetzte Stunden/Jahr'),  f'{hours:.0f}h',            'e8f1fc'),
-                (_tr(loc,'FTE equivalent','FTE-Äquivalent'),    f'{fte3:.1f} '+_tr(loc,'roles','Rollen'),         'e8f9ed'),
+                (_tr(loc,'FTE equivalent','VZÄ-Äquivalent'),    f'{fte3:.1f} '+_tr(loc,'roles','Rollen'),         'e8f9ed'),
                 (_tr(loc,'Cost saved / yr','Eingesparte Kosten/Jahr'),   f'\u20ac{savings:,.0f}',     'fff4e0'),
             ], col_widths=(5.0,10.0))
             doc.add_paragraph()
 
             p=doc.add_paragraph(); run(p,_tr(loc,'Rollout Timeline','Einführungszeitplan'),bold=True,size=12,color='1d1d1f')
-            for ph_n,ph_t,ph_c in [(_tr(loc,'Phase 1 — Quick Wins (0–3mo)','Phase 1 — Schnelle Erfolge (0–3 Mon.)'),[r for r in sorted_results if r.get('difficulty','').lower()=='easy'],'34c759'),
-                                    (_tr(loc,'Phase 2 — Medium (3–12mo)','Phase 2 — Mittel (3–12 Mon.)'),[r for r in sorted_results if r.get('difficulty','').lower()=='medium'],'ff9f0a'),
-                                    (_tr(loc,'Phase 3 — Strategic (12–36mo)','Phase 3 — Strategisch (12–36 Mon.)'),[r for r in sorted_results if r.get('difficulty','').lower()=='hard'],'0071e3')]:
+            for ph_n,ph_t,ph_c in [(_tr(loc,'Phase 1 — Quick Wins (0–3mo)','Phase 1 – Schnelle Erfolge (0–3 Mon.)'),[r for r in sorted_results if r.get('difficulty','').lower()=='easy'],'34c759'),
+                                    (_tr(loc,'Phase 2 — Medium (3–12mo)','Phase 2 – Mittel (3–12 Mon.)'),[r for r in sorted_results if r.get('difficulty','').lower()=='medium'],'ff9f0a'),
+                                    (_tr(loc,'Phase 3 — Strategic (12–36mo)','Phase 3 – Strategisch (12–36 Mon.)'),[r for r in sorted_results if r.get('difficulty','').lower()=='hard'],'0071e3')]:
                 ph_h=sum(r.get('estimated_hours_saved',0) for r in ph_t)
                 p=doc.add_paragraph(); run(p,f'{ph_n}  ',bold=True,size=10,color=ph_c)
                 run(p,f'{ph_h:.0f}h/yr · {len(ph_t)} '+_tr(loc,'tasks','Aufgaben'),size=9,color='6e6e73')
@@ -1326,15 +1355,15 @@ class ReportGenerator:
             doc.add_paragraph()
 
             fte4=hours/ANNUAL_PRODUCTIVE_HOURS
-            p=doc.add_paragraph(); run(p,_tr(loc,'Headcount Signal','Personalbestands-Signal'),bold=True,size=12,color='1d1d1f')
+            p=doc.add_paragraph(); run(p,_tr(loc,'Headcount Signal','Personalbedarf-Signal'),bold=True,size=12,color='1d1d1f')
             kv_table([
                 (_tr(loc,'Hours freed / yr','Freigesetzte Stunden/Jahr'),  f'{hours:.0f}h',                          'e8f1fc'),
-                (_tr(loc,'FTE equivalent','FTE-Äquivalent'),    f'{fte4:.1f} '+_tr(loc,'roles','Rollen'),                       'f5f5f7'),
-                (_tr(loc,'Saved per FTE','Einsparung pro FTE'),     f'\u20ac{savings/max(fte4,0.1):,.0f}',    'f5f5f7'),
+                (_tr(loc,'FTE equivalent','VZÄ-Äquivalent'),    f'{fte4:.1f} '+_tr(loc,'roles','Rollen'),                       'f5f5f7'),
+                (_tr(loc,'Saved per FTE','Einsparung pro VZÄ'),     f'\u20ac{savings/max(fte4,0.1):,.0f}',    'f5f5f7'),
             ], col_widths=(5.0,10.0))
             doc.add_paragraph()
 
-            p=doc.add_paragraph(); run(p,_tr(loc,'Automation Benchmark','Automatisierungs-Benchmark'),bold=True,size=12,color='1d1d1f')
+            p=doc.add_paragraph(); run(p,_tr(loc,'Automation Benchmark','Branchen-Benchmark'),bold=True,size=12,color='1d1d1f')
             kv_table([
                 (_tr(loc,'Your workflow','Ihr Workflow'),            f'{score:.0f}%',  'e8f1fc'),
                 (_tr(loc,'Technically automatable','Technisch automatisierbar'),  f'{BENCH_TECH_POTENTIAL_PCT}%',  'f5f5f7'),
@@ -1352,7 +1381,7 @@ class ReportGenerator:
             bs=doc.add_table(rows=9,cols=2); bs.style='Table Grid'
             board=[(_tr(loc,'Workflow','Workflow'),workflow.get('name','')),(_tr(loc,'Industry','Branche'),workflow.get('industry','General')),
                    (_tr(loc,'Automation potential','Automatisierungspotenzial'),f'{score:.0f}% '+_tr(loc,'of tasks','der Aufgaben')),(_tr(loc,'Annual savings','Jährliche Einsparungen'),f'\u20ac{savings:,.0f}'),
-                   (_tr(loc,'Hours reclaimed','Zurückgewonnene Stunden'),f'{hours:.0f}h/yr'),(_tr(loc,'FTE equivalent','FTE-Äquivalent'),f'{fte4:.1f} '+_tr(loc,'roles','Rollen')),
+                   (_tr(loc,'Hours reclaimed','Zurückgewonnene Stunden'),f'{hours:.0f}h/yr'),(_tr(loc,'FTE equivalent','VZÄ-Äquivalent'),f'{fte4:.1f} '+_tr(loc,'roles','Rollen')),
                    (_tr(loc,'Quick wins (90 days)','Schnelle Erfolge (90 Tage)'),f'{quick2} '+_tr(loc,'tasks','Aufgaben')),(_tr(loc,'Risk flags','Risikohinweise'),f'{flags2} '+_tr(loc,'require review','erfordern Prüfung')),
                    (_tr(loc,'Recommendation','Empfehlung'),_tr(loc,'Begin 90-day sprint. Prioritise quick wins. Redeploy freed capacity.','90-Tage-Sprint starten. Schnelle Erfolge priorisieren. Freigesetzte Kapazität neu einsetzen.'))]
             for ri,(k,v) in enumerate(board):
