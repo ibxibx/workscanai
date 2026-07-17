@@ -7,7 +7,7 @@ import { Mic, Upload, FileText, Plus, Trash2, Loader2, ChevronDown,
 import { saveMyWorkflowId } from '@/app/dashboard/page'
 import { persistSession } from '@/lib/auth'
 import { trackInputStarted, trackAnalysisSubmitted } from '@/lib/analytics'
-import { useT } from '@/i18n/client'
+import { useT, useLocale } from '@/i18n/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type AnalysisContext = 'individual' | 'team' | 'company'
@@ -148,6 +148,7 @@ const CONTEXT_OPTIONS = [
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function WorkflowForm({ onAnalysisComplete, onError, referredByCode, initialMode, initialJobTitle }: WorkflowFormProps) {
   const t = useT('form')
+  const locale = useLocale()
   // Localised label/desc for CONTEXT_OPTIONS (which is a module-scope constant)
   const ctxLabel = (v: AnalysisContext) =>
     v === 'individual' ? t('ctxIndLabel') : v === 'team' ? t('ctxTeamLabel') : t('ctxCompanyLabel')
@@ -317,30 +318,30 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
   }
 
   const sendAuthCode = async () => {
-    if (!authEmail.trim() || !authEmail.includes('@')) { setAuthError('Please enter a valid email address.'); return }
+    if (!authEmail.trim() || !authEmail.includes('@')) { setAuthError(t('authErrInvalidEmail')); return }
     setAuthLoading(true); setAuthError('')
     try {
       // Direct to Render — bypasses Vercel proxy which can 504 on cold starts
       const res = await fetch(`${BACKEND_DIRECT}/api/auth/request`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:authEmail.trim()}) })
-      if (!res.ok) { const d = await safeJson(res); throw new Error(d.detail || 'Failed to send code') }
+      if (!res.ok) { const d = await safeJson(res); throw new Error(d.detail || t('authErrSendFail')) }
       setAuthStep('code')
-    } catch (e: any) { setAuthError(e.message || 'Something went wrong.') }
+    } catch (e: any) { setAuthError(e.message || t('authErrGeneric')) }
     finally { setAuthLoading(false) }
   }
 
   const verifyAuthCode = async () => {
-    if (authCode.length !== 4) { setAuthError('Please enter the 4-digit code from your email.'); return }
+    if (authCode.length !== 4) { setAuthError(t('authErrNoCode')); return }
     setAuthLoading(true); setAuthError('')
     try {
       // Direct to Render — bypasses Vercel proxy which can 504 on cold starts
       const res = await fetch(`${BACKEND_DIRECT}/api/auth/verify-otp`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:authEmail.trim(),code:authCode.trim()}) })
       const d = await safeJson(res)
-      if (!res.ok) throw new Error(d.detail || 'Invalid code')
+      if (!res.ok) throw new Error(d.detail || t('authErrInvalidCode'))
       persistSession(d.email)
       window.dispatchEvent(new StorageEvent('storage', { key:'wsai_email', newValue:d.email }))
       setAuthStep('success')
       setTimeout(() => { pendingSubmitRef.current = null; setShowAuthModal(false); runAnalysis(d.email) }, 1000)
-    } catch (e: any) { setAuthError(e.message || 'Incorrect code. Please try again.') }
+    } catch (e: any) { setAuthError(e.message || t('authErrIncorrect')) }
     finally { setAuthLoading(false) }
   }
 
@@ -351,9 +352,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
     if (await checkQuotaLimit(setRateLimitMessage)) { stopWarmTimer(); return }
     stopWarmTimer()
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) { onError('Speech recognition is not supported. Please use Chrome or Edge.'); return }
+    if (!SR) { onError(t('voiceErrUnsupported')); return }
     const recognition = new SR()
-    recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'en-US'
+    recognition.continuous = true; recognition.interimResults = true; recognition.lang = locale === 'de' ? 'de-DE' : 'en-US'
     let finalTranscript = ''
     recognition.onstart = () => setIsRecording(true)
     recognition.onresult = (event: any) => {
@@ -391,9 +392,9 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
       const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
       setWorkflowName(baseName)
     }
-    setIsUploading(true); setUploadProgress(0); setUploadStage('Reading file…'); onError('')
+    setIsUploading(true); setUploadProgress(0); setUploadStage(t('upStgReading')); onError('')
     let fakeProgress = 0
-    const STAGES = [{at:5,label:'Reading file…'},{at:20,label:'Extracting text…'},{at:45,label:'Parsing document structure…'},{at:65,label:'Running AI analysis…'},{at:82,label:'Populating tasks…'},{at:91,label:'Almost done…'}]
+    const STAGES = [{at:5,label:t('upStgReading')},{at:20,label:t('upStgExtractingText')},{at:45,label:t('upStgParsingDoc')},{at:65,label:t('upStgRunningAI')},{at:82,label:t('upStgPopulating')},{at:91,label:t('upStgAlmost')}]
     const ticker = setInterval(() => {
       fakeProgress = Math.min(fakeProgress + (Math.random()*3+1), 91)
       setUploadProgress(Math.round(fakeProgress))
@@ -415,20 +416,20 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
       }
       if (!r.ok) {
         const errText = await r.text().catch(() => '')
-        throw new Error(`Server error (${r.status})${errText ? ': ' + errText.substring(0, 100) : ''}`)
+        throw new Error(`${t('upErrServer',{status:r.status})}${errText ? ': ' + errText.substring(0, 100) : ''}`)
       }
-      const d = await r.json(); setSourceText(d.text||''); setUploadProgress(93); setUploadStage('Extracting tasks with AI…')
+      const d = await r.json(); setSourceText(d.text||''); setUploadProgress(93); setUploadStage(t('upStgExtractAI'))
       let parseOk = true
       try { await extractTasksFromText(d.text) } catch (parseErr: any) {
         parseOk = false
-        onError('Tasks extracted but AI parsing failed — please add tasks manually or try again.')
+        onError(t('upErrParseFail'))
       }
-      if (parseOk) { setUploadProgress(100); setUploadStage('Done!') }
+      if (parseOk) { setUploadProgress(100); setUploadStage(t('upStgDoneEx')) }
     } catch (err: any) {
       if (err?.name === 'AbortError') {
-        onError('Upload timed out — the server is warming up (free tier). Please try again in 10 seconds.')
+        onError(t('upErrTimeout'))
       } else {
-        onError(err?.message || 'Could not read this file. Please try a PDF, Word doc, or text file.')
+        onError(err?.message || t('upErrCantRead'))
       }
     } finally {
       clearInterval(ticker)
@@ -509,7 +510,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
       try {
         if (attempt > 0) {
           // Keep spinner visible and show retry message during wait
-          setUploadStage(`Server warming up — retrying (${attempt}/2)…`)
+          setUploadStage(t('upStgRetry',{n:attempt}))
           setIsUploading(true)
           setUploadProgress(92)
           await new Promise(res => setTimeout(res, 4000))
@@ -534,7 +535,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
     }
     // All retries exhausted — show error to user
     setIsExtractingTasks(false); setExtractStatus('idle'); setIsUploading(false)
-    onError(`Could not parse tasks from your document — the AI server may be warming up. Please try again in 15 seconds, or switch to Manual Entry and type your tasks directly. (${lastErr?.message || 'Unknown error'})`)
+    onError(t('parseErrRetry',{err:lastErr?.message || 'Unknown error'}))
   }
 
   // Safe JSON parser — never throws on non-JSON responses (e.g. "Internal Server Error")
@@ -575,7 +576,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
           tasks: tasks.filter(t=>t.name.trim()).map(t=>({ name:t.name, description:t.description||t.name, frequency:t.frequency, time_per_task:t.time_per_task, category:t.category, complexity:t.complexity }))
         })
       })
-      if (!wfRes.ok) { const err=await safeJson(wfRes); throw new Error(err.detail||'Failed to create workflow') }
+      if (!wfRes.ok) { const err=await safeJson(wfRes); throw new Error(err.detail||t('errCreateWorkflow')) }
       const workflow = await safeJson(wfRes); saveMyWorkflowId(workflow.id)
 
       // Workflow saved → backend is warm → advance past warmup + saving
@@ -594,15 +595,15 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
       })
 
       if (!streamed.ok) {
-        if (streamed.status === 429) { setRateLimitMessage(streamed.message || 'You have reached the daily analysis limit.'); return }
-        if (streamed.status === 403) throw new Error(streamed.message || 'Security check failed.')
-        throw new Error(streamed.message || `Analysis failed (HTTP ${streamed.status}) — please try again.`)
+        if (streamed.status === 429) { setRateLimitMessage(streamed.message || 'ratelimit'); return }
+        if (streamed.status === 403) throw new Error(streamed.message || t('errSecurityCheck'))
+        throw new Error(streamed.message || t('errAnalysisFailed',{status:streamed.status}))
       }
 
       advanceTo(4); await new Promise(r=>setTimeout(r,400))
       advanceTo(5); await new Promise(r=>setTimeout(r,500))
       onAnalysisComplete(workflow.id)
-    } catch (err: any) { setStepError(err.message||'Something went wrong.'); onError(err.message||'Failed to analyze workflow.'); resetProgress() }
+    } catch (err: any) { setStepError(err.message||t('authErrGeneric')); onError(err.message||t('errAnalyzeFailed')); resetProgress() }
   }
 
   // SSE-aware analyze caller. If the backend supports text/event-stream
@@ -686,7 +687,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
         setJobScanStep('idle')
         return
       }
-      if (!r1.ok) { const e = await r1.json().catch(()=>({})); throw new Error(e.detail || `Research failed (${r1.status})`) }
+      if (!r1.ok) { const e = await r1.json().catch(()=>({})); throw new Error(e.detail || t('jobScanResearchFail',{status:r1.status})) }
       const d1 = await r1.json()
       setJobScanTasks(d1.tasks || [])
       setJobScanStep('analyzing')
@@ -701,12 +702,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
         setJobScanStep('idle')
         return
       }
-      if (!r2.ok) { const e = await r2.json().catch(()=>({})); throw new Error(e.detail || `Analysis failed (${r2.status})`) }
+      if (!r2.ok) { const e = await r2.json().catch(()=>({})); throw new Error(e.detail || t('jobScanAnalysisFail',{status:r2.status})) }
       const d2 = await r2.json()
       setJobScanStep('done')
       onAnalysisComplete(d2.workflow_id, d2.share_code)
     } catch (err: any) {
-      setJobScanError(err.message || 'Job scan failed. Please try again.')
+      setJobScanError(err.message || t('jobScanErrGeneric'))
       setJobScanStep('idle')
     }
   }
@@ -715,12 +716,12 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
     ev.preventDefault()
     if (!workflowName.trim()) {
       // Auto-fill workflow name from input mode if empty, rather than silently blocking
-      const autoName = inputMode === 'document' ? 'Uploaded Document Analysis'
-        : inputMode === 'voice' ? 'Voice Workflow Analysis'
-        : 'Workflow Analysis'
+      const autoName = inputMode === 'document' ? t('autoNameDoc')
+        : inputMode === 'voice' ? t('autoNameVoice')
+        : t('autoNameWorkflow')
       setWorkflowName(autoName)
       // Continue with auto-filled name inline
-      if (!tasks.some(t=>t.name.trim())) { onError('Please add at least one task'); return }
+      if (!tasks.some(t=>t.name.trim())) { onError(t('errAddTask')); return }
       if (!analysisContext) {
         setContextError(true)
         document.getElementById('context-selector')?.scrollIntoView({ behavior:'smooth', block:'center' })
@@ -733,7 +734,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
       await runAnalysis(guestId)
       return
     }
-    if (!tasks.some(t=>t.name.trim())) { onError('Please add at least one task'); return }
+    if (!tasks.some(t=>t.name.trim())) { onError(t('errAddTask')); return }
     if (!analysisContext) {
       setContextError(true)
       document.getElementById('context-selector')?.scrollIntoView({ behavior:'smooth', block:'center' })
