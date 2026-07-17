@@ -4,6 +4,8 @@ import { useState, useRef, useCallback, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { Brain } from 'lucide-react'
 import WorkflowForm from '@/components/WorkflowForm'
+import LanguageToggle from '@/components/LanguageToggle'
+import { useT } from '@/i18n/client'
 
 // Niche-aware "is my job automatable?" landing. Each niche campaign URL can pass
 // ?aud=<segment> (sets PostHog audience super-prop via lib/audience.ts) and an
@@ -19,47 +21,17 @@ interface NicheCopy {
 
 // Keyed by the same audience segments lib/audience.ts resolves. 'default' covers
 // direct / unknown traffic. Copy speaks to each niche's actual motivation.
-const NICHE_COPY: Record<string, NicheCopy> = {
-  automation_builder: {
-    eyebrow: 'For automation builders',
-    headline: 'Which tasks are worth automating first?',
-    sub: 'Enter a role — get a ranked, scored task list and real n8n community workflows you can import today.',
-  },
-  ops_manager: {
-    eyebrow: 'For operations leaders',
-    headline: 'See where your team\u2019s hours actually go.',
-    sub: 'Scan any role to surface repetitive, automatable work — with hours reclaimed and annual savings, ready for a stakeholder deck.',
-  },
-  founder: {
-    eyebrow: 'For founders',
-    headline: 'Do more before you hire more.',
-    sub: 'Find the work you can automate now instead of headcount — scored by ROI, with tools and payback for each task.',
-  },
-  developer: {
-    eyebrow: 'For developers',
-    headline: 'Is this role automatable? Get the breakdown.',
-    sub: 'Atomic task decomposition, automation scores, and importable n8n workflows — the analysis, not the hype.',
-  },
-  ai_curious: {
-    eyebrow: 'Curious where AI fits?',
-    headline: 'Is your job automatable? Find out in a minute.',
-    sub: 'Enter your job title. AI researches the role, scores each task, and shows what can be automated today.',
-  },
-  default: {
-    eyebrow: 'Job Scanner',
-    headline: 'Is your job automatable?',
-    sub: 'Enter any job title. AI researches the role, extracts real tasks, scores automation potential, and surfaces n8n workflows you can import.',
-  },
-}
+const NICHE_KEYS = ['automation_builder', 'ops_manager', 'founder', 'developer', 'ai_curious', 'default']
 
 function ScanContent() {
   const [formError, setFormError] = useState<string | null>(null)
   const [referredBy, setReferredBy] = useState<string | null>(null)
-  const [copy, setCopy] = useState<NicheCopy>(NICHE_COPY.default)
+  const [aud, setAud] = useState<string>('default')
   const [role, setRole] = useState<string>('')
   const [spotlightPos, setSpotlightPos] = useState({ x: 50, y: 50 })
   const [spotlightVisible, setSpotlightVisible] = useState(false)
   const analyzeRef = useRef<HTMLElement>(null)
+  const t = useT('scan')
 
   // Resolve niche copy + pre-filled role from URL params on mount. The audience
   // super-property itself is registered globally by PostHogProvider; here we only
@@ -67,8 +39,8 @@ function ScanContent() {
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search)
-      const aud = (params.get('aud') || '').toLowerCase()
-      if (aud && NICHE_COPY[aud]) setCopy(NICHE_COPY[aud])
+      const audParam = (params.get('aud') || '').toLowerCase()
+      if (audParam && NICHE_KEYS.includes(audParam)) setAud(audParam)
       const r = (params.get('role') || params.get('job') || '').trim().slice(0, 80)
       if (r) setRole(r)
       // ?ref={code} viewer->creator attribution, same contract as the homepage.
@@ -101,6 +73,16 @@ function ScanContent() {
     window.location.href = shareCode ? `/report/${shareCode}` : `/dashboard/results/${workflowId}`
   }
 
+  const copyMap: Record<string, NicheCopy> = {
+    automation_builder: { eyebrow: t('abEyebrow'), headline: t('abHeadline'), sub: t('abSub') },
+    ops_manager: { eyebrow: t('opsEyebrow'), headline: t('opsHeadline'), sub: t('opsSub') },
+    founder: { eyebrow: t('founderEyebrow'), headline: t('founderHeadline'), sub: t('founderSub') },
+    developer: { eyebrow: t('devEyebrow'), headline: t('devHeadline'), sub: t('devSub') },
+    ai_curious: { eyebrow: t('curiousEyebrow'), headline: t('curiousHeadline'), sub: t('curiousSub') },
+    default: { eyebrow: t('defEyebrow'), headline: t('defHeadline'), sub: t('defSub') },
+  }
+  const copy = copyMap[aud] ?? copyMap.default
+
   return (
     <div className="min-h-screen text-[#1d1d1f]">
       {/* Navigation — mirrors the homepage for brand continuity */}
@@ -112,9 +94,10 @@ function ScanContent() {
               WorkScanAI
             </Link>
             <div className="flex gap-[12px] md:gap-[32px] text-[11px] md:text-[12px] shrink-0">
-              <Link href="/" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">Home</Link>
-              <Link href="/templates" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">Templates</Link>
-              <a href="#scan" className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors whitespace-nowrap">Scan a role</a>
+              <LanguageToggle />
+              <Link href="/" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">{t('navHome')}</Link>
+              <Link href="/templates" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">{t('navTemplates')}</Link>
+              <a href="#scan" className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors whitespace-nowrap">{t('navScanRole')}</a>
             </div>
           </div>
         </div>
@@ -139,9 +122,9 @@ function ScanContent() {
             href="#scan"
             className="inline-flex items-center gap-[8px] mt-[32px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[15px] font-medium px-[26px] py-[13px] rounded-full transition-all"
           >
-            Scan a role — free
+            {t('ctaScanFree')}
           </a>
-          <p className="text-[12px] text-[#86868b] mt-[14px]">No signup · result in about a minute</p>
+          <p className="text-[12px] text-[#86868b] mt-[14px]">{t('ctaNote')}</p>
         </div>
       </section>
 

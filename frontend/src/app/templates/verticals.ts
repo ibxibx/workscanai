@@ -14,11 +14,15 @@
 //  - utm_* attributes the entry channel.
 // This turns one generic sample into six separately-attributable niche wedges.
 
+import type { Locale } from '@/i18n/config'
+
 export interface Vertical {
   key: string
   label: string
+  labelDe: string
   audience: string
   blurb: string
+  blurbDe: string
   shareCode: string
   score: number
   annualSavings: number
@@ -31,8 +35,10 @@ export const VERTICALS: Vertical[] = [
   {
     key: 'agency',
     label: 'Automation agency',
+    labelDe: 'Automatisierungs-Agentur',
     audience: 'automation_builder',
     blurb: 'What an n8n / Make agency can automate in its own client delivery.',
+    blurbDe: 'Was eine n8n-/Make-Agentur in der eigenen Kundenauslieferung automatisieren kann.',
     shareCode: '06c952',
     score: 68,
     annualSavings: 25495,
@@ -43,8 +49,10 @@ export const VERTICALS: Vertical[] = [
   {
     key: 'support',
     label: 'Customer support',
+    labelDe: 'Kundensupport',
     audience: 'ops_manager',
     blurb: 'Ticket triage, macro replies, escalations and CSAT reporting.',
+    blurbDe: 'Ticket-Triage, Makro-Antworten, Eskalationen und CSAT-Reporting.',
     shareCode: 'ceaefa',
     score: 74,
     annualSavings: 8098,
@@ -54,8 +62,10 @@ export const VERTICALS: Vertical[] = [
   {
     key: 'finance',
     label: 'Finance & accounting',
+    labelDe: 'Finanzen & Buchhaltung',
     audience: 'ops_manager',
     blurb: 'Invoice coding, reconciliation, AR chasing and month-end reporting.',
+    blurbDe: 'Rechnungskontierung, Abstimmung, Forderungsmanagement und Monatsabschluss-Reporting.',
     shareCode: '0c6c25',
     score: 75,
     annualSavings: 7579,
@@ -65,8 +75,10 @@ export const VERTICALS: Vertical[] = [
   {
     key: 'hr',
     label: 'HR & recruiting',
+    labelDe: 'HR & Recruiting',
     audience: 'ops_manager',
     blurb: 'Application screening, interview scheduling, onboarding and funnel reports.',
+    blurbDe: 'Bewerbungsvorauswahl, Terminplanung für Interviews, Onboarding und Funnel-Reports.',
     shareCode: 'fa6d5d',
     score: 82,
     annualSavings: 7426,
@@ -76,8 +88,10 @@ export const VERTICALS: Vertical[] = [
   {
     key: 'marketing',
     label: 'Marketing',
+    labelDe: 'Marketing',
     audience: 'founder',
     blurb: 'Content, scheduling, community replies, reporting and topic research.',
+    blurbDe: 'Content, Planung, Community-Antworten, Reporting und Themenrecherche.',
     shareCode: 'e07429',
     score: 61,
     annualSavings: 19159,
@@ -87,8 +101,10 @@ export const VERTICALS: Vertical[] = [
   {
     key: 'sales',
     label: 'Sales operations',
+    labelDe: 'Vertriebssteuerung',
     audience: 'ops_manager',
     blurb: 'Lead routing, follow-ups, CRM hygiene, quoting and pipeline forecasts.',
+    blurbDe: 'Lead-Routing, Nachfassaktionen, CRM-Pflege, Angebotserstellung und Pipeline-Prognosen.',
     shareCode: '4696b7',
     score: 76,
     annualSavings: 8945,
@@ -106,4 +122,12 @@ export function verticalHref(v: Vertical): string {
     utm_campaign: `vertical_${v.key}`,
   })
   return `/report/${v.shareCode}?${params.toString()}`
+}
+
+export function vLabel(v: Vertical, locale: Locale): string {
+  return locale === 'de' ? v.labelDe : v.label
+}
+
+export function vBlurb(v: Vertical, locale: Locale): string {
+  return locale === 'de' ? v.blurbDe : v.blurb
 }
