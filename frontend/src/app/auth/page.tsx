@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { Mail, Brain, ArrowRight, CheckCircle, RefreshCw } from 'lucide-react'
+import { useT } from '@/i18n/client'
 
 type Stage = 'email' | 'otp' | 'success'
 
 export default function SignInPage() {
+  const t = useT('auth')
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
   const [stage, setStage] = useState<Stage>('email')
@@ -36,13 +38,13 @@ export default function SignInPage() {
       clearTimeout(timeoutId)
 
       const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Something went wrong')
+      if (!res.ok) throw new Error(data.detail || t('errGeneric'))
       setStage('otp')
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
-        setError('Request timed out. The server may be starting up — please try again in a moment.')
+        setError(t('errTimeout'))
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to send code')
+        setError(err instanceof Error ? err.message : t('errSendFail'))
       }
     } finally {
       clearTimeout(slowTimer)
@@ -68,7 +70,7 @@ export default function SignInPage() {
         body: JSON.stringify({ email, code: otp }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Invalid code')
+      if (!res.ok) throw new Error(data.detail || t('errInvalidCode'))
 
       // Persist session
       localStorage.setItem('user_email', data.email)
@@ -77,7 +79,7 @@ export default function SignInPage() {
       setStage('success')
       setTimeout(() => { window.location.href = '/' }, 1200)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Verification failed')
+      setError(err instanceof Error ? err.message : t('errVerifyFail'))
     } finally {
       setLoading(false)
     }
@@ -98,13 +100,13 @@ export default function SignInPage() {
           {/* ── Stage 1: Enter email ── */}
           {stage === 'email' && (
             <>
-              <h1 className="text-[24px] font-semibold text-[#1d1d1f] mb-2">Sign in</h1>
+              <h1 className="text-[24px] font-semibold text-[#1d1d1f] mb-2">{t('signIn')}</h1>
               <p className="text-[15px] text-[#6e6e73] mb-7">
-                Enter your email and we'll send you a 4-digit code — no password needed.
+                {t('emailSubtitle')}
               </p>
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-[13px] font-medium text-[#1d1d1f] mb-2">Email address</label>
+                  <label className="block text-[13px] font-medium text-[#1d1d1f] mb-2">{t('emailLabel')}</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#86868b]" />
                     <input
@@ -112,14 +114,14 @@ export default function SignInPage() {
                       required
                       value={email}
                       onChange={e => setEmail(e.target.value)}
-                      placeholder="you@company.com"
+                      placeholder={t('emailPh')}
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#d2d2d7] text-[15px] outline-none focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 transition-all"
                     />
                   </div>
                 </div>
                 {slowWarning && !error && (
                   <p className="text-[13px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-                    ⏳ Server is warming up — this can take 20–40 seconds on first use. Hang tight…
+                    {t('slowWarning')}
                   </p>
                 )}
                 {error && <p className="text-[13px] text-red-500">{error}</p>}
@@ -128,11 +130,11 @@ export default function SignInPage() {
                   disabled={loading || !email}
                   className="w-full flex items-center justify-center gap-2 bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-50 text-white py-3 rounded-xl text-[15px] font-medium transition-all"
                 >
-                  {loading ? 'Sending…' : <>Send sign-in code <ArrowRight className="w-4 h-4" /></>}
+                  {loading ? t('sending') : <>{t('sendCode')} <ArrowRight className="w-4 h-4" /></>}
                 </button>
               </form>
               <p className="text-[12px] text-[#86868b] text-center mt-5">
-                Free tier: 5 analyses per 24 hours.
+                {t('freeTier')}
               </p>
             </>
           )}
@@ -140,12 +142,12 @@ export default function SignInPage() {
           {/* ── Stage 2: Enter OTP ── */}
           {stage === 'otp' && (
             <>
-              <h1 className="text-[24px] font-semibold text-[#1d1d1f] mb-2">Check your inbox</h1>
-              <p className="text-[15px] text-[#6e6e73] mb-1">We sent a 4-digit code to</p>
+              <h1 className="text-[24px] font-semibold text-[#1d1d1f] mb-2">{t('checkInbox')}</h1>
+              <p className="text-[15px] text-[#6e6e73] mb-1">{t('sentCodeTo')}</p>
               <p className="text-[15px] font-medium text-[#1d1d1f] mb-6">{email}</p>
               <form onSubmit={handleOTPSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-[13px] font-medium text-[#1d1d1f] mb-2">Enter your code</label>
+                  <label className="block text-[13px] font-medium text-[#1d1d1f] mb-2">{t('enterCode')}</label>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -155,7 +157,7 @@ export default function SignInPage() {
                     autoFocus
                     value={otp}
                     onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                    placeholder="1234"
+                    placeholder={t('otpPh')}
                     className="w-full text-center text-[32px] font-mono tracking-[12px] py-4 rounded-xl border border-[#d2d2d7] outline-none focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 transition-all"
                   />
                 </div>
@@ -165,7 +167,7 @@ export default function SignInPage() {
                   disabled={loading || otp.length !== 4}
                   className="w-full flex items-center justify-center gap-2 bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-50 text-white py-3 rounded-xl text-[15px] font-medium transition-all"
                 >
-                  {loading ? 'Verifying…' : 'Verify code'}
+                  {loading ? t('verifying') : t('verifyCode')}
                 </button>
               </form>
               <div className="flex items-center justify-between mt-5">
@@ -173,7 +175,7 @@ export default function SignInPage() {
                   onClick={() => { setStage('email'); setOtp(''); setError('') }}
                   className="text-[13px] text-[#6e6e73] hover:underline"
                 >
-                  ← Use a different email
+                  ← {t('differentEmail')}
                 </button>
                 <button
                   onClick={() => requestOTP(email, true)}
@@ -181,11 +183,11 @@ export default function SignInPage() {
                   className="text-[13px] text-[#0071e3] hover:underline flex items-center gap-1 disabled:opacity-50"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  {resending ? 'Resending…' : 'Resend code'}
+                  {resending ? t('resending') : t('resendCode')}
                 </button>
               </div>
               <p className="text-[12px] text-[#86868b] text-center mt-4">
-                Code expires in 15 minutes. Check your spam folder if you don't see it.
+                {t('codeExpires')}
               </p>
             </>
           )}
@@ -196,8 +198,8 @@ export default function SignInPage() {
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-50 mb-4">
                 <CheckCircle className="w-7 h-7 text-green-500" />
               </div>
-              <h2 className="text-[20px] font-semibold text-[#1d1d1f] mb-2">You're signed in!</h2>
-              <p className="text-[15px] text-[#6e6e73]">Redirecting you now…</p>
+              <h2 className="text-[20px] font-semibold text-[#1d1d1f] mb-2">{t('signedIn')}</h2>
+              <p className="text-[15px] text-[#6e6e73]">{t('redirecting')}</p>
             </div>
           )}
 
