@@ -7,6 +7,7 @@
 import { Download, ArrowRight, FileText } from 'lucide-react'
 import { trackWorkflowDownloaded, trackWorkflowSetupGuideDownloaded } from '@/lib/analytics'
 import { buildN8nSetupGuide, downloadMarkdown } from '@/lib/n8nSetupGuide'
+import { useT } from '@/i18n/client'
 
 export interface N8nTemplate {
   id: number
@@ -31,6 +32,7 @@ export default function N8nWorkflowsSection({
   workflowId?: number
   shareCode?: string
 }) {
+  const t = useT('report')
   if (!templates || templates.length === 0) return null
 
   const downloadTemplate = (tpl: N8nTemplate) => {
@@ -85,17 +87,17 @@ export default function N8nWorkflowsSection({
         <div className="w-[36px] h-[36px] rounded-full bg-[#0071e3] flex items-center justify-center">
           <Download className="h-[18px] w-[18px] text-white" />
         </div>
-        <h2 className="text-[22px] font-semibold italic tracking-tight">Recommended n8n Workflows</h2>
+        <h2 className="text-[22px] font-semibold italic tracking-tight">{t('n8nSecTitle')}</h2>
       </div>
       <p className="text-[13px] text-[#86868b] mb-[20px]">
-        Real community-tested automations for this role. Import directly into n8n.
+        {t('n8nSecSub')}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
         {templates.map(tpl => (
           <div key={tpl.id} className="border border-[#e8e8ed] rounded-[14px] p-[18px] bg-[#fafafa] flex flex-col gap-[10px]">
             {tpl.task_name && (
               <div className="text-[10px] font-bold text-[#86868b] uppercase tracking-widest border-b border-[#e8e8ed] pb-[8px]">
-                Task: {tpl.task_name}
+                {t('n8nTaskLabel')} {tpl.task_name}
               </div>
             )}
             <div className="flex items-start justify-between gap-[8px]">
@@ -125,14 +127,14 @@ export default function N8nWorkflowsSection({
                 onClick={() => downloadTemplate(tpl)}
                 className="flex-1 flex items-center justify-center gap-[6px] bg-[#f5f5f7] hover:bg-[#e8e8ed] text-[#1d1d1f] text-[12px] font-semibold px-[12px] py-[8px] rounded-[8px] transition border border-[#d2d2d7]"
               >
-                <Download className="h-[13px] w-[13px]" /> Import into n8n
+                <Download className="h-[13px] w-[13px]" /> {t('n8nImport')}
               </button>
               <button
                 onClick={() => downloadGuide(tpl)}
-                title="Download a short Markdown setup guide for this workflow"
+                title={t('n8nGuideTitle')}
                 className="shrink-0 flex items-center justify-center gap-[6px] bg-white hover:bg-[#f0f7ff] text-[#0071e3] text-[12px] font-semibold px-[12px] py-[8px] rounded-[8px] transition border border-[#cce0ff]"
               >
-                <FileText className="h-[13px] w-[13px]" /> Setup guide
+                <FileText className="h-[13px] w-[13px]" /> {t('n8nGuide')}
               </button>
             </div>
           </div>
