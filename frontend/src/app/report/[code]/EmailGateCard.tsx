@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Mail, ArrowRight, Check, Loader2 } from 'lucide-react'
 import { trackReportEmailRequested, trackReportEmailCaptured } from '@/lib/analytics'
 import { resolveAcquisition } from '@/lib/audience'
+import { useT } from '@/i18n/client'
 
 // Email the full report direct-to-Render (PDF generation + Resend can exceed
 // Vercel's 10s serverless timeout, so we bypass the Next proxy here).
@@ -20,12 +21,13 @@ export default function EmailGateCard({ shareCode, workflowId }: EmailGateCardPr
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const [message, setMessage] = useState('')
+  const t = useT('report')
 
   const submit = async () => {
     const value = email.trim()
     if (!value || !value.includes('@') || !value.split('@')[1]?.includes('.')) {
       setStatus('error')
-      setMessage('Please enter a valid email address.')
+      setMessage(t('egErrInvalid'))
       return
     }
 
@@ -45,7 +47,7 @@ export default function EmailGateCard({ shareCode, workflowId }: EmailGateCardPr
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         setStatus('error')
-        setMessage(data?.detail || 'Something went wrong. Please try again in a moment.')
+        setMessage(data?.detail || t('egErrGeneric'))
         return
       }
       trackReportEmailCaptured({
@@ -53,10 +55,10 @@ export default function EmailGateCard({ shareCode, workflowId }: EmailGateCardPr
         email_sent: data?.email_sent === true,
       })
       setStatus('done')
-      setMessage(data?.message || 'Sent — check your inbox.')
+      setMessage(data?.message || t('egSentFallback'))
     } catch {
       setStatus('error')
-      setMessage('Network error. Please try again in a moment.')
+      setMessage(t('egErrNetwork'))
     }
   }
 
@@ -74,7 +76,7 @@ export default function EmailGateCard({ shareCode, workflowId }: EmailGateCardPr
             </div>
             <div className="min-w-0">
               <h3 className="text-[17px] sm:text-[20px] font-semibold text-[#1d1d1f] leading-snug mb-[4px]">
-                You&apos;re all set
+                {t('egDoneTitle')}
               </h3>
               <p className="text-[13px] sm:text-[14px] text-[#6e6e73] leading-relaxed">{message}</p>
             </div>
@@ -87,10 +89,10 @@ export default function EmailGateCard({ shareCode, workflowId }: EmailGateCardPr
               </div>
               <div className="min-w-0">
                 <h3 className="text-[17px] sm:text-[20px] font-semibold text-[#1d1d1f] leading-snug mb-[4px]">
-                  Get the full report + n8n files by email
+                  {t('egTitle')}
                 </h3>
                 <p className="text-[13px] sm:text-[14px] text-[#6e6e73] leading-relaxed">
-                  We&apos;ll send the complete PDF and a link to your importable n8n workflows &mdash; keep it, or forward it to your team.
+                  {t('egDesc')}
                 </p>
               </div>
             </div>
@@ -113,8 +115,8 @@ export default function EmailGateCard({ shareCode, workflowId }: EmailGateCardPr
                   className="shrink-0 inline-flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#006edb] text-white px-[22px] py-[11px] rounded-full font-semibold text-[14px] transition-all disabled:opacity-60 w-full sm:w-auto"
                 >
                   {status === 'sending'
-                    ? <><Loader2 className="h-[15px] w-[15px] animate-spin" />Sending&hellip;</>
-                    : <>Email it to me<ArrowRight className="h-[15px] w-[15px] shrink-0" /></>}
+                    ? <><Loader2 className="h-[15px] w-[15px] animate-spin" />{t('egSending')}</>
+                    : <>{t('egBtn')}<ArrowRight className="h-[15px] w-[15px] shrink-0" /></>}
                 </button>
               </div>
               {status === 'error' && (

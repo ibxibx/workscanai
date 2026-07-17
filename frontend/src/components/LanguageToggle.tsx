@@ -1,11 +1,14 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useLocale, useSetLocale } from '@/i18n/client'
 import { LOCALES, type Locale } from '@/i18n/config'
 
 export default function LanguageToggle({ className = '' }: { className?: string }) {
   const locale = useLocale()
   const setLocale = useSetLocale()
+  const router = useRouter()
+  const choose = (l: Locale) => { setLocale(l); router.refresh() }
   const base = 'px-[8px] py-[3px] text-[11px] font-semibold transition-colors'
   return (
     <div
@@ -17,7 +20,7 @@ export default function LanguageToggle({ className = '' }: { className?: string 
         <button
           key={l}
           type="button"
-          onClick={() => setLocale(l)}
+          onClick={() => choose(l)}
           aria-pressed={locale === l}
           className={`${base} ${locale === l ? 'bg-[#0071e3] text-white' : 'text-[#6e6e73] hover:text-[#1d1d1f]'}`}
         >

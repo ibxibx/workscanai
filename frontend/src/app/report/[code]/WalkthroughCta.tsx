@@ -2,6 +2,7 @@
 
 import { CalendarClock, ArrowRight } from 'lucide-react'
 import { trackWalkthroughCtaClicked } from '@/lib/analytics'
+import { useT } from '@/i18n/client'
 
 // Single source of truth for the booking link. Swap this constant to change
 // the destination (e.g. a 15-min event) without touching markup.
@@ -14,6 +15,7 @@ interface WalkthroughCtaProps {
 }
 
 export default function WalkthroughCta({ shareCode, workflowId, isJobScan }: WalkthroughCtaProps) {
+  const t = useT('report')
   // Attribute the booking back to the report that drove it.
   const bookingUrl =
     `${CALENDLY_BASE}?utm_source=workscanai&utm_medium=report&utm_campaign=walkthrough&utm_content=${encodeURIComponent(shareCode)}`
@@ -32,11 +34,10 @@ export default function WalkthroughCta({ shareCode, workflowId, isJobScan }: Wal
           </div>
           <div className="min-w-0">
             <h3 className="text-[17px] sm:text-[20px] font-semibold text-white leading-snug mb-[4px]">
-              Want help turning this into reality?
+              {t('walkTitle')}
             </h3>
             <p className="text-[13px] sm:text-[14px] text-white/80 leading-relaxed">
-              Book a free 30-min walkthrough &mdash; I&apos;ll talk you through your top automation
-              opportunities and how to implement them.
+              {t('walkDesc')}
             </p>
           </div>
         </div>
@@ -47,7 +48,7 @@ export default function WalkthroughCta({ shareCode, workflowId, isJobScan }: Wal
           onClick={handleClick}
           className="shrink-0 inline-flex items-center justify-center gap-[8px] bg-white text-[#0071e3] hover:bg-[#f0f7ff] active:bg-[#e5f0ff] px-[24px] py-[13px] rounded-full font-semibold text-[14px] transition-all shadow-sm hover:shadow-md w-full sm:w-auto"
         >
-          Book a walkthrough
+          {t('walkBtn')}
           <ArrowRight className="h-[15px] w-[15px] shrink-0" />
         </a>
       </div>
