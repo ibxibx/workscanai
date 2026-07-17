@@ -457,6 +457,16 @@ export const en = {
     faqQ4: "Will AI replace {role}s?",
     faqA4: "Not wholesale. A {role} role is roughly {score}% automatable by task, which typically means AI absorbs repetitive work and the role shifts toward the higher-judgement tasks rather than disappearing.",
   },
+  chrome: {
+    notFoundTitle: "Page not found",
+    notFoundDesc: "The page you're looking for doesn't exist or may have been moved.",
+    backHome: "Back to Home",
+    viewDashboard: "View Dashboard",
+    errTitle: "Something went wrong",
+    errDesc: "Failed to load the dashboard. Please try again.",
+    errTryAgain: "Try again",
+    errGoHome: "Go home",
+  },
 }
 
 export type Messages = typeof en
