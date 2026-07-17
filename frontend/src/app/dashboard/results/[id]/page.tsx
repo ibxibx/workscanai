@@ -182,7 +182,7 @@ export default function ResultsPage() {
 
  const downloadReport = async (fmt: 'docx' | 'pdf') => {
  try {
- const response = await fetch(`/api/reports/${id}/${fmt}`)
+ const response = await fetch(`/api/reports/${id}/${fmt}?locale=${locale}`)
  if (!response.ok) throw new Error('Failed to generate report')
  const blob = await response.blob()
  const url = URL.createObjectURL(blob)
