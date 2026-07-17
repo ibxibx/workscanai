@@ -4,10 +4,13 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Brain, LogOut, User } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
+import LanguageToggle from '@/components/LanguageToggle'
+import { useT } from '@/i18n/client'
 
 export default function SiteHeader() {
   const { email, signOut, isLoaded } = useAuth()
   const pathname = usePathname()
+  const t = useT('common')
 
   // Hide header on auth pages and landing page (has its own nav)
   if (pathname?.startsWith('/auth') || pathname === '/') return null
@@ -23,9 +26,10 @@ export default function SiteHeader() {
 
         {/* Nav */}
         <nav className="flex items-center gap-2 md:gap-6 shrink-0">
+          <LanguageToggle />
           <Link href="/dashboard" className="text-[12px] md:text-[13px] text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">
-            <span className="hidden md:inline">Past Analyses</span>
-            <span className="md:hidden">History</span>
+            <span className="hidden md:inline">{t('pastAnalyses')}</span>
+            <span className="md:hidden">{t('history')}</span>
           </Link>
 
           {isLoaded && (
@@ -38,10 +42,10 @@ export default function SiteHeader() {
                 <button
                   onClick={signOut}
                   className="flex items-center gap-1 text-[12px] md:text-[13px] text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
-                  title="Sign out"
+                  title={t('signOut')}
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Sign out</span>
+                  <span className="hidden sm:inline">{t('signOut')}</span>
                 </button>
               </div>
             ) : (
@@ -49,7 +53,7 @@ export default function SiteHeader() {
                 href="/auth"
                 className="text-[12px] md:text-[13px] font-medium bg-[#0071e3] text-white px-3 md:px-4 py-1.5 rounded-full hover:bg-[#0077ed] transition-all whitespace-nowrap"
               >
-                Sign in
+                {t('signIn')}
               </Link>
             )
           )}
