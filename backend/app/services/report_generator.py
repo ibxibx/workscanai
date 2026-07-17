@@ -324,26 +324,26 @@ class ReportGenerator:
         # ── INDIVIDUAL ────────────────────────────────────────────────────
         if context == 'individual':
             story.append(PageBreak())
-            story.append(Paragraph('Career Future Analysis', ST['section_title']))
+            story.append(Paragraph(_tr(loc,'Career Future Analysis','Analyse Ihrer beruflichen Zukunft'), ST['section_title']))
             story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
 
             # B1 — Countdown Clock
             countdown_tasks = [r for r in sorted_results if r.get('countdown_window')]
             if countdown_tasks:
-                story.append(Paragraph('Automation Countdown Clock', style_fn('cct', fontSize=13,
+                story.append(Paragraph(_tr(loc,'Automation Countdown Clock','Automatisierungs-Countdown'), style_fn('cct', fontSize=13,
                     fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=6, spaceAfter=6)))
                 cw_map = {
-                    'now':   ('Automate NOW',   RED,  RED_LIGHT),
-                    '12-24': ('12-24 months',   AMBER,AMBER_LIGHT),
-                    '24-48': ('24-48 months',   colors.HexColor('#f5c518'), GRAY_100),
-                    '48+':   ('48+ months',     GREEN,GREEN_LIGHT),
+                    'now':   (_tr(loc,'Automate NOW','JETZT automatisieren'),   RED,  RED_LIGHT),
+                    '12-24': (_tr(loc,'12-24 months','12–24 Monate'),   AMBER,AMBER_LIGHT),
+                    '24-48': (_tr(loc,'24-48 months','24–48 Monate'),   colors.HexColor('#f5c518'), GRAY_100),
+                    '48+':   (_tr(loc,'48+ months','48+ Monate'),     GREEN,GREEN_LIGHT),
                 }
-                cw_rows = [[Paragraph('<b>Task</b>', ST['label']),
-                             Paragraph('<b>Risk Window</b>', ST['label']),
-                             Paragraph('<b>Human Edge</b>', ST['label'])]]
+                cw_rows = [[Paragraph(f'<b>{_tr(loc,"Task","Aufgabe")}</b>', ST['label']),
+                             Paragraph(f'<b>{_tr(loc,"Risk Window","Risikofenster")}</b>', ST['label']),
+                             Paragraph(f'<b>{_tr(loc,"Human Edge","Menschl. Vorsprung")}</b>', ST['label'])]]
                 for r in countdown_tasks:
                     cw = r.get('countdown_window', '24-48')
-                    cw_label, cw_color, _ = cw_map.get(cw, ('Unknown', GRAY_600, GRAY_100))
+                    cw_label, cw_color, _ = cw_map.get(cw, (_tr(loc,'Unknown','Unbekannt'), GRAY_600, GRAY_100))
                     he = r.get('human_edge_score')
                     cw_rows.append([
                         Paragraph(r['task']['name'], style_fn(f'cwn{r["task"]["name"][:8]}', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
@@ -357,18 +357,20 @@ class ReportGenerator:
                         ('LEFTPADDING',(0,0),(-1,-1),10),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
                 story.append(Spacer(1, 6*mm))
                 story.append(Paragraph(
-                    'The 900-Day Window: Within 900 days, any job done on a screen can be replaced by AI '
+                    _tr(loc,'The 900-Day Window: Within 900 days, any job done on a screen can be replaced by AI '
                     'for under \u20ac1,000/year. Tasks in the red zone are at immediate risk.',
+                    'Das 900-Tage-Fenster: Innerhalb von 900 Tagen kann jede am Bildschirm erledigte Arbeit '
+                    'für unter \u20ac1.000/Jahr durch KI ersetzt werden. Aufgaben in der roten Zone sind unmittelbar gefährdet.'),
                     style_fn('900d', fontSize=9, fontName='Helvetica-Oblique', textColor=GRAY_600, leading=14, spaceAfter=8)))
 
             # B2 — Human Edge
-            story.append(Paragraph('Your Human Edge', style_fn('he_ttl', fontSize=13,
+            story.append(Paragraph(_tr(loc,'Your Human Edge','Ihr menschlicher Vorsprung'), style_fn('he_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
             he_rows = [
-                [Paragraph('<b>Metric</b>', ST['label']), Paragraph('<b>Score</b>', ST['label'])],
-                [Paragraph('AI Replacement Risk', style_fn('air', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
+                [Paragraph(f'<b>{_tr(loc,"Metric","Kennzahl")}</b>', ST['label']), Paragraph(f'<b>{_tr(loc,"Score","Score")}</b>', ST['label'])],
+                [Paragraph(_tr(loc,'AI Replacement Risk','KI-Ersetzungsrisiko'), style_fn('air', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
                  Paragraph(f'<font color="#ff3b30"><b>{score:.0f}%</b></font>', style_fn('airv', fontSize=11, fontName='Helvetica-Bold'))],
-                [Paragraph('Human Irreplaceability', style_fn('hi', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
+                [Paragraph(_tr(loc,'Human Irreplaceability','Menschliche Unersetzbarkeit'), style_fn('hi', fontSize=9, fontName='Helvetica', textColor=GRAY_900)),
                  Paragraph(f'<font color="#ff9f0a"><b>{avg_human_edge:.0f}%</b></font>', style_fn('hiv', fontSize=11, fontName='Helvetica-Bold'))],
             ]
             story.append(Table(he_rows, colWidths=[W*0.6, W*0.4],
@@ -376,14 +378,14 @@ class ReportGenerator:
                     ('ROWBACKGROUNDS',(0,1),(-1,-1),[WHITE,GRAY_100]),
                     ('TOPPADDING',(0,0),(-1,-1),7),('BOTTOMPADDING',(0,0),(-1,-1),7),
                     ('LEFTPADDING',(0,0),(-1,-1),10),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
-            insight = ('Your role has strong human-essential components. Amplify these while letting AI handle the rest.'
+            insight = (_tr(loc,'Your role has strong human-essential components. Amplify these while letting AI handle the rest.','Ihre Rolle hat stark menschlich geprägte Kernbestandteile. Verstärken Sie diese und überlassen Sie den Rest der KI.')
                        if avg_human_edge >= 60 else
-                       'Your role is highly automatable. Now is the time to pivot to higher human-edge functions.')
+                       _tr(loc,'Your role is highly automatable. Now is the time to pivot to higher human-edge functions.','Ihre Rolle ist stark automatisierbar. Jetzt ist der richtige Zeitpunkt, sich auf Tätigkeiten mit höherem menschlichem Mehrwert zu verlagern.'))
             story.append(Paragraph(insight, style_fn('he_ins', fontSize=9, fontName='Helvetica-Oblique',
                 textColor=GRAY_600, leading=14, spaceAfter=8, spaceBefore=4)))
 
             # B3 — Career Pivot (always render)
-            story.append(Paragraph('Career Pivot Recommendations', style_fn('cpr', fontSize=13,
+            story.append(Paragraph(_tr(loc,'Career Pivot Recommendations','Empfehlungen zur beruflichen Neuorientierung'), style_fn('cpr', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
             all_skills = []
             for r in sorted_results:
@@ -395,9 +397,12 @@ class ReportGenerator:
                             all_skills.append(label)
                 except Exception: pass
             if not all_skills:
-                all_skills = ['AI prompt engineering','Strategic planning','Data interpretation',
-                              'Client relationship management','Creative direction','Change management']
-            story.append(Paragraph('Skills to Develop Now', style_fn('sk_ttl2', fontSize=10,
+                all_skills = (['KI-Prompt-Engineering','Strategische Planung','Dateninterpretation',
+                              'Kundenbeziehungsmanagement','Kreative Leitung','Change-Management']
+                              if loc == 'de' else
+                              ['AI prompt engineering','Strategic planning','Data interpretation',
+                              'Client relationship management','Creative direction','Change management'])
+            story.append(Paragraph(_tr(loc,'Skills to Develop Now','Jetzt zu entwickelnde Fähigkeiten'), style_fn('sk_ttl2', fontSize=10,
                 fontName='Helvetica-Bold', textColor=BLUE, spaceAfter=4)))
             story.append(Paragraph('  ·  '.join(all_skills[:6]), style_fn('sk_list2', fontSize=9,
                 fontName='Helvetica', textColor=GRAY_900, leading=14, spaceAfter=6)))
@@ -410,11 +415,11 @@ class ReportGenerator:
                             all_roles.append(role)
                 except Exception: pass
             if all_roles:
-                story.append(Paragraph('Adjacent Roles — Lower AI Risk', style_fn('ro_ttl2', fontSize=10,
+                story.append(Paragraph(_tr(loc,'Adjacent Roles — Lower AI Risk','Angrenzende Rollen — geringeres KI-Risiko'), style_fn('ro_ttl2', fontSize=10,
                     fontName='Helvetica-Bold', textColor=BLUE, spaceAfter=4)))
-                role_rows = [[Paragraph('<b>Role</b>', ST['label']),
-                              Paragraph('<b>AI Risk</b>', ST['label']),
-                              Paragraph('<b>Pivot Distance</b>', ST['label'])]]
+                role_rows = [[Paragraph(f'<b>{_tr(loc,"Role","Rolle")}</b>', ST['label']),
+                              Paragraph(f'<b>{_tr(loc,"AI Risk","KI-Risiko")}</b>', ST['label']),
+                              Paragraph(f'<b>{_tr(loc,"Pivot Distance","Wechseldistanz")}</b>', ST['label'])]]
                 for role_item in all_roles:
                     rn    = role_item.get('role', '—')
                     risk  = role_item.get('risk', '—')
@@ -433,29 +438,33 @@ class ReportGenerator:
                         ('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5),
                         ('LEFTPADDING',(0,0),(-1,-1),10),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
             story.append(Paragraph(
-                '90-Day Action Plan: Identify the top 2 skills above. Spend 1 hour/day practising with AI tools '
-                '(Claude, Perplexity, Replit). Build one public project. This moves you from replacement target '
-                'to AI-empowered operator.',
+                _tr(loc,
+                    '90-Day Action Plan: Identify the top 2 skills above. Spend 1 hour/day practising with AI tools '
+                    '(Claude, Perplexity, Replit). Build one public project. This moves you from replacement target '
+                    'to AI-empowered operator.',
+                    '90-Tage-Aktionsplan: Wählen Sie die zwei wichtigsten Fähigkeiten oben aus. Üben Sie täglich '
+                    '1 Stunde mit KI-Tools (Claude, Perplexity, Replit). Bauen Sie ein öffentliches Projekt. So werden '
+                    'Sie vom Ersetzungskandidaten zum KI-gestützten Gestalter.'),
                 style_fn('pivot_cta2', fontSize=9, fontName='Helvetica-Oblique', textColor=GRAY_600,
                     leading=14, spaceAfter=8, spaceBefore=6)))
         # ── TEAM ──────────────────────────────────────────────────────────
         elif context == 'team':
             story.append(PageBreak())
-            story.append(Paragraph('Team Automation Strategy', ST['section_title']))
+            story.append(Paragraph(_tr(loc,'Team Automation Strategy','Team-Automatisierungsstrategie'), ST['section_title']))
             story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
 
             # C1 — Velocity Impact
-            story.append(Paragraph('Team Velocity Impact', style_fn('tv_ttl', fontSize=13,
+            story.append(Paragraph(_tr(loc,'Team Velocity Impact','Auswirkung auf die Team-Geschwindigkeit'), style_fn('tv_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=6, spaceAfter=6)))
             fte = hours / ANNUAL_PRODUCTIVE_HOURS
             vel_data = [
-                ['Hours freed / yr', f'{hours:.0f}h', 'Available for product & growth'],
-                ['FTE equivalent',   f'{fte:.1f}',    'Roles redeployable to strategic work'],
-                ['Cost saved / yr',  f'\u20ac{savings:,.0f}', "At your team's hourly rate"],
+                [_tr(loc,'Hours freed / yr','Freigesetzte Stunden / Jahr'), f'{hours:.0f}h', _tr(loc,'Available for product & growth','Verfügbar für Produkt & Wachstum')],
+                [_tr(loc,'FTE equivalent','VZÄ-Äquivalent'),   f'{fte:.1f}',    _tr(loc,'Roles redeployable to strategic work','Für strategische Arbeit einsetzbare Stellen')],
+                [_tr(loc,'Cost saved / yr','Kosten gespart / Jahr'),  f'\u20ac{savings:,.0f}', ("Zum Stundensatz Ihres Teams" if loc == 'de' else "At your team's hourly rate")],
             ]
-            vel_rows = [[Paragraph('<b>Metric</b>', ST['label']),
-                          Paragraph('<b>Value</b>', ST['label']),
-                          Paragraph('<b>Note</b>', ST['label'])]]
+            vel_rows = [[Paragraph(f'<b>{_tr(loc,"Metric","Kennzahl")}</b>', ST['label']),
+                          Paragraph(f'<b>{_tr(loc,"Value","Wert")}</b>', ST['label']),
+                          Paragraph(f'<b>{_tr(loc,"Note","Hinweis")}</b>', ST['label'])]]
             for metric, val, note in vel_data:
                 vel_rows.append([
                     Paragraph(metric, style_fn(f'vm{metric[:6]}', fontSize=9, fontName='Helvetica-Bold', textColor=GRAY_900)),
@@ -470,18 +479,18 @@ class ReportGenerator:
             story.append(Spacer(1, 6*mm))
 
             # Rollout timeline
-            story.append(Paragraph('Automation Rollout Timeline', style_fn('rt_ttl', fontSize=10,
+            story.append(Paragraph(_tr(loc,'Automation Rollout Timeline','Zeitplan der Automatisierungseinführung'), style_fn('rt_ttl', fontSize=10,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceAfter=4)))
             phases_team = [
-                ('Phase 1 — Quick Wins (0–3 months)',  [r for r in sorted_results if r.get('difficulty','').lower()=='easy'],   GREEN,  GREEN_LIGHT),
-                ('Phase 2 — Medium-term (3–12 months)',[r for r in sorted_results if r.get('difficulty','').lower()=='medium'], AMBER,  AMBER_LIGHT),
-                ('Phase 3 — Strategic (12–36 months)', [r for r in sorted_results if r.get('difficulty','').lower()=='hard'],   BLUE,   BLUE_LIGHT),
+                (_tr(loc,'Phase 1 — Quick Wins (0–3 months)','Phase 1 — Quick Wins (0–3 Monate)'),  [r for r in sorted_results if r.get('difficulty','').lower()=='easy'],   GREEN,  GREEN_LIGHT),
+                (_tr(loc,'Phase 2 — Medium-term (3–12 months)','Phase 2 — Mittelfristig (3–12 Monate)'),[r for r in sorted_results if r.get('difficulty','').lower()=='medium'], AMBER,  AMBER_LIGHT),
+                (_tr(loc,'Phase 3 — Strategic (12–36 months)','Phase 3 — Strategisch (12–36 Monate)'), [r for r in sorted_results if r.get('difficulty','').lower()=='hard'],   BLUE,   BLUE_LIGHT),
             ]
             for ph_name, ph_tasks, ph_col, ph_bg in phases_team:
                 ph_hrs = sum(r.get('estimated_hours_saved',0) for r in ph_tasks)
                 story.append(Table([[
                     Paragraph(f'<b>{ph_name}</b>', style_fn(f'pt{ph_name[:6]}', fontSize=10, fontName='Helvetica-Bold', textColor=ph_col)),
-                    Paragraph(f'<b>{ph_hrs:.0f}h/yr</b>  ·  {len(ph_tasks)} tasks',
+                    Paragraph(f'<b>{ph_hrs:.0f}h/yr</b>  ·  {len(ph_tasks)} {_tr(loc,"tasks","Aufgaben")}',
                         style_fn(f'pv{ph_name[:6]}', fontSize=10, fontName='Helvetica', textColor=GRAY_900, alignment=TA_RIGHT)),
                 ]], colWidths=[W*0.65, W*0.35],
                 style=TableStyle([('BACKGROUND',(0,0),(-1,-1),ph_bg),
@@ -491,15 +500,15 @@ class ReportGenerator:
             story.append(Spacer(1, 8*mm))
 
             # C2 — 90-Day Sprint Plan
-            story.append(Paragraph('90-Day Sprint Plan', style_fn('sp_ttl', fontSize=13,
+            story.append(Paragraph(_tr(loc,'90-Day Sprint Plan','90-Tage-Sprint-Plan'), style_fn('sp_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
             sprint_tasks = sorted([r for r in results if r.get('difficulty','').lower()=='easy'],
                                    key=lambda x: x['ai_readiness_score'], reverse=True)[:5]
             if sprint_tasks:
                 sp_rows = [[Paragraph('<b>#</b>', ST['label']),
-                             Paragraph('<b>Task</b>', ST['label']),
-                             Paragraph('<b>Score</b>', ST['label']),
-                             Paragraph('<b>Hours/yr</b>', ST['label'])]]
+                             Paragraph(f'<b>{_tr(loc,"Task","Aufgabe")}</b>', ST['label']),
+                             Paragraph(f'<b>{_tr(loc,"Score","Score")}</b>', ST['label']),
+                             Paragraph(f'<b>{_tr(loc,"Hours/yr","Std./Jahr")}</b>', ST['label'])]]
                 for i, r in enumerate(sprint_tasks, 1):
                     sp_rows.append([
                         Paragraph(str(i), style_fn(f'spn{i}', fontSize=9, fontName='Helvetica-Bold', textColor=GREEN)),
@@ -513,22 +522,22 @@ class ReportGenerator:
                         ('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),6),
                         ('LEFTPADDING',(0,0),(-1,-1),10),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
             else:
-                story.append(Paragraph('No easy-difficulty tasks — focus on Phase 2 medium-term automations.',
+                story.append(Paragraph(_tr(loc,'No easy-difficulty tasks — focus on Phase 2 medium-term automations.','Keine einfachen Aufgaben — konzentrieren Sie sich auf die mittelfristigen Automatisierungen aus Phase 2.'),
                     style_fn('sp_none', fontSize=9, fontName='Helvetica-Oblique', textColor=GRAY_600)))
 
         # ── COMPANY ───────────────────────────────────────────────────────
         elif context == 'company':
             story.append(PageBreak())
-            story.append(Paragraph('Strategic Business Analysis', ST['section_title']))
+            story.append(Paragraph(_tr(loc,'Strategic Business Analysis','Strategische Unternehmensanalyse'), ST['section_title']))
             story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
 
             # D1 — Automation ROI Gap (sourced: Bain leaders vs laggards)
-            story.append(Paragraph('The Leader\u2013Laggard Gap', style_fn('cg_ttl', fontSize=13,
+            story.append(Paragraph(_tr(loc,'The Leader\u2013Laggard Gap','Die Kluft zwischen Vorreitern und Nachzüglern'), style_fn('cg_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=6, spaceAfter=6)))
             comp_data = [
-                ('Committed adopters',   f'\u2212{GAP_LEADER_PCT}%',       'Process-cost reduction (leaders)',   GREEN, GREEN_LIGHT),
-                ('Top quartile',         f'\u2212{GAP_TOP_QUARTILE_PCT}%', 'Best-in-class result',               BLUE,  colors.HexColor('#e8f1fc')),
-                ('Laggards',             f'\u2212{GAP_LAGGARD_PCT}%',      'Under-investors (<5% of IT budget)', AMBER, AMBER_LIGHT),
+                (_tr(loc,'Committed adopters','Engagierte Anwender'),   f'\u2212{GAP_LEADER_PCT}%',       _tr(loc,'Process-cost reduction (leaders)','Prozesskostensenkung (Spitzenreiter)'),   GREEN, GREEN_LIGHT),
+                (_tr(loc,'Top quartile','Oberstes Quartil'),         f'\u2212{GAP_TOP_QUARTILE_PCT}%', _tr(loc,'Best-in-class result','Bestwert der Klasse'),               BLUE,  colors.HexColor('#e8f1fc')),
+                (_tr(loc,'Laggards','Nachzügler'),             f'\u2212{GAP_LAGGARD_PCT}%',      _tr(loc,'Under-investors (<5% of IT budget)','Unter-Investoren (<5% des IT-Budgets)'), AMBER, AMBER_LIGHT),
             ]
             comp_rows = []
             comp_hex = {GREEN: '34c759', BLUE: '0071e3', AMBER: 'ff9f0a', RED: 'ff3b30'}
@@ -543,24 +552,29 @@ class ReportGenerator:
                 style=TableStyle([('ROWBACKGROUNDS',(0,0),(-1,-1),[GREEN_LIGHT,colors.HexColor('#e8f1fc'),AMBER_LIGHT]),
                     ('TOPPADDING',(0,0),(-1,-1),8),('BOTTOMPADDING',(0,0),(-1,-1),8),
                     ('LEFTPADDING',(0,0),(-1,-1),10),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
-            story.append(Paragraph(f'Source: {GAP_SOURCE}. The gap between committed adopters and laggards '
-                f'widens over time as leaders compound their advantage \u2014 the cost of waiting is falling behind, '
-                f'not a fixed penalty.',
+            story.append(Paragraph(
+                (f'Quelle: {GAP_SOURCE}. Die Kluft zwischen engagierten Anwendern und Nachzüglern '
+                 f'vergrößert sich mit der Zeit, da Vorreiter ihren Vorsprung ausbauen \u2014 die Kosten des Wartens '
+                 f'bedeuten Zurückfallen, keine feste Strafe.')
+                if loc == 'de' else
+                (f'Source: {GAP_SOURCE}. The gap between committed adopters and laggards '
+                 f'widens over time as leaders compound their advantage \u2014 the cost of waiting is falling behind, '
+                 f'not a fixed penalty.'),
                 style_fn('cg_src', fontSize=7.5, fontName='Helvetica-Oblique', textColor=GRAY_600, spaceBefore=4)))
             story.append(Spacer(1, 6*mm))
 
             # D2 — Headcount Signal
-            story.append(Paragraph('Headcount Signal', style_fn('hc_ttl', fontSize=13,
+            story.append(Paragraph(_tr(loc,'Headcount Signal','Personalsignal'), style_fn('hc_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
             fte2 = hours / ANNUAL_PRODUCTIVE_HOURS
             hc_data = [
-                ['Hours freed / yr',    f'{hours:.0f}h',         'Total across all tasks'],
-                ['FTE equivalent',      f'{fte2:.1f}',           'At 1,800 working hrs/yr'],
-                ['Saved per FTE',       f'\u20ac{savings/max(fte2,0.1):,.0f}', 'Annual cost per role'],
+                [_tr(loc,'Hours freed / yr','Freigesetzte Stunden / Jahr'),    f'{hours:.0f}h',         _tr(loc,'Total across all tasks','Gesamt über alle Aufgaben')],
+                [_tr(loc,'FTE equivalent','VZÄ-Äquivalent'),      f'{fte2:.1f}',           _tr(loc,'At 1,800 working hrs/yr','Bei 1.800 Arbeitsstunden/Jahr')],
+                [_tr(loc,'Saved per FTE','Einsparung pro VZÄ'),       f'\u20ac{savings/max(fte2,0.1):,.0f}', _tr(loc,'Annual cost per role','Jährliche Kosten pro Stelle')],
             ]
-            hc_rows = [[Paragraph('<b>Metric</b>', ST['label']),
-                         Paragraph('<b>Value</b>', ST['label']),
-                         Paragraph('<b>Note</b>', ST['label'])]]
+            hc_rows = [[Paragraph(f'<b>{_tr(loc,"Metric","Kennzahl")}</b>', ST['label']),
+                         Paragraph(f'<b>{_tr(loc,"Value","Wert")}</b>', ST['label']),
+                         Paragraph(f'<b>{_tr(loc,"Note","Hinweis")}</b>', ST['label'])]]
             for m, v, n in hc_data:
                 hc_rows.append([
                     Paragraph(m, style_fn(f'hm{m[:6]}', fontSize=9, fontName='Helvetica-Bold', textColor=GRAY_900)),
@@ -572,27 +586,28 @@ class ReportGenerator:
                     ('ROWBACKGROUNDS',(0,1),(-1,-1),[WHITE,GRAY_100]),
                     ('TOPPADDING',(0,0),(-1,-1),7),('BOTTOMPADDING',(0,0),(-1,-1),7),
                     ('LEFTPADDING',(0,0),(-1,-1),10),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
-            story.append(Paragraph('Recommended: redeploy freed capacity to AI oversight, customer relationships, '
-                'and strategic growth — not headcount reduction.',
+            story.append(Paragraph(_tr(loc,'Recommended: redeploy freed capacity to AI oversight, customer relationships, '
+                'and strategic growth — not headcount reduction.','Empfehlung: Setzen Sie freigewordene Kapazität für KI-Aufsicht, Kundenbeziehungen '
+                'und strategisches Wachstum ein — nicht für Personalabbau.'),
                 style_fn('hc_note', fontSize=9, fontName='Helvetica-Oblique', textColor=GRAY_600, leading=13,
                     spaceAfter=8, spaceBefore=4)))
 
             # D3 — Automation Benchmark (#6, sourced — not invented percentiles)
-            story.append(Paragraph('Automation Benchmark', style_fn('ib_ttl', fontSize=13,
+            story.append(Paragraph(_tr(loc,'Automation Benchmark','Automatisierungs-Benchmark'), style_fn('ib_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
             bm_data = [
-                ('Your workflow',        f'{score:.0f}%',
-                 'AI-readiness of these tasks',                 BLUE),
-                ('Technically automatable', f'{BENCH_TECH_POTENTIAL_PCT}%',
-                 'US work hours, today',                        GRAY_600),
-                ('Agent-automatable',    f'{BENCH_AGENT_POTENTIAL_PCT}%',
-                 'Non-physical / knowledge work',               GRAY_600),
-                ('Sector adoption by 2030', f'{BENCH_SECTOR_LOW_PCT}\u2013{BENCH_SECTOR_HIGH_PCT}%',
+                (_tr(loc,'Your workflow','Ihr Workflow'),        f'{score:.0f}%',
+                 _tr(loc,'AI-readiness of these tasks','KI-Reife dieser Aufgaben'),                 BLUE),
+                (_tr(loc,'Technically automatable','Technisch automatisierbar'), f'{BENCH_TECH_POTENTIAL_PCT}%',
+                 _tr(loc,'US work hours, today','US-Arbeitsstunden, heute'),                        GRAY_600),
+                (_tr(loc,'Agent-automatable','Agenten-automatisierbar'),    f'{BENCH_AGENT_POTENTIAL_PCT}%',
+                 _tr(loc,'Non-physical / knowledge work','Nicht-physische / Wissensarbeit'),               GRAY_600),
+                (_tr(loc,'Sector adoption by 2030','Branchenadoption bis 2030'), f'{BENCH_SECTOR_LOW_PCT}\u2013{BENCH_SECTOR_HIGH_PCT}%',
                  'Healthcare \u2192 manufacturing',             GREEN),
             ]
-            bm_rows = [[Paragraph('<b>Benchmark</b>', ST['label']),
-                         Paragraph('<b>Score</b>', ST['label']),
-                         Paragraph('<b>Context</b>', ST['label'])]]
+            bm_rows = [[Paragraph(f'<b>{_tr(loc,"Benchmark","Benchmark")}</b>', ST['label']),
+                         Paragraph(f'<b>{_tr(loc,"Score","Score")}</b>', ST['label']),
+                         Paragraph(f'<b>{_tr(loc,"Context","Kontext")}</b>', ST['label'])]]
             for bm_label, bm_val, bm_note, bm_col in bm_data:
                 bm_rows.append([
                     Paragraph(bm_label, style_fn(f'bml{bm_label[:6]}', fontSize=9, fontName='Helvetica-Bold', textColor=GRAY_900)),
@@ -604,28 +619,32 @@ class ReportGenerator:
                     ('ROWBACKGROUNDS',(0,1),(-1,-1),[WHITE,GRAY_100]),
                     ('TOPPADDING',(0,0),(-1,-1),7),('BOTTOMPADDING',(0,0),(-1,-1),7),
                     ('LEFTPADDING',(0,0),(-1,-1),10),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
-            story.append(Paragraph(f'Source: {BENCH_SOURCE}. Your score measures the AI-readiness of '
-                f'this specific workflow\u2019s tasks; the frontier figures are economy-wide technical potential.',
+            story.append(Paragraph(
+                (f'Quelle: {BENCH_SOURCE}. Ihr Score misst die KI-Reife der Aufgaben dieses konkreten '
+                 f'Workflows; die Grenzwerte sind das gesamtwirtschaftliche technische Potenzial.')
+                if loc == 'de' else
+                (f'Source: {BENCH_SOURCE}. Your score measures the AI-readiness of '
+                 f'this specific workflow\u2019s tasks; the frontier figures are economy-wide technical potential.'),
                 style_fn('bm_src', fontSize=7.5, fontName='Helvetica-Oblique', textColor=GRAY_600, spaceBefore=4)))
             story.append(Spacer(1, 6*mm))
 
             # D4 — Board Summary
-            story.append(Paragraph('Board-Ready Executive Summary', style_fn('bs_ttl', fontSize=13,
+            story.append(Paragraph(_tr(loc,'Board-Ready Executive Summary','Vorstandsreife Zusammenfassung'), style_fn('bs_ttl', fontSize=13,
                 fontName='Helvetica-Bold', textColor=GRAY_900, spaceBefore=10, spaceAfter=6)))
             quick_wins = len([r for r in results if r.get('difficulty','').lower()=='easy'])
             risk_flags  = len([r for r in results if r.get('risk_level') != 'safe'])
             wf_name = analysis_data['workflow'].get('name', 'Workflow')
             wf_ind  = analysis_data['workflow'].get('industry', '')
             board_lines = [
-                ('Workflow',            wf_name),
-                ('Industry',            wf_ind or 'General'),
-                ('Automation potential',f'{score:.0f}% of workflow tasks'),
-                ('Annual savings',      f'\u20ac{savings:,.0f}'),
-                ('Hours reclaimed',     f'{hours:.0f}h/yr'),
-                ('FTE equivalent',      f'{hours/ANNUAL_PRODUCTIVE_HOURS:.1f} roles'),
-                ('Quick wins (90 days)',f'{quick_wins} tasks'),
-                ('Risk flags',          f'{risk_flags} tasks require compliance review'),
-                ('Recommendation',      'Begin 90-day automation sprint. Prioritise quick wins. Redeploy freed capacity to strategic functions.'),
+                (_tr(loc,'Workflow','Workflow'),            wf_name),
+                (_tr(loc,'Industry','Branche'),            wf_ind or _tr(loc,'General','Allgemein')),
+                (_tr(loc,'Automation potential','Automatisierungspotenzial'),f'{score:.0f}% ' + _tr(loc,'of workflow tasks','der Workflow-Aufgaben')),
+                (_tr(loc,'Annual savings','Jährliche Einsparung'),      f'\u20ac{savings:,.0f}'),
+                (_tr(loc,'Hours reclaimed','Zurückgewonnene Stunden'),     f'{hours:.0f}h/yr'),
+                (_tr(loc,'FTE equivalent','VZÄ-Äquivalent'),      f'{hours/ANNUAL_PRODUCTIVE_HOURS:.1f} ' + _tr(loc,'roles','Stellen')),
+                (_tr(loc,'Quick wins (90 days)','Quick Wins (90 Tage)'),f'{quick_wins} ' + _tr(loc,'tasks','Aufgaben')),
+                (_tr(loc,'Risk flags','Risikomarkierungen'),          f'{risk_flags} ' + _tr(loc,'tasks require compliance review','Aufgaben erfordern eine Compliance-Prüfung')),
+                (_tr(loc,'Recommendation','Empfehlung'),      _tr(loc,'Begin 90-day automation sprint. Prioritise quick wins. Redeploy freed capacity to strategic functions.','Starten Sie einen 90-Tage-Automatisierungssprint. Priorisieren Sie Quick Wins. Setzen Sie freigewordene Kapazität für strategische Funktionen ein.')),
             ]
             board_rows = []
             for k, v in board_lines:
@@ -895,9 +914,13 @@ class ReportGenerator:
         story.append(Paragraph(_tr(loc, 'Conclusion', 'Fazit'), ST['section_title']))
         story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
         story.append(Paragraph(
-            f'This analysis identified automation opportunities across <b>{len(results)} tasks</b> '
-            f'in <b>{workflow["name"]}</b>. Implementing recommendations could save '
-            f'<b>{hours:.0f} hours annually</b>, worth approximately <b>\u20ac{savings:,.0f}</b>.',
+            (f'Diese Analyse hat Automatisierungspotenziale über <b>{len(results)} Aufgaben</b> '
+             f'in <b>{workflow["name"]}</b> identifiziert. Die Umsetzung der Empfehlungen könnte '
+             f'<b>{hours:.0f} Stunden jährlich</b> einsparen — im Wert von etwa <b>\u20ac{savings:,.0f}</b>.')
+            if loc == 'de' else
+            (f'This analysis identified automation opportunities across <b>{len(results)} tasks</b> '
+             f'in <b>{workflow["name"]}</b>. Implementing recommendations could save '
+             f'<b>{hours:.0f} hours annually</b>, worth approximately <b>\u20ac{savings:,.0f}</b>.'),
             ST['body']))
         story.append(Spacer(1, 6*mm))
         _concl_items = [
