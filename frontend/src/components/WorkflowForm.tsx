@@ -153,6 +153,27 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
     v === 'individual' ? t('ctxIndLabel') : v === 'team' ? t('ctxTeamLabel') : t('ctxCompanyLabel')
   const ctxDesc = (v: AnalysisContext) =>
     v === 'individual' ? t('ctxIndDesc') : v === 'team' ? t('ctxTeamDesc') : t('ctxCompanyDesc')
+  // Localised progress-step label/detail (STEPS is a module-scope constant)
+  const stepLabel = (id: string) => {
+    switch (id) {
+      case 'warmup': return t('stepWarmupLabel')
+      case 'saving': return t('stepSavingLabel')
+      case 'captcha': return t('stepCaptchaLabel')
+      case 'analyzing': return t('stepAnalyzingLabel')
+      case 'roi': return t('stepRoiLabel')
+      default: return t('stepDoneLabel')
+    }
+  }
+  const stepDetail = (id: string) => {
+    switch (id) {
+      case 'warmup': return t('stepWarmupDetail')
+      case 'saving': return t('stepSavingDetail')
+      case 'captcha': return t('stepCaptchaDetail')
+      case 'analyzing': return t('stepAnalyzingDetail')
+      case 'roi': return t('stepRoiDetail')
+      default: return t('stepDoneDetail')
+    }
+  }
   // Guest session: stable anonymous ID stored in localStorage for workflow ownership
   const getGuestId = (): string => {
     let id = localStorage.getItem('wsai_guest_id')
@@ -761,22 +782,22 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
 
             {/* Heading */}
             <h2 className="text-center text-[22px] font-bold text-[#1d1d1f] mb-[8px] tracking-tight">
-              Thank you for using WorkScanAI!
+              {t('rlTitle')}
             </h2>
 
             {/* Subheading */}
             <p className="text-center text-[15px] text-[#6e6e73] mb-[28px] leading-relaxed">
-              You&apos;ve used all <span className="font-semibold text-[#f97316]">5 free daily analyses</span>.<br/>
-              Your limit resets in&nbsp;24 hours.
+              {t('rlUsedAll')} <span className="font-semibold text-[#f97316]">{t('rlFreeDaily')}</span>.<br/>
+              {t('rlResets')}
             </p>
 
             {/* Info card */}
             <div className="rounded-[16px] px-[24px] py-[20px] mb-[28px]" style={{background:'linear-gradient(135deg,#fffbeb,#fff7ed)'}}>
               <div className="space-y-[12px]">
                 {[
-                  { icon:'⏰', text:'Free tier: 5 analyses per 24 hours' },
-                  { icon:'🔒', text:'Your results are saved — come back anytime' },
-                  { icon:'☀️', text:'New analyses available tomorrow' },
+                  { icon:'⏰', text:t('rlItemTier') },
+                  { icon:'🔒', text:t('rlItemSaved') },
+                  { icon:'☀️', text:t('rlItemTomorrow') },
                 ].map(({icon,text})=>(
                   <div key={text} className="flex items-center gap-[12px]">
                     <span className="shrink-0 w-[32px] h-[32px] rounded-full bg-white shadow-sm flex items-center justify-center text-[15px]">{icon}</span>
@@ -793,14 +814,14 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
               className="w-full py-[15px] rounded-[14px] text-white text-[16px] font-bold tracking-wide transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg"
               style={{background:'linear-gradient(135deg,#f59e0b,#f97316)'}}
             >
-              Got it — see you tomorrow! 👋
+              {t('rlOk')}
             </button>
 
             {/* Fine print */}
             <p className="text-center text-[12px] text-[#9ca3af] mt-[14px]">
-              Want unlimited analyses?{' '}
+              {t('rlUnlimited')}{' '}
               <a href="mailto:ian@ianworks.dev" className="text-[#f97316] font-medium hover:underline">
-                Contact us about Pro
+                {t('rlContactPro')}
               </a>
             </p>
           </div>
@@ -814,30 +835,30 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
       <div className="bg-white border border-[#d2d2d7] rounded-[24px] shadow-2xl w-full max-w-[420px] overflow-hidden">
         <div className="flex items-center justify-between px-[32px] pt-[28px] pb-[20px] border-b border-[#f0f0f5]">
           <div>
-            <h2 className="text-[20px] font-semibold text-[#1d1d1f]">{authStep==='success'?'You\'re signed in!':'Sign in to run analysis'}</h2>
+            <h2 className="text-[20px] font-semibold text-[#1d1d1f]">{authStep==='success'?t('authSignedIn'):t('authSignInTitle')}</h2>
             <p className="text-[13px] text-[#6e6e73] mt-[3px]">
-              {authStep==='email'&&'Your workflow is ready — just sign in first.'}
-              {authStep==='code'&&`We sent a 4-digit code to ${authEmail}`}
-              {authStep==='success'&&'Starting your analysis now…'}
+              {authStep==='email'&&t('authEmailSub')}
+              {authStep==='code'&&t('authCodeSub',{email:authEmail})}
+              {authStep==='success'&&t('authSuccessSub')}
             </p>
           </div>
           {authStep!=='success'&&<button onClick={()=>{setShowAuthModal(false);pendingSubmitRef.current=null}} className="ml-[16px] shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-[#f5f5f7] transition-colors text-[#86868b] hover:text-[#1d1d1f]"><X className="w-[16px] h-[16px]"/></button>}
         </div>
         <div className="px-[32px] py-[28px] space-y-[16px]">
-          {authStep==='success'&&<div className="text-center py-[8px]"><div className="inline-flex items-center justify-center w-[64px] h-[64px] rounded-full bg-green-50 border border-green-200 mb-[16px]"><CheckCircle2 className="w-[32px] h-[32px] text-green-500"/></div><p className="text-[15px] text-[#6e6e73]">Analysis is starting…</p></div>}
+          {authStep==='success'&&<div className="text-center py-[8px]"><div className="inline-flex items-center justify-center w-[64px] h-[64px] rounded-full bg-green-50 border border-green-200 mb-[16px]"><CheckCircle2 className="w-[32px] h-[32px] text-green-500"/></div><p className="text-[15px] text-[#6e6e73]">{t('authStarting')}</p></div>}
           {authStep==='email'&&<>
-            <div><label className="block text-[13px] font-medium text-[#1d1d1f] mb-[8px]">Email address</label>
+            <div><label className="block text-[13px] font-medium text-[#1d1d1f] mb-[8px]">{t('authEmailLabel')}</label>
             <div className="relative"><Mail className="absolute left-[14px] top-1/2 -translate-y-1/2 w-[16px] h-[16px] text-[#86868b]"/>
-            <input type="email" value={authEmail} onChange={e=>{setAuthEmailState(e.target.value);setAuthError('')}} onKeyDown={e=>e.key==='Enter'&&sendAuthCode()} placeholder="you@company.com" autoFocus className="w-full pl-[42px] pr-[14px] py-[12px] bg-white border border-[#d2d2d7] rounded-[10px] text-[15px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] transition-all"/></div></div>
+            <input type="email" value={authEmail} onChange={e=>{setAuthEmailState(e.target.value);setAuthError('')}} onKeyDown={e=>e.key==='Enter'&&sendAuthCode()} placeholder={t('authEmailPh')} autoFocus className="w-full pl-[42px] pr-[14px] py-[12px] bg-white border border-[#d2d2d7] rounded-[10px] text-[15px] text-[#1d1d1f] placeholder-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/40 focus:border-[#0071e3] transition-all"/></div></div>
             {authError&&<p className="text-[13px] text-red-500">{authError}</p>}
             <button onClick={sendAuthCode} disabled={authLoading||!authEmail.includes('@')} className="w-full flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-50 disabled:cursor-not-allowed text-white py-[13px] rounded-[12px] text-[15px] font-semibold transition-all">
-              {authLoading?<><Loader2 className="animate-spin w-[16px] h-[16px]"/>Sending…</>:<>Send login code<ArrowRight className="w-[16px] h-[16px]"/></>}
+              {authLoading?<><Loader2 className="animate-spin w-[16px] h-[16px]"/>{t('authSending')}</>:<>{t('authSendCode')}<ArrowRight className="w-[16px] h-[16px]"/></>}
             </button>
-            <p className="text-[12px] text-[#86868b] text-center">No password needed · Free tier: 5 analyses / 24 h</p>
+            <p className="text-[12px] text-[#86868b] text-center">{t('authNoPassword')}</p>
           </>}
           {authStep==='code'&&<>
             <div>
-              <label className="block text-[13px] font-medium text-[#1d1d1f] mb-[12px]">Enter 4-digit code</label>
+              <label className="block text-[13px] font-medium text-[#1d1d1f] mb-[12px]">{t('authEnterCode')}</label>
               <div className="flex gap-[10px] justify-center">
                 {[0,1,2,3].map(i => (
                   <input
@@ -900,15 +921,15 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
                   />
                 ))}
               </div>
-              <p className="text-[12px] text-[#86868b] mt-[12px] text-center">Check your inbox — code expires in 15 minutes</p>
+              <p className="text-[12px] text-[#86868b] mt-[12px] text-center">{t('authCodeExpires')}</p>
             </div>
             {authError&&<p className="text-[13px] text-red-500 text-center">{authError}</p>}
             <button onClick={verifyAuthCode} disabled={authLoading||authCode.length!==4} className="w-full flex items-center justify-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-50 disabled:cursor-not-allowed text-white py-[13px] rounded-[12px] text-[15px] font-semibold transition-all">
-              {authLoading?<><Loader2 className="animate-spin w-[16px] h-[16px]"/>Verifying…</>:<><CheckCircle2 className="w-[16px] h-[16px]"/>Verify &amp; Analyze</>}
+              {authLoading?<><Loader2 className="animate-spin w-[16px] h-[16px]"/>{t('authVerifying')}</>:<><CheckCircle2 className="w-[16px] h-[16px]"/>{t('authVerifyAnalyze')}</>}
             </button>
             <div className="flex items-center justify-between text-[13px]">
-              <button onClick={()=>{setAuthStep('email');setAuthCode('');setAuthError('')}} className="text-[#6e6e73] hover:text-[#1d1d1f] flex items-center gap-[4px] transition-colors">← Change email</button>
-              <button onClick={sendAuthCode} disabled={authLoading} className="text-[#0071e3] hover:underline flex items-center gap-[4px] disabled:opacity-50"><RefreshCw className="w-[12px] h-[12px]"/>Resend code</button>
+              <button onClick={()=>{setAuthStep('email');setAuthCode('');setAuthError('')}} className="text-[#6e6e73] hover:text-[#1d1d1f] flex items-center gap-[4px] transition-colors">← {t('authChangeEmail')}</button>
+              <button onClick={sendAuthCode} disabled={authLoading} className="text-[#0071e3] hover:underline flex items-center gap-[4px] disabled:opacity-50"><RefreshCw className="w-[12px] h-[12px]"/>{t('authResendCode')}</button>
             </div>
           </>}
         </div>
@@ -927,8 +948,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
             <Loader2 className="w-[18px] h-[18px] animate-spin text-[#34aadc]"/>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-semibold leading-tight">Waking the analysis server…</p>
-            <p className="text-[12px] text-white/60 mt-[2px]">Free tier — first request takes 20–40s. After that it&apos;s instant.</p>
+            <p className="text-[14px] font-semibold leading-tight">{t('warmToastTitle')}</p>
+            <p className="text-[12px] text-white/60 mt-[2px]">{t('warmToastSub')}</p>
           </div>
           <div className="shrink-0 flex gap-[4px]">
             {[0,1,2].map(i => (
@@ -948,22 +969,22 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
                 : <Loader2 className="h-[28px] w-[28px] text-[#0071e3] animate-spin"/>}
             </div>
             <h3 className="text-[20px] font-semibold text-[#1d1d1f] mb-[6px]">
-              {uploadProgress >= 100 ? 'Tasks extracted!' : 'Analysing your document…'}
+              {uploadProgress >= 100 ? t('upExtracted') : t('upAnalysing')}
             </h3>
             <p className="text-[14px] text-[#6e6e73] mb-[28px]">{uploadStage}</p>
             <div className="w-full mb-[12px]">
-              <div className="flex justify-between text-[12px] text-[#86868b] mb-[8px]"><span>Progress</span><span>{uploadProgress}%</span></div>
+              <div className="flex justify-between text-[12px] text-[#86868b] mb-[8px]"><span>{t('progressLabel')}</span><span>{uploadProgress}%</span></div>
               <div className="w-full h-[6px] bg-[#e8e8ed] rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-500 ease-out" style={{width:`${uploadProgress}%`, background: uploadProgress >= 100 ? '#22c55e' : 'linear-gradient(90deg,#0071e3,#34aadc)'}}/>
               </div>
             </div>
             <div className="flex flex-wrap justify-center gap-[6px] mt-[16px]">
-              {['Reading file','Extracting text','AI parsing','Populating tasks'].map((s,i) => {
+              {[t('upStepReading'),t('upStepExtracting'),t('upStepParsing'),t('upStepPopulating')].map((s,i) => {
                 const thresholds=[5,25,55,90]; const done = uploadProgress >= thresholds[i]
                 return <span key={s} className={`text-[11px] px-[10px] py-[4px] rounded-full border font-medium transition-all ${uploadProgress>=100?'bg-green-50 border-green-200 text-green-700':done?'bg-[#0071e3]/10 border-[#0071e3]/30 text-[#0071e3]':'bg-white border-[#e8e8ed] text-[#86868b]'}`}>{done && uploadProgress < 100 ? '✓ ' : ''}{s}</span>
               })}
             </div>
-            <p className="text-[12px] text-[#86868b] mt-[20px]">This can take 15–30 seconds — hang tight</p>
+            <p className="text-[12px] text-[#86868b] mt-[20px]">{t('upHangTight')}</p>
           </div>
         </div>
       )}
@@ -972,8 +993,8 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-md">
           <div className="bg-white border border-[#d2d2d7] rounded-[24px] shadow-2xl p-[48px] w-full max-w-[480px] mx-4">
                 <div className="text-center mb-[40px]">
-                  <div className="text-[24px] font-semibold text-[#1d1d1f] mb-[6px]">{activeStep<STEPS.length-1?'Analyzing your workflow…':'All done!'}</div>
-                  {activeStep===2&&taskCount>1&&<p className="text-[14px] text-[#6e6e73]">Running AI analysis on {taskCount} tasks — this takes {taskCount*3}–{taskCount*6}s</p>}
+                  <div className="text-[24px] font-semibold text-[#1d1d1f] mb-[6px]">{activeStep<STEPS.length-1?t('progAnalyzing'):t('progAllDone')}</div>
+                  {activeStep===2&&taskCount>1&&<p className="text-[14px] text-[#6e6e73]">{t('progRunningTasks',{n:taskCount,a:taskCount*3,b:taskCount*6})}</p>}
                 </div>
                 <div className="space-y-[20px]">
                   {STEPS.map((step,i)=>{
@@ -984,20 +1005,20 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
                           {isDone?<CheckCircle2 className="h-[28px] w-[28px] text-green-500"/>:isActive?<Loader2 className="h-[28px] w-[28px] text-[#0071e3] animate-spin"/>:<Circle className="h-[28px] w-[28px] text-[#d2d2d7]"/>}
                         </div>
                         <div className="flex-1">
-                          <div className={`text-[15px] font-semibold transition-colors ${isDone?'text-green-600':isActive?'text-[#1d1d1f]':'text-[#86868b]'}`}>{step.label}</div>
-                          {isActive&&<div className="text-[13px] text-[#6e6e73] mt-[2px]">{step.detail}</div>}
+                          <div className={`text-[15px] font-semibold transition-colors ${isDone?'text-green-600':isActive?'text-[#1d1d1f]':'text-[#86868b]'}`}>{stepLabel(step.id)}</div>
+                          {isActive&&<div className="text-[13px] text-[#6e6e73] mt-[2px]">{stepDetail(step.id)}</div>}
                         </div>
-                        {isDone&&<span className="text-[12px] font-medium text-green-600 bg-green-50 border border-green-200 px-[10px] py-[3px] rounded-full">Done</span>}
-                        {isActive&&activeStep<STEPS.length-1&&<span className="text-[12px] font-medium text-[#0071e3] bg-blue-50 border border-blue-200 px-[10px] py-[3px] rounded-full">Running</span>}
+                        {isDone&&<span className="text-[12px] font-medium text-green-600 bg-green-50 border border-green-200 px-[10px] py-[3px] rounded-full">{t('progDone')}</span>}
+                        {isActive&&activeStep<STEPS.length-1&&<span className="text-[12px] font-medium text-[#0071e3] bg-blue-50 border border-blue-200 px-[10px] py-[3px] rounded-full">{t('progRunning')}</span>}
                       </div>
                     )
                   })}
                 </div>
                 <div className="mt-[36px]">
-                  <div className="flex justify-between text-[12px] text-[#86868b] mb-[8px]"><span>Progress</span><span>{Math.round((completedSteps.size/STEPS.length)*100)}%</span></div>
+                  <div className="flex justify-between text-[12px] text-[#86868b] mb-[8px]"><span>{t('progressLabel')}</span><span>{Math.round((completedSteps.size/STEPS.length)*100)}%</span></div>
                   <div className="w-full h-[4px] bg-[#e8e8ed] rounded-full overflow-hidden"><div className="h-full bg-[#0071e3] rounded-full transition-all duration-700 ease-out" style={{width:`${(completedSteps.size/STEPS.length)*100}%`}}/></div>
                 </div>
-                {SITE_KEY&&<p className="text-[11px] text-[#86868b] text-center mt-[20px]">Protected by reCAPTCHA · <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" className="underline">Privacy</a> · <a href="https://policies.google.com/terms" target="_blank" rel="noopener" className="underline">Terms</a></p>}
+                {SITE_KEY&&<p className="text-[11px] text-[#86868b] text-center mt-[20px]">{t('recaptchaNote')} · <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" className="underline">Privacy</a> · <a href="https://policies.google.com/terms" target="_blank" rel="noopener" className="underline">Terms</a></p>}
           </div>
         </div>
       )}
