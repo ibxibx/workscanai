@@ -6,6 +6,8 @@ import { ArrowRight, Brain, Sparkles } from 'lucide-react'
 import WorkflowForm from '@/components/WorkflowForm'
 import posthog from 'posthog-js'
 import { getFeatureFlag, registerExperimentVariant, isPostHogReady } from '@/lib/analytics'
+import LanguageToggle from '@/components/LanguageToggle'
+import { useT } from '@/i18n/client'
 
 // Canonical pre-generated sample report (real AI analysis of a marketing-team
 // workflow). Lets visitors see a credible result instantly — value before input,
@@ -22,6 +24,7 @@ export default function LandingPage() {
   const [onboardingVariant, setOnboardingVariant] = useState<'control' | 'sample_first'>('control')
   const [referredBy, setReferredBy] = useState<string | null>(null)
   const analyzeRef = useRef<HTMLElement>(null)
+  const t = useT('home')
 
   // Read ?ref={code} — the share_code of a report a viewer came from. Persist in
   // sessionStorage so it survives even if the param is stripped on later navs.
@@ -89,33 +92,34 @@ export default function LandingPage() {
               WorkScanAI
             </Link>
             <div className="flex gap-[12px] md:gap-[32px] text-[11px] md:text-[12px] shrink-0">
+              <LanguageToggle />
               <Link
                 href="/scan"
                 className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
               >
-                <span className="hidden md:inline">Is my job automatable?</span>
-                <span className="md:hidden">Scan job</span>
+                <span className="hidden md:inline">{t('navScanLong')}</span>
+                <span className="md:hidden">{t('navScanShort')}</span>
               </Link>
               <Link
                 href="/templates"
                 className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
               >
-                <span className="hidden md:inline">Templates</span>
-                <span className="md:hidden">Templates</span>
+                <span className="hidden md:inline">{t('navTemplates')}</span>
+                <span className="md:hidden">{t('navTemplates')}</span>
               </Link>
               <Link
                 href="/dashboard"
                 className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
               >
-                <span className="hidden md:inline">Past Analyses</span>
-                <span className="md:hidden">History</span>
+                <span className="hidden md:inline">{t('navPastLong')}</span>
+                <span className="md:hidden">{t('navHistoryShort')}</span>
               </Link>
               <a
                 href="#analyze"
                 className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors whitespace-nowrap"
               >
-                <span className="hidden md:inline">New Analysis</span>
-                <span className="md:hidden">Analyze</span>
+                <span className="hidden md:inline">{t('navNewLong')}</span>
+                <span className="md:hidden">{t('navAnalyzeShort')}</span>
               </a>
             </div>
           </div>
@@ -140,30 +144,30 @@ export default function LandingPage() {
 
           {/* Headline */}
           <h1 className="text-[28px] sm:text-[40px] md:text-[52px] leading-[1.07] font-semibold italic tracking-tight text-white mb-[16px] drop-shadow-lg px-2">
-            The future of work
+            {t('heroLine1')}
             <br />
-            starts with knowing
+            {t('heroLine2')}
             <br />
-            what to automate.
+            {t('heroLine3')}
           </h1>
 
           {/* One-line product descriptor — instant clarity on what WorkScanAI is */}
           <p className="max-w-[600px] mx-auto mt-[8px] text-[15px] sm:text-[19px] leading-[1.4] font-normal text-white/85 drop-shadow px-3">
-            WorkScanAI analyzes your team&apos;s workflows and identifies automation opportunities in minutes, not months.
+            {t('heroDescriptor')}
           </p>
 
           {/* Value Proposition Block */}
           <div className="max-w-[680px] mx-auto mt-[24px] sm:mt-[40px]">
             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[18px] p-[20px] sm:p-[32px]">
               <p className="text-[16px] sm:text-[21px] leading-[1.381] font-normal text-white/90 mb-[20px] sm:mb-[28px]">
-                Find out which of your tasks AI can automate <em>right now</em> and how — save your time and money.
+                {t('heroValue1')}<em>{t('heroValueEm')}</em>{t('heroValue2')}
               </p>
               <div className="flex gap-[16px] justify-center items-center flex-wrap">
                 <a
                   href="#analyze"
                   className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white text-[17px] leading-[1.17] font-normal px-[22px] py-[12px] rounded-full transition-all group shadow-lg hover-pop"
                 >
-                  <span>Analyze now</span>
+                  <span>{t('ctaAnalyzeNow')}</span>
                   <ArrowRight className="h-[16px] w-[16px] group-hover:translate-x-[2px] transition-transform" />
                 </a>
                 <a
@@ -172,13 +176,13 @@ export default function LandingPage() {
                   rel="noopener noreferrer"
                   className="text-white/80 hover:text-white text-[17px] leading-[1.17] font-normal transition-colors underline underline-offset-4 decoration-white/40"
                 >
-                  See how it works
+                  {t('ctaSeeHow')}
                 </a>
                 <Link
                   href="/templates"
                   className="text-white/80 hover:text-white text-[17px] leading-[1.17] font-normal transition-colors underline underline-offset-4 decoration-white/40"
                 >
-                  Browse by industry
+                  {t('ctaBrowse')}
                 </Link>
               </div>
             </div>
@@ -188,15 +192,15 @@ export default function LandingPage() {
           <div className="grid grid-cols-3 gap-[8px] sm:gap-[48px] justify-center mt-[24px] sm:mt-[48px] w-full max-w-[560px] mx-auto px-2">
             <div className="text-center min-w-0">
               <div className="text-[18px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight whitespace-nowrap">&lt;5 min</div>
-              <div className="text-[9px] sm:text-[13px] text-white/60 mt-[4px] whitespace-nowrap">to analyze</div>
+              <div className="text-[9px] sm:text-[13px] text-white/60 mt-[4px] whitespace-nowrap">{t('statAnalyzeLabel')}</div>
             </div>
             <div className="text-center border-x border-white/20 px-[8px] sm:px-0 min-w-0">
               <div className="text-[18px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight whitespace-nowrap">0–100%</div>
-              <div className="text-[9px] sm:text-[13px] text-white/60 mt-[4px] whitespace-nowrap">automation score</div>
+              <div className="text-[9px] sm:text-[13px] text-white/60 mt-[4px] whitespace-nowrap">{t('statScoreLabel')}</div>
             </div>
             <div className="text-center min-w-0">
               <div className="text-[18px] sm:text-[34px] font-semibold tracking-tight text-white drop-shadow leading-tight whitespace-nowrap">€28K+</div>
-              <div className="text-[9px] sm:text-[13px] text-white/60 mt-[4px] whitespace-nowrap">avg. savings</div>
+              <div className="text-[9px] sm:text-[13px] text-white/60 mt-[4px] whitespace-nowrap">{t('statSavingsLabel')}</div>
             </div>
           </div>
 
@@ -212,9 +216,9 @@ export default function LandingPage() {
               <div className="icon-circle w-[48px] h-[48px] mx-auto mb-[16px] rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 <Sparkles className="h-[20px] w-[20px] text-white" />
               </div>
-              <h3 className="text-[19px] font-semibold italic mb-[8px] tracking-tight text-[#1d1d1f] hover-shimmer">AI Analysis</h3>
+              <h3 className="text-[19px] font-semibold italic mb-[8px] tracking-tight text-[#1d1d1f] hover-shimmer">{t('featAiTitle')}</h3>
               <p className="text-[14px] text-[#6e6e73] leading-[1.4]">
-                Evaluates every task for automation readiness
+                {t('featAiDesc')}
               </p>
             </div>
 
@@ -224,9 +228,9 @@ export default function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-[19px] font-semibold italic mb-[8px] tracking-tight text-[#1d1d1f]">ROI Calculator</h3>
+              <h3 className="text-[19px] font-semibold italic mb-[8px] tracking-tight text-[#1d1d1f]">{t('featRoiTitle')}</h3>
               <p className="text-[14px] text-[#6e6e73] leading-[1.4]">
-                Calculates time and cost savings instantly
+                {t('featRoiDesc')}
               </p>
             </div>
 
@@ -236,9 +240,9 @@ export default function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
               </div>
-              <h3 className="text-[19px] font-semibold italic mb-[8px] tracking-tight text-[#1d1d1f]">n8n Workflows</h3>
+              <h3 className="text-[19px] font-semibold italic mb-[8px] tracking-tight text-[#1d1d1f]">{t('featN8nTitle')}</h3>
               <p className="text-[14px] text-[#6e6e73] leading-[1.4]">
-                Real community automations ready to import into n8n
+                {t('featN8nDesc')}
               </p>
             </div>
           </div>
@@ -277,16 +281,16 @@ export default function LandingPage() {
             >
               <div className="flex items-center gap-[8px] mb-[12px]">
                 <Sparkles className="h-[16px] w-[16px] text-[#0071e3]" />
-                <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#0071e3]">See a real result first</span>
+                <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#0071e3]">{t('sampleKicker')}</span>
               </div>
               <h3 className="text-[20px] sm:text-[26px] font-semibold italic tracking-tight text-[#1d1d1f] mb-[8px]">
-                A marketing team&apos;s workflow, fully analyzed
+                {t('sampleTitle')}
               </h3>
               <p className="text-[14px] sm:text-[16px] text-[#6e6e73] leading-[1.5] mb-[16px]">
-                61% automation potential · €19,159/yr saved · 383 hours reclaimed across 5 tasks — with importable n8n workflows. No signup, opens instantly.
+                {t('sampleDesc')}
               </p>
               <span className="inline-flex items-center gap-[6px] text-[14px] font-medium text-[#0071e3] group-hover:gap-[10px] transition-all">
-                View the sample report <ArrowRight className="h-[15px] w-[15px]" />
+                {t('sampleCta')} <ArrowRight className="h-[15px] w-[15px]" />
               </span>
             </a>
           )}
@@ -294,17 +298,17 @@ export default function LandingPage() {
             <div className="relative inline-block">
               <div className="absolute inset-0 -inset-x-[160px] bg-gradient-to-r from-transparent via-[#0071e3]/15 to-transparent blur-[100px]"></div>
               <h2 className="relative text-[22px] sm:text-[40px] leading-[1.1] font-semibold italic tracking-tight mb-[10px] text-[#1d1d1f] px-[16px] sm:px-[32px]">
-                Start your analysis now.
+                {t('analyzeTitle')}
               </h2>
             </div>
             <p className="text-[14px] sm:text-[19px] text-[#6e6e73] px-4">
-              Type your tasks, upload a workflow document, use voice, or enter a job title.
+              {t('analyzeSubtitle')}
             </p>
             {/* Value before input — let visitors see a real report instantly */}
             {/* control arm only — sample_first shows the prominent card above */}
             {onboardingVariant === 'control' && (
             <p className="text-[13px] sm:text-[15px] text-[#86868b] mt-[14px] px-4">
-              Not sure where to start?{' '}
+              {t('notSure')}{' '}
               <a
                 href={`/report/${SAMPLE_REPORT_CODE}`}
                 target="_blank"
@@ -312,9 +316,9 @@ export default function LandingPage() {
                 onClick={() => { try { posthog.capture('sample_report_clicked', { placement: 'control_inline_link' }) } catch {} }}
                 className="text-[#0071e3] hover:text-[#0077ed] font-medium underline underline-offset-4 decoration-[#0071e3]/40 transition-colors"
               >
-                See a sample report
+                {t('seeSample')}
               </a>{' '}
-              — a real analysis of a marketing team&apos;s workflow.
+              {t('sampleTail')}
             </p>
             )}
           </div>

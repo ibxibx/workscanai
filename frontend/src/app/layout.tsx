@@ -6,6 +6,7 @@ import SiteHeader from "@/components/SiteHeader";
 import PageTracker from "@/components/PageTracker";
 import PostHogProvider from "@/components/PostHogProvider";
 import { Suspense } from "react";
+import { I18nProvider } from "@/i18n/client";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -79,14 +80,16 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
         />
-        <AuthProvider>
-          <Suspense fallback={null}>
-            <PostHogProvider />
-          </Suspense>
-          <PageTracker />
-          <SiteHeader />
-          {children}
-        </AuthProvider>
+        <I18nProvider>
+          <AuthProvider>
+            <Suspense fallback={null}>
+              <PostHogProvider />
+            </Suspense>
+            <PageTracker />
+            <SiteHeader />
+            {children}
+          </AuthProvider>
+        </I18nProvider>
       </body>
     </html>
   );
