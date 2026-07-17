@@ -272,7 +272,7 @@ export default function ResultsPage() {
  <div className="grid grid-cols-2 md:grid-cols-4 gap-[12px] mb-[40px]">
  {[
  { label: tr('cardScoreLabel'), value: `${Math.round(analysisData.automation_score)}%`, color: 'text-[#0071e3]', sub: tr('cardScoreSub', { ready: automationReady, total: totalTasks }) },
- { label: tr('cardSavingsLabel'), value: `€${Math.round(analysisData.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: tr('cardSavingsSub', { hours: Math.round(analysisData.hours_saved) }) },
+ { label: tr('cardSavingsLabel'), value: `€${Math.round(analysisData.annual_savings).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US')}`, color: 'text-green-600', sub: tr('cardSavingsSub', { hours: Math.round(analysisData.hours_saved) }) },
  { label: tr('cardQuickLabel'), value: `${quickWins}`, color: 'text-purple-600', sub: tr('cardQuickSub') },
  { label: t('humanEdgeLabel'), value: `${Math.round(avgHumanEdge)}%`, color: 'text-amber-600', sub: t('humanEdgeSub') },
  ].map(card => (

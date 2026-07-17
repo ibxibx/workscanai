@@ -7,7 +7,7 @@ import EmailGateCard from './EmailGateCard'
 import { TaskBreakdown, ContextSections, type SharedTaskResult } from '@/components/report/ReportSections'
 import { resolveContext } from '@/components/report/reportContext'
 import N8nWorkflowsSection, { type N8nTemplate } from '@/components/report/N8nWorkflowsSection'
-import { getT } from '@/i18n/server'
+import { getT, getLocale } from '@/i18n/server'
 
 interface WorkflowTask { id: number; name: string; description: string }
 
@@ -149,6 +149,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
   const data = await getAnalysisByCode(code)
   if (!data) notFound()
   const t = await getT('report')
+  const locale = await getLocale()
 
   const totalTasks = data.results.length
   const automationReady = data.results.filter(r => r.ai_readiness_score >= 70).length
@@ -196,7 +197,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px] sm:gap-[16px] mb-[32px] sm:mb-[48px]">
           {[
             { label: t('cardScoreLabel'), value: `${Math.round(data.automation_score)}%`, color: 'text-[#0071e3]', sub: t('cardScoreSub', { ready: automationReady, total: totalTasks }) },
-            { label: t('cardSavingsLabel'), value: `\u20ac${Math.round(data.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: t('cardSavingsSub', { hours: Math.round(data.hours_saved) }) },
+            { label: t('cardSavingsLabel'), value: `\u20ac${Math.round(data.annual_savings).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US')}`, color: 'text-green-600', sub: t('cardSavingsSub', { hours: Math.round(data.hours_saved) }) },
             { label: t('cardQuickLabel'), value: `${quickWins}`, color: 'text-purple-600', sub: t('cardQuickSub') },
           ].map(card => (
             <div key={card.label} className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[20px] sm:p-[32px] overflow-hidden">
