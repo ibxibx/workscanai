@@ -291,7 +291,7 @@ export default function DashboardPage() {
       const res = await fetch(`/api/reports/combined/${format}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workflow_ids: ids }),
+        body: JSON.stringify({ workflow_ids: ids, locale }),
       })
       if (!res.ok) throw new Error('Failed to generate report')
       const blob = await res.blob()

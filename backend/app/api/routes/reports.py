@@ -96,7 +96,8 @@ def _build_analysis_data(workflow: Workflow, analysis: Analysis,
 
 @router.get("/reports/{workflow_id}/docx")
 def generate_docx_report(workflow_id: int, prepared_for: Optional[str] = None,
-                         prepared_by: Optional[str] = None, db: Session = Depends(get_db)):
+                         prepared_by: Optional[str] = None, locale: str = "en",
+                         db: Session = Depends(get_db)):
     workflow = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -106,7 +107,8 @@ def generate_docx_report(workflow_id: int, prepared_for: Optional[str] = None,
 
     output_path = os.path.join(tempfile.gettempdir(), f"workscan_report_{workflow_id}.docx")
     ReportGenerator.generate_docx_report(
-        _build_analysis_data(workflow, analysis, prepared_for, prepared_by), output_path)
+        _build_analysis_data(workflow, analysis, prepared_for, prepared_by), output_path,
+        loc=("de" if locale == "de" else "en"))
     _stem = "WorkScanAI_Automation_Audit" if (prepared_for or prepared_by) else "WorkScanAI_Report"
     return FileResponse(
         output_path,
@@ -117,7 +119,8 @@ def generate_docx_report(workflow_id: int, prepared_for: Optional[str] = None,
 
 @router.get("/reports/{workflow_id}/pdf")
 def generate_pdf_report(workflow_id: int, prepared_for: Optional[str] = None,
-                        prepared_by: Optional[str] = None, db: Session = Depends(get_db)):
+                        prepared_by: Optional[str] = None, locale: str = "en",
+                        db: Session = Depends(get_db)):
     workflow = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -127,7 +130,8 @@ def generate_pdf_report(workflow_id: int, prepared_for: Optional[str] = None,
 
     output_path = os.path.join(tempfile.gettempdir(), f"workscan_report_{workflow_id}.pdf")
     ReportGenerator.generate_pdf_report(
-        _build_analysis_data(workflow, analysis, prepared_for, prepared_by), output_path)
+        _build_analysis_data(workflow, analysis, prepared_for, prepared_by), output_path,
+        loc=("de" if locale == "de" else "en"))
     _stem = "WorkScanAI_Automation_Audit" if (prepared_for or prepared_by) else "WorkScanAI_Report"
     return FileResponse(
         output_path,
@@ -140,6 +144,7 @@ def generate_pdf_report(workflow_id: int, prepared_for: Optional[str] = None,
 
 class CombinedReportRequest(BaseModel):
     workflow_ids: List[int]
+    locale: str = "en"  # 'en' (default) or 'de'
 
 
 @router.post("/reports/combined/docx")
@@ -157,7 +162,8 @@ def generate_combined_docx(body: CombinedReportRequest, db: Session = Depends(ge
 
     ids_str = "_".join(str(i) for i in body.workflow_ids[:5])
     output_path = os.path.join(tempfile.gettempdir(), f"workscan_combined_{ids_str}.docx")
-    ReportGenerator.generate_combined_docx_report(analyses, output_path)
+    ReportGenerator.generate_combined_docx_report(analyses, output_path,
+        loc=("de" if body.locale == "de" else "en"))
     return FileResponse(
         output_path,
         media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -180,7 +186,8 @@ def generate_combined_pdf(body: CombinedReportRequest, db: Session = Depends(get
 
     ids_str = "_".join(str(i) for i in body.workflow_ids[:5])
     output_path = os.path.join(tempfile.gettempdir(), f"workscan_combined_{ids_str}.pdf")
-    ReportGenerator.generate_combined_pdf_report(analyses, output_path)
+    ReportGenerator.generate_combined_pdf_report(analyses, output_path,
+        loc=("de" if body.locale == "de" else "en"))
     return FileResponse(
         output_path,
         media_type='application/pdf',
@@ -317,7 +324,8 @@ async def email_full_report(share_code: str, body: EmailReportRequest, db: Sessi
     output_path = os.path.join(tempfile.gettempdir(), f"workscan_report_{workflow.id}.pdf")
     sent_ok = False
     try:
-        ReportGenerator.generate_pdf_report(_build_analysis_data(workflow, analysis), output_path)
+        ReportGenerator.generate_pdf_report(_build_analysis_data(workflow, analysis), output_path,
+            loc=("de" if body.locale == "de" else "en"))
         sent_ok = await _send_report_email(
             email, workflow.name, report_url, output_path,
             analysis.automation_score, analysis.hours_saved, analysis.annual_savings,

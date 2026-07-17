@@ -965,7 +965,7 @@ class ReportGenerator:
     # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def generate_docx_report(analysis_data: Dict, output_path: str):
+    def generate_docx_report(analysis_data: Dict, output_path: str, loc: str = 'en'):
         if Document is None:
             raise ImportError("python-docx not installed")
         doc = Document()
@@ -1022,22 +1022,22 @@ class ReportGenerator:
 
         # ── Cover ─────────────────────────────────────────────────────────
         p = doc.add_paragraph(); run(p, 'WorkScanAI', bold=True, size=11, color='0071e3')
-        ctx_label = {'individual':'Personal Career Analysis','team':'Team / Startup Analysis',
-                     'company':'Company / Department Analysis'}.get(context,'Workflow Analysis')
+        ctx_label = {'individual':_tr(loc,'Personal Career Analysis','Persönliche Karriereanalyse'),'team':_tr(loc,'Team / Startup Analysis','Team-/Startup-Analyse'),
+                     'company':_tr(loc,'Company / Department Analysis','Unternehmens-/Abteilungsanalyse')}.get(context,_tr(loc,'Workflow Analysis','Workflow-Analyse'))
         p = doc.add_paragraph(); run(p, ctx_label, size=10, color='86868b')
         p.paragraph_format.space_before=Pt(2); p.paragraph_format.space_after=Pt(4)
-        p = doc.add_paragraph(); run(p,'Automation Opportunity Audit',bold=True,size=22,color='1d1d1f')
+        p = doc.add_paragraph(); run(p,_tr(loc,'Automation Opportunity Audit','Automatisierungspotenzial-Audit'),bold=True,size=22,color='1d1d1f')
         p = doc.add_paragraph(); run(p,workflow['name'],bold=True,size=20,color='0071e3')
         p.paragraph_format.space_before=Pt(2); p.paragraph_format.space_after=Pt(4)
         if workflow.get('description'):
             p=doc.add_paragraph(); run(p,workflow['description'],size=11,color='6e6e73')
         if workflow.get('industry'):
-            p=doc.add_paragraph(); run(p,f"Industry: {workflow['industry']}",size=9,color='86868b')
+            p=doc.add_paragraph(); run(p,f"{_tr(loc,'Industry','Branche')}: {workflow['industry']}",size=9,color='86868b')
 
         source_text = workflow.get('source_text','').strip()
         if source_text:
-            mode_labels={'voice':'Voice Transcript','document':'Extracted Document Text','manual':'Original Input'}
-            p=doc.add_paragraph(); run(p,mode_labels.get(workflow.get('input_mode','manual'),'Input'),bold=True,size=9,color='0071e3')
+            mode_labels={'voice':_tr(loc,'Voice Transcript','Sprachtranskript'),'document':_tr(loc,'Extracted Document Text','Extrahierter Dokumenttext'),'manual':_tr(loc,'Original Input','Ursprüngliche Eingabe')}
+            p=doc.add_paragraph(); run(p,mode_labels.get(workflow.get('input_mode','manual'),_tr(loc,'Input','Eingabe')),bold=True,size=9,color='0071e3')
             st=doc.add_table(rows=1,cols=1); st.style='Table Grid'
             cell=st.rows[0].cells[0]; set_bg(cell,'f5f5f7')
             run(cell.paragraphs[0],source_text,size=10,color='1d1d1f')
@@ -1050,19 +1050,19 @@ class ReportGenerator:
             _pb = 'WorkScanAI · workscanai.app'
         if _pf or _pb:
             _ap_rows = []
-            if _pf: _ap_rows.append(('Prepared for', _pf[:120], None))
-            if _pb: _ap_rows.append(('Prepared by', _pb[:120], None))
+            if _pf: _ap_rows.append((_tr(loc,'Prepared for','Erstellt für'), _pf[:120], None))
+            if _pb: _ap_rows.append((_tr(loc,'Prepared by','Erstellt von'), _pb[:120], None))
             kv_table(_ap_rows, col_widths=(3.5, 11.5))
             doc.add_paragraph()
-        p=doc.add_paragraph(); run(p,f"Generated {datetime.now().strftime('%B %d, %Y')}",size=9,color='6e6e73')
+        p=doc.add_paragraph(); run(p,_tr(loc,f"Generated {datetime.now().strftime('%B %d, %Y')}",f"Erstellt am {datetime.now().strftime('%d.%m.%Y')}"),size=9,color='6e6e73')
         p.paragraph_format.space_after=Pt(12)
 
         # Hero stats table
         t=doc.add_table(rows=2,cols=4); t.style='Table Grid'
-        for i,(h,v,bg) in enumerate([('Automation Score',f'{score:.0f}%','e8f1fc'),
-                                       ('Annual Savings',f'\u20ac{savings:,.0f}','e8f9ed'),
-                                       ('Hours Reclaimed',f'{hours:.0f} hrs','fff4e0'),
-                                       ('Tasks Analyzed',str(len(results)),'f5f5f7')]):
+        for i,(h,v,bg) in enumerate([(_tr(loc,'Automation Score','Automatisierungsgrad'),f'{score:.0f}%','e8f1fc'),
+                                       (_tr(loc,'Annual Savings','Jährliche Einsparung'),f'\u20ac{savings:,.0f}','e8f9ed'),
+                                       (_tr(loc,'Hours Reclaimed','Zurückgewonnene Stunden'),f'{hours:.0f} hrs','fff4e0'),
+                                       (_tr(loc,'Tasks Analyzed','Analysierte Aufgaben'),str(len(results)),'f5f5f7')]):
             hc=t.rows[0].cells[i]; vc=t.rows[1].cells[i]
             set_bg(hc,bg); set_bg(vc,bg)
             ph=hc.paragraphs[0]; ph.alignment=WD_ALIGN_PARAGRAPH.CENTER; run(ph,h,bold=True,size=8,color='6e6e73')
@@ -1073,22 +1073,22 @@ class ReportGenerator:
         # ── F4 AI Readiness ───────────────────────────────────────────────
         rs = analysis_data.get('readiness_score')
         if rs is not None:
-            heading('AI Readiness Assessment', size=14, color='0071e3')
+            heading(_tr(loc,'AI Readiness Assessment','KI-Reifegrad-Bewertung'), size=14, color='0071e3')
             rd_rows = [
-                ('Overall Readiness',  f'{rs:.0f} / 100',                                    None),
-                ('Data Quality',       f'{analysis_data.get("readiness_data_quality") or "—":.0f}' if analysis_data.get("readiness_data_quality") else '—', None),
-                ('Process Clarity',    f'{analysis_data.get("readiness_process_docs") or "—":.0f}' if analysis_data.get("readiness_process_docs") else '—', None),
-                ('Tool Maturity',      f'{analysis_data.get("readiness_tool_maturity") or "—":.0f}' if analysis_data.get("readiness_tool_maturity") else '—', None),
-                ('Error Tolerance',    f'{analysis_data.get("readiness_team_skills") or "—":.0f}'   if analysis_data.get("readiness_team_skills")  else '—', None),
+                (_tr(loc,'Overall Readiness','Gesamtreife'),  f'{rs:.0f} / 100',                                    None),
+                (_tr(loc,'Data Quality','Datenqualität'),       f'{analysis_data.get("readiness_data_quality") or "—":.0f}' if analysis_data.get("readiness_data_quality") else '—', None),
+                (_tr(loc,'Process Clarity','Prozessklarheit'),    f'{analysis_data.get("readiness_process_docs") or "—":.0f}' if analysis_data.get("readiness_process_docs") else '—', None),
+                (_tr(loc,'Tool Maturity','Tool-Reife'),      f'{analysis_data.get("readiness_tool_maturity") or "—":.0f}' if analysis_data.get("readiness_tool_maturity") else '—', None),
+                (_tr(loc,'Error Tolerance','Fehlertoleranz'),    f'{analysis_data.get("readiness_team_skills") or "—":.0f}'   if analysis_data.get("readiness_team_skills")  else '—', None),
             ]
             kv_table(rd_rows)
             doc.add_paragraph()
 
         # ── Task Breakdown ────────────────────────────────────────────────
-        heading('Task Breakdown')
+        heading(_tr(loc,'Task Breakdown','Aufgabenaufschlüsselung'))
         for idx, result in enumerate(sorted_results, 1):
             task = result['task']; task_score = result['ai_readiness_score']
-            lbl = score_label(task_score)
+            lbl = score_label(task_score, loc)
             s_hex = '34c759' if task_score>=70 else ('ff9f0a' if task_score>=40 else 'ff3b30')
             bg_hex = 'e8f9ed' if task_score>=70 else ('fff4e0' if task_score>=40 else 'ffe5e3')
 
@@ -1108,21 +1108,21 @@ class ReportGenerator:
             # Details
             hrs_sv = result.get('estimated_hours_saved',0); val_sv=hrs_sv*hourly
             kv_table([
-                ('Description',   task.get('description','-'), None),
-                ('Frequency',     task.get('frequency','N/A').capitalize(), None),
-                ('Time per Task', f'{task.get("time_per_task",0)} minutes', None),
-                ('Category',      task.get('category','N/A').replace('_',' ').title(), None),
-                ('Difficulty',    result.get('difficulty','N/A').title(), None),
-                ('Annual Savings',f'{hrs_sv:.1f} hrs  /  \u20ac{val_sv:,.0f}', None),
+                (_tr(loc,'Description','Beschreibung'),   task.get('description','-'), None),
+                (_tr(loc,'Frequency','Häufigkeit'),     task.get('frequency','N/A').capitalize(), None),
+                (_tr(loc,'Time per Task','Zeit pro Aufgabe'), f'{task.get("time_per_task",0)} ' + _tr(loc,'minutes','Minuten'), None),
+                (_tr(loc,'Category','Kategorie'),      task.get('category','N/A').replace('_',' ').title(), None),
+                (_tr(loc,'Difficulty','Schwierigkeit'),    result.get('difficulty','N/A').title(), None),
+                (_tr(loc,'Annual Savings','Jährl. Einsparung'),f'{hrs_sv:.1f} ' + _tr(loc,'hrs','Std.') + f'  /  \u20ac{val_sv:,.0f}', None),
             ])
 
             # F1 Sub-scores
-            sub_keys = [('score_repeatability','Repeatability'),('score_data_availability','Data Availability'),
-                        ('score_error_tolerance','Error Tolerance'),('score_integration','Integration Ease')]
+            sub_keys = [('score_repeatability',_tr(loc,'Repeatability','Wiederholbarkeit')),('score_data_availability',_tr(loc,'Data Availability','Datenverfügbarkeit')),
+                        ('score_error_tolerance',_tr(loc,'Error Tolerance','Fehlertoleranz')),('score_integration',_tr(loc,'Integration Ease','Integrationsaufwand'))]
             sub_vals = [(lbl2, result.get(k)) for k, lbl2 in sub_keys if result.get(k) is not None]
             if sub_vals:
                 doc.add_paragraph()
-                p=doc.add_paragraph(); run(p,'Sub-scores:',bold=True,size=9,color='86868b')
+                p=doc.add_paragraph(); run(p,_tr(loc,'Sub-scores:','Teilbewertungen:'),bold=True,size=9,color='86868b')
                 t2=doc.add_table(rows=1,cols=len(sub_vals)); t2.style='Table Grid'
                 for ci,(lbl2,val) in enumerate(sub_vals):
                     c=t2.rows[0].cells[ci]; set_bg(c,'f5f5f7')
@@ -1135,9 +1135,9 @@ class ReportGenerator:
             if conf:
                 conf_hex = {'high': '34c759', 'medium': '6e6e73', 'low': 'ff9f0a'}.get(conf, '6e6e73')
                 p=doc.add_paragraph()
-                run(p, 'Score confidence: ', size=9, color='6e6e73')
-                run(p, conf.capitalize(), bold=True, size=9, color=conf_hex)
-                run(p, '  (how much the four sub-scores agree)', size=8, color='86868b')
+                run(p, _tr(loc,'Score confidence: ','Score-Konfidenz: '), size=9, color='6e6e73')
+                run(p, _tr(loc, conf.capitalize(), {'high':'Hoch','medium':'Mittel','low':'Niedrig'}.get(conf,conf.capitalize())), bold=True, size=9, color=conf_hex)
+                run(p, _tr(loc,'  (how much the four sub-scores agree)','  (wie stark die vier Teilbewertungen übereinstimmen)'), size=8, color='86868b')
 
             # Recommendation
             if result.get('recommendation'):
@@ -1145,7 +1145,7 @@ class ReportGenerator:
                 rt=doc.add_table(rows=1,cols=2); rt.style='Table Grid'
                 lc=rt.rows[0].cells[0]; rc=rt.rows[0].cells[1]
                 set_bg(lc,'e8f1fc'); set_bg(rc,'e8f1fc'); set_w(lc,3.8); set_w(rc,11.2)
-                run(lc.paragraphs[0],'Recommendation',bold=True,size=12,color='0071e3')
+                run(lc.paragraphs[0],_tr(loc,'Recommendation','Empfehlung'),bold=True,size=12,color='0071e3')
                 rec_text = result['recommendation']
                 m1=_re.search(r'(Option\s+1\s*[—\-–])',rec_text); m2=_re.search(r'(Option\s+2\s*[—\-–])',rec_text)
                 if m1 and m2:
@@ -1168,7 +1168,7 @@ class ReportGenerator:
                 risk_bg = 'e8f9ed' if risk_lv=='safe' else ('fff4e0' if risk_lv=='caution' else 'ffe5e3')
                 risk_col= '34c759' if risk_lv=='safe' else ('ff9f0a' if risk_lv=='caution' else 'ff3b30')
                 set_bg(rl_cell,risk_bg); set_bg(rv_cell,risk_bg); set_w(rl_cell,2.0); set_w(rv_cell,13.0)
-                run(rl_cell.paragraphs[0],'Risk',bold=True,size=9,color=risk_col)
+                run(rl_cell.paragraphs[0],_tr(loc,'Risk','Risiko'),bold=True,size=9,color=risk_col)
                 run(rv_cell.paragraphs[0],result['risk_flag'],size=9,color='1d1d1f')
 
             # F9 Agentification
@@ -1181,7 +1181,7 @@ class ReportGenerator:
                 run(al.paragraphs[0],f'Phase {result.get("agent_phase",1)}',bold=True,size=9,color=ph_col)
                 run(av.paragraphs[0],result['agent_label'],bold=True,size=10,color='1d1d1f')
                 if result.get('agent_milestone'):
-                    p_ms=av.add_paragraph(); run(p_ms,f'Milestone: {result["agent_milestone"]}',size=9,color='6e6e73')
+                    p_ms=av.add_paragraph(); run(p_ms,f'{_tr(loc,"Milestone","Meilenstein")}: {result["agent_milestone"]}',size=9,color='6e6e73')
                 if result.get('orchestration'):
                     p_or=av.add_paragraph(); run(p_or,f'Pipeline: {result["orchestration"]}',size=9,color='1d1d1f',italic=True)
 
@@ -1189,11 +1189,11 @@ class ReportGenerator:
 
 
         # ── Roadmap ───────────────────────────────────────────────────────
-        heading('Implementation Roadmap')
+        heading(_tr(loc,'Implementation Roadmap','Umsetzungs-Roadmap'))
         for ph_title,ph_tasks2,col_hex2 in [
-            ('Phase 1 — Quick Wins (0–3 months)',  [r for r in sorted_results if r['ai_readiness_score']>=70 and r.get('difficulty','').lower()=='easy'],   '34c759'),
-            ('Phase 2 — Medium-Term (3–6 months)', [r for r in sorted_results if r['ai_readiness_score']>=50 and r.get('difficulty','').lower()=='medium'],  'ff9f0a'),
-            ('Phase 3 — Advanced (6–12 months)',   [r for r in sorted_results if r['ai_readiness_score']>=40 and r.get('difficulty','').lower()=='hard'],    '0071e3'),
+            (_tr(loc,'Phase 1 — Quick Wins (0–3 months)','Phase 1 — Schnelle Erfolge (0–3 Monate)'),  [r for r in sorted_results if r['ai_readiness_score']>=70 and r.get('difficulty','').lower()=='easy'],   '34c759'),
+            (_tr(loc,'Phase 2 — Medium-Term (3–6 months)','Phase 2 — Mittelfristig (3–6 Monate)'), [r for r in sorted_results if r['ai_readiness_score']>=50 and r.get('difficulty','').lower()=='medium'],  'ff9f0a'),
+            (_tr(loc,'Phase 3 — Advanced (6–12 months)','Phase 3 — Fortgeschritten (6–12 Monate)'),   [r for r in sorted_results if r['ai_readiness_score']>=40 and r.get('difficulty','').lower()=='hard'],    '0071e3'),
         ]:
             p=doc.add_paragraph(); p.paragraph_format.space_before=Pt(10)
             run(p,ph_title,bold=True,size=12,color=col_hex2)
@@ -1201,24 +1201,24 @@ class ReportGenerator:
                 for r in ph_tasks2:
                     p=doc.add_paragraph(style='List Bullet')
                     run(p,r['task']['name'],bold=True,size=10,color='1d1d1f')
-                    run(p,f"  /  {r['ai_readiness_score']:.0f}%  /  {r.get('estimated_hours_saved',0):.0f} hrs saved",size=9,color='6e6e73')
+                    run(p,f"  /  {r['ai_readiness_score']:.0f}%  /  {r.get('estimated_hours_saved',0):.0f} {_tr(loc,'hrs saved','Std. gespart')}",size=9,color='6e6e73')
             else:
-                p=doc.add_paragraph(); run(p,'No tasks in this phase.',size=9,color='6e6e73',italic=True)
+                p=doc.add_paragraph(); run(p,_tr(loc,'No tasks in this phase.','Keine Aufgaben in dieser Phase.'),size=9,color='6e6e73',italic=True)
 
         # ── Context sections ──────────────────────────────────────────────
         avg_human_edge = sum(r.get('human_edge_score') or 50 for r in results) / max(len(results),1)
 
         if context == 'individual':
-            heading('Career Future Analysis', size=14, color='1d1d1f')
+            heading(_tr(loc,'Career Future Analysis','Analyse der beruflichen Zukunft'), size=14, color='1d1d1f')
 
             # Countdown
             cw_tasks = [r for r in sorted_results if r.get('countdown_window')]
             if cw_tasks:
-                p=doc.add_paragraph(); run(p,'Automation Countdown Clock',bold=True,size=12,color='1d1d1f')
-                cw_map2={'now':'Automate NOW','12-24':'12–24 months','24-48':'24–48 months','48+':'48+ months'}
+                p=doc.add_paragraph(); run(p,_tr(loc,'Automation Countdown Clock','Automatisierungs-Countdown'),bold=True,size=12,color='1d1d1f')
+                cw_map2={'now':_tr(loc,'Automate NOW','JETZT automatisieren'),'12-24':_tr(loc,'12–24 months','12–24 Monate'),'24-48':_tr(loc,'24–48 months','24–48 Monate'),'48+':_tr(loc,'48+ months','48+ Monate')}
                 cw_col2={'now':'ff3b30','12-24':'ff9f0a','24-48':'f5c518','48+':'34c759'}
                 t=doc.add_table(rows=len(cw_tasks)+1,cols=3); t.style='Table Grid'
-                for ci,hdr in enumerate(['Task','Risk Window','Human Edge']):
+                for ci,hdr in enumerate([_tr(loc,'Task','Aufgabe'),_tr(loc,'Risk Window','Risikofenster'),_tr(loc,'Human Edge','Menschlicher Vorteil')]):
                     set_bg(t.rows[0].cells[ci],'f5f5f7')
                     run(t.rows[0].cells[ci].paragraphs[0],hdr,bold=True,size=9,color='6e6e73')
                 for ri,r in enumerate(cw_tasks,1):
@@ -1233,13 +1233,13 @@ class ReportGenerator:
                 doc.add_paragraph()
 
             # Human Edge
-            p=doc.add_paragraph(); run(p,'Human Edge Analysis',bold=True,size=12,color='1d1d1f')
+            p=doc.add_paragraph(); run(p,_tr(loc,'Human Edge Analysis','Analyse des menschlichen Vorteils'),bold=True,size=12,color='1d1d1f')
             kv_table([
-                ('AI Replacement Risk',    f'{score:.0f}%',            'ffe5e3'),
-                ('Human Irreplaceability', f'{avg_human_edge:.0f}%',   'fff4e0'),
+                (_tr(loc,'AI Replacement Risk','KI-Ersetzungsrisiko'),    f'{score:.0f}%',            'ffe5e3'),
+                (_tr(loc,'Human Irreplaceability','Menschliche Unersetzbarkeit'), f'{avg_human_edge:.0f}%',   'fff4e0'),
             ], col_widths=(5.0,10.0))
-            insight2=('Strong human-essential components — amplify these while AI handles the rest.'
-                      if avg_human_edge>=60 else 'Highly automatable role — pivot to higher human-edge functions now.')
+            insight2=(_tr(loc,'Strong human-essential components — amplify these while AI handles the rest.','Starke, menschlich-essenzielle Komponenten — stärken Sie diese, während die KI den Rest übernimmt.')
+                      if avg_human_edge>=60 else _tr(loc,'Highly automatable role — pivot to higher human-edge functions now.','Stark automatisierbare Rolle — orientieren Sie sich jetzt zu Funktionen mit höherem menschlichem Vorteil.'))
             p=doc.add_paragraph(); run(p,insight2,size=9,color='6e6e73',italic=True)
             doc.add_paragraph()
 
@@ -1258,14 +1258,14 @@ class ReportGenerator:
                 except: pass
 
             if all_skills2 or all_roles2:
-                p=doc.add_paragraph(); run(p,'Career Pivot Recommendations',bold=True,size=12,color='1d1d1f')
+                p=doc.add_paragraph(); run(p,_tr(loc,'Career Pivot Recommendations','Empfehlungen für den beruflichen Wechsel'),bold=True,size=12,color='1d1d1f')
                 if all_skills2:
-                    p=doc.add_paragraph(); run(p,'Skills to Develop: ',bold=True,size=9,color='0071e3')
+                    p=doc.add_paragraph(); run(p,_tr(loc,'Skills to Develop: ','Zu entwickelnde Fähigkeiten: '),bold=True,size=9,color='0071e3')
                     run(p,'  ·  '.join(all_skills2),size=9,color='1d1d1f')
                 if all_roles2:
-                    p=doc.add_paragraph(); run(p,'Adjacent Roles:',bold=True,size=9,color='0071e3')
+                    p=doc.add_paragraph(); run(p,_tr(loc,'Adjacent Roles:','Verwandte Rollen:'),bold=True,size=9,color='0071e3')
                     t=doc.add_table(rows=len(all_roles2)+1,cols=3); t.style='Table Grid'
-                    for ci,hdr in enumerate(['Role','Risk','Pivot Distance']):
+                    for ci,hdr in enumerate([_tr(loc,'Role','Rolle'),_tr(loc,'Risk','Risiko'),_tr(loc,'Pivot Distance','Wechsel-Distanz')]):
                         set_bg(t.rows[0].cells[ci],'f5f5f7')
                         run(t.rows[0].cells[ci].paragraphs[0],hdr,bold=True,size=9,color='6e6e73')
                     for ri,role in enumerate(all_roles2,1):
@@ -1277,30 +1277,30 @@ class ReportGenerator:
                 doc.add_paragraph()
 
         elif context == 'team':
-            heading('Team Automation Strategy', size=14, color='1d1d1f')
+            heading(_tr(loc,'Team Automation Strategy','Team-Automatisierungsstrategie'), size=14, color='1d1d1f')
             fte3=hours/ANNUAL_PRODUCTIVE_HOURS
-            p=doc.add_paragraph(); run(p,'Team Velocity Impact',bold=True,size=12,color='1d1d1f')
+            p=doc.add_paragraph(); run(p,_tr(loc,'Team Velocity Impact','Auswirkung auf die Team-Geschwindigkeit'),bold=True,size=12,color='1d1d1f')
             kv_table([
-                ('Hours freed / yr',  f'{hours:.0f}h',            'e8f1fc'),
-                ('FTE equivalent',    f'{fte3:.1f} roles',         'e8f9ed'),
-                ('Cost saved / yr',   f'\u20ac{savings:,.0f}',     'fff4e0'),
+                (_tr(loc,'Hours freed / yr','Freigesetzte Stunden/Jahr'),  f'{hours:.0f}h',            'e8f1fc'),
+                (_tr(loc,'FTE equivalent','FTE-Äquivalent'),    f'{fte3:.1f} '+_tr(loc,'roles','Rollen'),         'e8f9ed'),
+                (_tr(loc,'Cost saved / yr','Eingesparte Kosten/Jahr'),   f'\u20ac{savings:,.0f}',     'fff4e0'),
             ], col_widths=(5.0,10.0))
             doc.add_paragraph()
 
-            p=doc.add_paragraph(); run(p,'Rollout Timeline',bold=True,size=12,color='1d1d1f')
-            for ph_n,ph_t,ph_c in [('Phase 1 — Quick Wins (0–3mo)',[r for r in sorted_results if r.get('difficulty','').lower()=='easy'],'34c759'),
-                                    ('Phase 2 — Medium (3–12mo)',[r for r in sorted_results if r.get('difficulty','').lower()=='medium'],'ff9f0a'),
-                                    ('Phase 3 — Strategic (12–36mo)',[r for r in sorted_results if r.get('difficulty','').lower()=='hard'],'0071e3')]:
+            p=doc.add_paragraph(); run(p,_tr(loc,'Rollout Timeline','Einführungszeitplan'),bold=True,size=12,color='1d1d1f')
+            for ph_n,ph_t,ph_c in [(_tr(loc,'Phase 1 — Quick Wins (0–3mo)','Phase 1 — Schnelle Erfolge (0–3 Mon.)'),[r for r in sorted_results if r.get('difficulty','').lower()=='easy'],'34c759'),
+                                    (_tr(loc,'Phase 2 — Medium (3–12mo)','Phase 2 — Mittel (3–12 Mon.)'),[r for r in sorted_results if r.get('difficulty','').lower()=='medium'],'ff9f0a'),
+                                    (_tr(loc,'Phase 3 — Strategic (12–36mo)','Phase 3 — Strategisch (12–36 Mon.)'),[r for r in sorted_results if r.get('difficulty','').lower()=='hard'],'0071e3')]:
                 ph_h=sum(r.get('estimated_hours_saved',0) for r in ph_t)
                 p=doc.add_paragraph(); run(p,f'{ph_n}  ',bold=True,size=10,color=ph_c)
-                run(p,f'{ph_h:.0f}h/yr · {len(ph_t)} tasks',size=9,color='6e6e73')
+                run(p,f'{ph_h:.0f}h/yr · {len(ph_t)} '+_tr(loc,'tasks','Aufgaben'),size=9,color='6e6e73')
             doc.add_paragraph()
 
             sprint=[r for r in sorted_results if r.get('difficulty','').lower()=='easy'][:5]
-            p=doc.add_paragraph(); run(p,'90-Day Sprint Plan',bold=True,size=12,color='1d1d1f')
+            p=doc.add_paragraph(); run(p,_tr(loc,'90-Day Sprint Plan','90-Tage-Sprintplan'),bold=True,size=12,color='1d1d1f')
             if sprint:
                 t=doc.add_table(rows=len(sprint)+1,cols=4); t.style='Table Grid'
-                for ci,hdr in enumerate(['#','Task','Score','Hours/yr']):
+                for ci,hdr in enumerate(['#',_tr(loc,'Task','Aufgabe'),_tr(loc,'Score','Score'),_tr(loc,'Hours/yr','Std./Jahr')]):
                     set_bg(t.rows[0].cells[ci],'f5f5f7')
                     run(t.rows[0].cells[ci].paragraphs[0],hdr,bold=True,size=9,color='6e6e73')
                 for ri,r in enumerate(sprint,1):
@@ -1309,54 +1309,52 @@ class ReportGenerator:
                     run(t.rows[ri].cells[2].paragraphs[0],f'{r["ai_readiness_score"]:.0f}%',bold=True,size=9,color='0071e3')
                     run(t.rows[ri].cells[3].paragraphs[0],f'{r.get("estimated_hours_saved",0):.0f}h',size=9,color='1d1d1f')
             else:
-                p=doc.add_paragraph(); run(p,'No easy-difficulty tasks — focus on Phase 2.',size=9,color='6e6e73',italic=True)
+                p=doc.add_paragraph(); run(p,_tr(loc,'No easy-difficulty tasks — focus on Phase 2.','Keine Aufgaben mit geringem Schwierigkeitsgrad — konzentrieren Sie sich auf Phase 2.'),size=9,color='6e6e73',italic=True)
             doc.add_paragraph()
 
         elif context == 'company':
-            heading('Strategic Business Analysis', size=14, color='1d1d1f')
+            heading(_tr(loc,'Strategic Business Analysis','Strategische Unternehmensanalyse'), size=14, color='1d1d1f')
 
-            p=doc.add_paragraph(); run(p,'The Leader\u2013Laggard Gap',bold=True,size=12,color='1d1d1f')
+            p=doc.add_paragraph(); run(p,_tr(loc,'The Leader\u2013Laggard Gap','Die Lücke zwischen Vorreitern und Nachzüglern'),bold=True,size=12,color='1d1d1f')
             kv_table([
-                ('Committed adopters',  f'\u2212{GAP_LEADER_PCT}% process cost',        'e8f9ed'),
-                ('Top quartile',        f'\u2212{GAP_TOP_QUARTILE_PCT}% process cost',   'e8f1fc'),
-                ('Laggards (<5% of IT budget)', f'\u2212{GAP_LAGGARD_PCT}% process cost', 'fff4e0'),
+                (_tr(loc,'Committed adopters','Engagierte Anwender'),  f'\u2212{GAP_LEADER_PCT}% '+_tr(loc,'process cost','Prozesskosten'),        'e8f9ed'),
+                (_tr(loc,'Top quartile','Oberstes Quartil'),        f'\u2212{GAP_TOP_QUARTILE_PCT}% '+_tr(loc,'process cost','Prozesskosten'),   'e8f1fc'),
+                (_tr(loc,'Laggards (<5% of IT budget)','Nachzügler (<5% des IT-Budgets)'), f'\u2212{GAP_LAGGARD_PCT}% '+_tr(loc,'process cost','Prozesskosten'), 'fff4e0'),
             ], col_widths=(5.5,9.5))
-            p=doc.add_paragraph(); run(p,f'Source: {GAP_SOURCE}. The leader\u2013laggard gap widens over time '
-                'as leaders compound their advantage \u2014 the cost of waiting is falling behind, not a fixed penalty.',
+            p=doc.add_paragraph(); run(p,_tr(loc,f'Source: {GAP_SOURCE}. The leader\u2013laggard gap widens over time as leaders compound their advantage \u2014 the cost of waiting is falling behind, not a fixed penalty.',f'Quelle: {GAP_SOURCE}. Die Lücke zwischen Vorreitern und Nachzüglern vergrößert sich mit der Zeit, da Vorreiter ihren Vorsprung ausbauen \u2014 die Kosten des Wartens bedeuten Zurückfallen, keine feste Strafe.'),
                 italic=True,size=8,color='6e6e73')
             doc.add_paragraph()
 
             fte4=hours/ANNUAL_PRODUCTIVE_HOURS
-            p=doc.add_paragraph(); run(p,'Headcount Signal',bold=True,size=12,color='1d1d1f')
+            p=doc.add_paragraph(); run(p,_tr(loc,'Headcount Signal','Personalbestands-Signal'),bold=True,size=12,color='1d1d1f')
             kv_table([
-                ('Hours freed / yr',  f'{hours:.0f}h',                          'e8f1fc'),
-                ('FTE equivalent',    f'{fte4:.1f} roles',                       'f5f5f7'),
-                ('Saved per FTE',     f'\u20ac{savings/max(fte4,0.1):,.0f}',    'f5f5f7'),
+                (_tr(loc,'Hours freed / yr','Freigesetzte Stunden/Jahr'),  f'{hours:.0f}h',                          'e8f1fc'),
+                (_tr(loc,'FTE equivalent','FTE-Äquivalent'),    f'{fte4:.1f} '+_tr(loc,'roles','Rollen'),                       'f5f5f7'),
+                (_tr(loc,'Saved per FTE','Einsparung pro FTE'),     f'\u20ac{savings/max(fte4,0.1):,.0f}',    'f5f5f7'),
             ], col_widths=(5.0,10.0))
             doc.add_paragraph()
 
-            p=doc.add_paragraph(); run(p,'Automation Benchmark',bold=True,size=12,color='1d1d1f')
+            p=doc.add_paragraph(); run(p,_tr(loc,'Automation Benchmark','Automatisierungs-Benchmark'),bold=True,size=12,color='1d1d1f')
             kv_table([
-                ('Your workflow',            f'{score:.0f}%',  'e8f1fc'),
-                ('Technically automatable',  f'{BENCH_TECH_POTENTIAL_PCT}%',  'f5f5f7'),
-                ('Agent-automatable',        f'{BENCH_AGENT_POTENTIAL_PCT}%', 'f5f5f7'),
-                ('Sector adoption by 2030',  f'{BENCH_SECTOR_LOW_PCT}\u2013{BENCH_SECTOR_HIGH_PCT}%', 'e8f9ed'),
+                (_tr(loc,'Your workflow','Ihr Workflow'),            f'{score:.0f}%',  'e8f1fc'),
+                (_tr(loc,'Technically automatable','Technisch automatisierbar'),  f'{BENCH_TECH_POTENTIAL_PCT}%',  'f5f5f7'),
+                (_tr(loc,'Agent-automatable','Durch Agenten automatisierbar'),        f'{BENCH_AGENT_POTENTIAL_PCT}%', 'f5f5f7'),
+                (_tr(loc,'Sector adoption by 2030','Branchenverbreitung bis 2030'),  f'{BENCH_SECTOR_LOW_PCT}\u2013{BENCH_SECTOR_HIGH_PCT}%', 'e8f9ed'),
             ], col_widths=(5.0,10.0))
-            p=doc.add_paragraph(); run(p,f'Source: {BENCH_SOURCE}. Your score reflects the AI-readiness of '
-                'this workflow\u2019s tasks; frontier figures are economy-wide technical potential.',
+            p=doc.add_paragraph(); run(p,_tr(loc,f'Source: {BENCH_SOURCE}. Your score reflects the AI-readiness of this workflow\u2019s tasks; frontier figures are economy-wide technical potential.',f'Quelle: {BENCH_SOURCE}. Ihr Score spiegelt die KI-Reife der Aufgaben dieses Workflows wider; die Spitzenwerte sind das gesamtwirtschaftliche technische Potenzial.'),
                 italic=True,size=8,color='6e6e73')
             doc.add_paragraph()
 
             # Board summary
             quick2=len([r for r in results if r.get('difficulty','').lower()=='easy'])
             flags2=len([r for r in results if r.get('risk_level') != 'safe'])
-            p=doc.add_paragraph(); run(p,'Board-Ready Executive Summary',bold=True,size=12,color='1d1d1f')
+            p=doc.add_paragraph(); run(p,_tr(loc,'Board-Ready Executive Summary','Vorstandsreife Zusammenfassung'),bold=True,size=12,color='1d1d1f')
             bs=doc.add_table(rows=9,cols=2); bs.style='Table Grid'
-            board=[('Workflow',workflow.get('name','')),('Industry',workflow.get('industry','General')),
-                   ('Automation potential',f'{score:.0f}% of tasks'),('Annual savings',f'\u20ac{savings:,.0f}'),
-                   ('Hours reclaimed',f'{hours:.0f}h/yr'),('FTE equivalent',f'{fte4:.1f} roles'),
-                   ('Quick wins (90 days)',f'{quick2} tasks'),('Risk flags',f'{flags2} require review'),
-                   ('Recommendation','Begin 90-day sprint. Prioritise quick wins. Redeploy freed capacity.')]
+            board=[(_tr(loc,'Workflow','Workflow'),workflow.get('name','')),(_tr(loc,'Industry','Branche'),workflow.get('industry','General')),
+                   (_tr(loc,'Automation potential','Automatisierungspotenzial'),f'{score:.0f}% '+_tr(loc,'of tasks','der Aufgaben')),(_tr(loc,'Annual savings','Jährliche Einsparungen'),f'\u20ac{savings:,.0f}'),
+                   (_tr(loc,'Hours reclaimed','Zurückgewonnene Stunden'),f'{hours:.0f}h/yr'),(_tr(loc,'FTE equivalent','FTE-Äquivalent'),f'{fte4:.1f} '+_tr(loc,'roles','Rollen')),
+                   (_tr(loc,'Quick wins (90 days)','Schnelle Erfolge (90 Tage)'),f'{quick2} '+_tr(loc,'tasks','Aufgaben')),(_tr(loc,'Risk flags','Risikohinweise'),f'{flags2} '+_tr(loc,'require review','erfordern Prüfung')),
+                   (_tr(loc,'Recommendation','Empfehlung'),_tr(loc,'Begin 90-day sprint. Prioritise quick wins. Redeploy freed capacity.','90-Tage-Sprint starten. Schnelle Erfolge priorisieren. Freigesetzte Kapazität neu einsetzen.'))]
             for ri,(k,v) in enumerate(board):
                 set_bg(bs.rows[ri].cells[0],'1d1d1f'); set_bg(bs.rows[ri].cells[1],'2c2c2e')
                 set_w(bs.rows[ri].cells[0],5.5); set_w(bs.rows[ri].cells[1],9.5)
@@ -1365,24 +1363,22 @@ class ReportGenerator:
             doc.add_paragraph()
 
         # ── Conclusion ────────────────────────────────────────────────────
-        heading('Conclusion')
+        heading(_tr(loc,'Conclusion','Fazit'))
         p=doc.add_paragraph()
-        run(p,f'This analysis identified automation opportunities across {len(results)} tasks in {workflow["name"]}. ',size=10,color='1d1d1f')
-        run(p,f'Implementing recommendations could save {hours:.0f} hours annually',bold=True,size=10,color='1d1d1f')
-        run(p,f', worth approximately \u20ac{savings:,.0f}.',size=10,color='1d1d1f')
-        for step in ['Start with Phase 1 quick wins for immediate ROI within weeks.',
-                     'Apply human-in-the-loop for tasks scored 40–70 to manage risk.',
-                     'Track time saved monthly to measure and communicate impact.',
-                     'Revisit quarterly — new AI tools appear constantly.',
-                     'Train team members on newly automated workflows.']:
+        run(p,_tr(loc,f'This analysis identified automation opportunities across {len(results)} tasks in {workflow["name"]}. ',f'Diese Analyse identifizierte Automatisierungspotenziale in {len(results)} Aufgaben von {workflow["name"]}. '),size=10,color='1d1d1f')
+        run(p,_tr(loc,f'Implementing recommendations could save {hours:.0f} hours annually',f'Die Umsetzung der Empfehlungen könnte jährlich {hours:.0f} Stunden einsparen'),bold=True,size=10,color='1d1d1f')
+        run(p,_tr(loc,f', worth approximately \u20ac{savings:,.0f}.',f' \u2014 im Wert von etwa \u20ac{savings:,.0f}.'),size=10,color='1d1d1f')
+        for step in [_tr(loc,'Start with Phase 1 quick wins for immediate ROI within weeks.','Beginnen Sie mit den schnellen Erfolgen aus Phase 1 für einen sofortigen ROI innerhalb von Wochen.'),
+                     _tr(loc,'Apply human-in-the-loop for tasks scored 40–70 to manage risk.','Setzen Sie bei Aufgaben mit 40–70 Punkten auf menschliche Kontrolle, um Risiken zu steuern.'),
+                     _tr(loc,'Track time saved monthly to measure and communicate impact.','Erfassen Sie die eingesparte Zeit monatlich, um die Wirkung zu messen und zu kommunizieren.'),
+                     _tr(loc,'Revisit quarterly — new AI tools appear constantly.','Überprüfen Sie vierteljährlich — ständig erscheinen neue KI-Tools.'),
+                     _tr(loc,'Train team members on newly automated workflows.','Schulen Sie Teammitglieder in den neu automatisierten Workflows.')]:
             p=doc.add_paragraph(style='List Bullet'); run(p,step,size=10,color='1d1d1f')
         p=doc.add_paragraph(); p.paragraph_format.space_before=Pt(16); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-        run(p,'Generated by WorkScanAI — AI-Powered Workflow Analysis',size=8,color='6e6e73')
+        run(p,_tr(loc,'Generated by WorkScanAI — AI-Powered Workflow Analysis','Erstellt von WorkScanAI — KI-gestützte Workflow-Analyse'),size=8,color='6e6e73')
         # ── Legal / accuracy disclaimer — very bottom of the report ──
         p=doc.add_paragraph(); p.paragraph_format.space_before=Pt(6); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-        run(p,'WorkScanAI estimates are for general guidance only and do not constitute '
-              'investment, employment, financial, legal, or business advice — verify '
-              'independently before acting.',size=7,color='86868b')
+        run(p,_tr(loc,'WorkScanAI estimates are for general guidance only and do not constitute investment, employment, financial, legal, or business advice — verify independently before acting.','WorkScanAI-Schätzungen dienen ausschließlich der allgemeinen Orientierung und stellen keine Anlage-, Beschäftigungs-, Finanz-, Rechts- oder Geschäftsberatung dar — bitte vor dem Handeln unabhängig prüfen.'),size=7,color='86868b')
         doc.save(output_path)
         return output_path
 
@@ -1392,8 +1388,9 @@ class ReportGenerator:
     # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def generate_combined_pdf_report(analyses_list: List[Dict], output_path: str):
+    def generate_combined_pdf_report(analyses_list: List[Dict], output_path: str, loc: str = 'en'):
         """One PDF — master cover + each workflow as a full section."""
+        global _ACTIVE_LOCALE; _ACTIVE_LOCALE = loc
         import tempfile, os
         from reportlab.platypus import SimpleDocTemplate
 
@@ -1423,24 +1420,24 @@ class ReportGenerator:
             style=TableStyle([('BACKGROUND',(0,0),(-1,-1),BLUE)])))
         story.append(Spacer(1,16*mm))
         story.append(Paragraph('WorkScanAI',style('brand2',fontSize=11,textColor=BLUE,fontName='Helvetica-Bold',spaceAfter=10)))
-        story.append(Paragraph('Combined Workflow Automation\nAnalysis Report',
+        story.append(Paragraph(_tr(loc,'Combined Workflow Automation\nAnalysis Report','Kombinierter Workflow-\nAutomatisierungsbericht'),
             style('ct2',fontSize=28,leading=34,textColor=GRAY_900,spaceAfter=6,fontName='Helvetica-Bold')))
         story.append(Paragraph(f'{len(analyses_list)} Workflows',
             style('wn2',fontSize=20,leading=24,textColor=BLUE,fontName='Helvetica-Bold',spaceAfter=10)))
-        story.append(Paragraph(f"Generated {datetime.now().strftime('%B %d, %Y')}",
+        story.append(Paragraph(_tr(loc,f"Generated {datetime.now().strftime('%B %d, %Y')}",f"Erstellt am {datetime.now().strftime('%d.%m.%Y')}"),
             style('cm2',fontSize=10,leading=14,textColor=GRAY_600,fontName='Helvetica')))
         story.append(Spacer(1,14*mm))
 
         story.append(Table([[
             Paragraph(f'<font size="36"><b>{len(analyses_list)}</b></font><br/><font size="12" color="#6e6e73">workflows</font>',
                 style('hs2',fontName='Helvetica-Bold',alignment=TA_CENTER,leading=42)),
-            Table([[Paragraph('<b>Total Savings</b>',ST['label']),''],
+            Table([[Paragraph(_tr(loc,'<b>Total Savings</b>','<b>Gesamteinsparung</b>'),ST['label']),''],
                    [Paragraph(f'\u20ac{total_savings:,.0f}',style('sv2',fontSize=20,fontName='Helvetica-Bold',textColor=GRAY_900)),''],
-                   [Paragraph(f'{total_hours:.0f} hours reclaimed',style('hr2',fontSize=10,textColor=GRAY_600,fontName='Helvetica')),'']],
+                   [Paragraph(f'{total_hours:.0f} '+_tr(loc,'hours reclaimed','Stunden zurückgewonnen'),style('hr2',fontSize=10,textColor=GRAY_600,fontName='Helvetica')),'']],
                   colWidths=[W*0.38,W*0.05]),
-            Table([[Paragraph('<b>Total Tasks</b>',ST['label']),''],
+            Table([[Paragraph(_tr(loc,'<b>Total Tasks</b>','<b>Aufgaben gesamt</b>'),ST['label']),''],
                    [Paragraph(str(total_tasks),style('tc2',fontSize=20,fontName='Helvetica-Bold',textColor=GRAY_900)),''],
-                   [Paragraph('analyzed',style('tl2',fontSize=10,textColor=GRAY_600,fontName='Helvetica')),'']],
+                   [Paragraph(_tr(loc,'analyzed','analysiert'),style('tl2',fontSize=10,textColor=GRAY_600,fontName='Helvetica')),'']],
                   colWidths=[W*0.25,W*0.05]),
         ]],colWidths=[W*0.27,W*0.44,W*0.29],
         style=TableStyle([('BACKGROUND',(0,0),(-1,-1),BLUE_LIGHT),
@@ -1451,7 +1448,7 @@ class ReportGenerator:
 
         # Index
         idx_rows=[[Paragraph('<b>#</b>',ST['label']),Paragraph('<b>Workflow</b>',ST['label']),
-                   Paragraph('<b>Score</b>',ST['label']),Paragraph('<b>Savings</b>',ST['label'])]]
+                   Paragraph('<b>Score</b>',ST['label']),Paragraph(_tr(loc,'<b>Savings</b>','<b>Einsparung</b>'),ST['label'])]]
         for i,a in enumerate(analyses_list,1):
             sc,_=score_color(a['automation_score'])
             idx_rows.append([
@@ -1474,7 +1471,7 @@ class ReportGenerator:
             story.append(Table([['']],colWidths=[W],rowHeights=[3],
                 style=TableStyle([('BACKGROUND',(0,0),(-1,-1),sc)])))
             story.append(Spacer(1,10*mm))
-            story.append(Paragraph(f'Workflow {w_idx+1} of {len(analyses_list)}',
+            story.append(Paragraph(_tr(loc,f'Workflow {w_idx+1} of {len(analyses_list)}',f'Workflow {w_idx+1} von {len(analyses_list)}'),
                 style(f'wl{w_idx}',fontSize=10,textColor=GRAY_600,fontName='Helvetica',spaceAfter=6)))
             story.append(Paragraph(wf['name'],
                 style(f'wt{w_idx}',fontSize=24,leading=28,textColor=GRAY_900,fontName='Helvetica-Bold',spaceAfter=8)))
@@ -1484,11 +1481,11 @@ class ReportGenerator:
             story.append(Table([[
                 Paragraph(f'<b>{analysis_data["automation_score"]:.0f}%</b><br/><font size="9" color="#6e6e73">Score</font>',
                     style(f'ws{w_idx}',fontSize=20,fontName='Helvetica-Bold',textColor=sc2,alignment=TA_CENTER,leading=26)),
-                Paragraph(f'<b>\u20ac{analysis_data["annual_savings"]:,.0f}</b><br/><font size="9" color="#6e6e73">Savings</font>',
+                Paragraph(f'<b>\u20ac{analysis_data["annual_savings"]:,.0f}</b><br/><font size="9" color="#6e6e73">{_tr(loc,"Savings","Einsparung")}</font>',
                     style(f'wv{w_idx}',fontSize=16,fontName='Helvetica-Bold',textColor=GRAY_900,alignment=TA_CENTER,leading=22)),
-                Paragraph(f'<b>{analysis_data["hours_saved"]:.0f}h</b><br/><font size="9" color="#6e6e73">Hrs/yr</font>',
+                Paragraph(f'<b>{analysis_data["hours_saved"]:.0f}h</b><br/><font size="9" color="#6e6e73">{_tr(loc,"Hrs/yr","Std./J.")}</font>',
                     style(f'wh{w_idx}',fontSize=16,fontName='Helvetica-Bold',textColor=GRAY_900,alignment=TA_CENTER,leading=22)),
-                Paragraph(f'<b>{len(analysis_data["results"])}</b><br/><font size="9" color="#6e6e73">Tasks</font>',
+                Paragraph(f'<b>{len(analysis_data["results"])}</b><br/><font size="9" color="#6e6e73">{_tr(loc,"Tasks","Aufgaben")}</font>',
                     style(f'wc{w_idx}',fontSize=16,fontName='Helvetica-Bold',textColor=GRAY_900,alignment=TA_CENTER,leading=22)),
             ]],colWidths=[W/4]*4,
             style=TableStyle([('BACKGROUND',(0,0),(-1,-1),sc2_light),
@@ -1497,34 +1494,32 @@ class ReportGenerator:
             story.append(Spacer(1,8*mm))
 
             # Full task blocks with all features
-            story.append(Paragraph('Task Analysis',ST['section_title']))
+            story.append(Paragraph(_tr(loc,'Task Analysis','Aufgabenanalyse'),ST['section_title']))
             story.append(HRFlowable(width=W,thickness=0.5,color=GRAY_200,spaceAfter=8))
             sorted_wf = sorted(analysis_data['results'], key=lambda x: x['ai_readiness_score'], reverse=True)
-            for blk in ReportGenerator._pdf_task_blocks(sorted_wf, analysis_data, W, s, ST, style):
+            for blk in ReportGenerator._pdf_task_blocks(sorted_wf, analysis_data, W, s, ST, style, loc):
                 story.append(blk)
 
             # Context sections
-            ReportGenerator._pdf_context_sections(story, analysis_data, W, style, ST)
+            ReportGenerator._pdf_context_sections(story, analysis_data, W, style, ST, loc)
 
             if w_idx < len(analyses_list) - 1:
                 story.append(PageBreak())
 
         # Combined conclusion
         story.append(PageBreak())
-        story.append(Paragraph('Combined Summary',ST['section_title']))
+        story.append(Paragraph(_tr(loc,'Combined Summary','Kombinierte Zusammenfassung'),ST['section_title']))
         story.append(HRFlowable(width=W,thickness=0.5,color=GRAY_200,spaceAfter=10))
         story.append(Paragraph(
-            f'This combined report covers <b>{len(analyses_list)} workflows</b> with '
-            f'<b>{total_tasks} total tasks</b>. Implementing all recommendations could save '
-            f'<b>{total_hours:.0f} hours annually</b>, worth approximately <b>\u20ac{total_savings:,.0f}</b>.',
+            _tr(loc,
+            f'This combined report covers <b>{len(analyses_list)} workflows</b> with <b>{total_tasks} total tasks</b>. Implementing all recommendations could save <b>{total_hours:.0f} hours annually</b>, worth approximately <b>\u20ac{total_savings:,.0f}</b>.',
+            f'Dieser kombinierte Bericht umfasst <b>{len(analyses_list)} Workflows</b> mit <b>{total_tasks} Aufgaben insgesamt</b>. Die Umsetzung aller Empfehlungen könnte jährlich <b>{total_hours:.0f} Stunden</b> einsparen — im Wert von etwa <b>\u20ac{total_savings:,.0f}</b>.'),
             style('conc',fontSize=10,leading=15,textColor=GRAY_900,fontName='Helvetica',spaceAfter=6)))
 
         # ── Legal / accuracy disclaimer — very bottom of the combined report ──
         story.append(Spacer(1, 10*mm))
         story.append(Table([[Paragraph(
-            'WorkScanAI estimates are for general guidance only and do not constitute '
-            'investment, employment, financial, legal, or business advice \u2014 verify '
-            'independently before acting.',
+            _tr(loc,'WorkScanAI estimates are for general guidance only and do not constitute investment, employment, financial, legal, or business advice \u2014 verify independently before acting.','WorkScanAI-Schätzungen dienen ausschließlich der allgemeinen Orientierung und stellen keine Anlage-, Beschäftigungs-, Finanz-, Rechts- oder Geschäftsberatung dar \u2014 bitte vor dem Handeln unabhängig prüfen.'),
             style('disclaimer_c', fontSize=8, textColor=GRAY_600, fontName='Helvetica',
                   leading=11, alignment=TA_CENTER))
         ]], colWidths=[W],
@@ -1536,7 +1531,7 @@ class ReportGenerator:
         return output_path
 
     @staticmethod
-    def generate_combined_docx_report(analyses_list: List[Dict], output_path: str):
+    def generate_combined_docx_report(analyses_list: List[Dict], output_path: str, loc: str = 'en'):
         """One DOCX — for each workflow, generate a full DOCX and merge paragraphs."""
         if Document is None:
             raise ImportError("python-docx not installed")
@@ -1558,20 +1553,20 @@ class ReportGenerator:
 
         # Master cover
         p=combined.add_paragraph(); add_run(p,'WorkScanAI',bold=True,size=11,color='0071e3')
-        p=combined.add_paragraph(); add_run(p,'Combined Workflow Automation Analysis Report',bold=True,size=26,color='1d1d1f')
-        p=combined.add_paragraph(); add_run(p,f'{len(analyses_list)} Workflows  ·  {total_tasks} Tasks  ·  \u20ac{total_savings:,.0f} Potential Savings',size=13,color='6e6e73')
-        p=combined.add_paragraph(); add_run(p,f"Generated {datetime.now().strftime('%B %d, %Y')}",size=9,color='6e6e73')
+        p=combined.add_paragraph(); add_run(p,_tr(loc,'Combined Workflow Automation Analysis Report','Kombinierter Workflow-Automatisierungsbericht'),bold=True,size=26,color='1d1d1f')
+        p=combined.add_paragraph(); add_run(p,_tr(loc,f'{len(analyses_list)} Workflows  ·  {total_tasks} Tasks  ·  \u20ac{total_savings:,.0f} Potential Savings',f'{len(analyses_list)} Workflows  ·  {total_tasks} Aufgaben  ·  \u20ac{total_savings:,.0f} potenzielle Einsparungen'),size=13,color='6e6e73')
+        p=combined.add_paragraph(); add_run(p,_tr(loc,f"Generated {datetime.now().strftime('%B %d, %Y')}",f"Erstellt am {datetime.now().strftime('%d.%m.%Y')}"),size=9,color='6e6e73')
         p.paragraph_format.space_after=Pt(14)
 
         # Write each workflow as its own DOCX, then copy elements
         for w_idx, analysis_data in enumerate(analyses_list):
             tmp_path = os.path.join(tempfile.gettempdir(), f'_wf_tmp_{w_idx}.docx')
-            ReportGenerator.generate_docx_report(analysis_data, tmp_path)
+            ReportGenerator.generate_docx_report(analysis_data, tmp_path, loc)
             src = Document(tmp_path)
 
             # Divider
             p=combined.add_paragraph(); p.paragraph_format.page_break_before=True
-            add_run(p,f'WORKFLOW {w_idx+1} OF {len(analyses_list)}',bold=True,size=9,color='6e6e73')
+            add_run(p,_tr(loc,f'WORKFLOW {w_idx+1} OF {len(analyses_list)}',f'WORKFLOW {w_idx+1} VON {len(analyses_list)}'),bold=True,size=9,color='6e6e73')
 
             # Copy all body elements
             from docx.oxml import OxmlElement as OE

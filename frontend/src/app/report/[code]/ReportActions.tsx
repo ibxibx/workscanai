@@ -104,6 +104,7 @@ export default function ReportActions({
     setDownloading(fmt)
     try {
       const params = new URLSearchParams()
+      params.set('locale', locale)
       if (preparedFor.trim()) params.set('prepared_for', preparedFor.trim())
       if (preparedBy.trim()) params.set('prepared_by', preparedBy.trim())
       const qs = params.toString()
