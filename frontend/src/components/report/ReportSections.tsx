@@ -9,7 +9,7 @@ import {
   ShieldCheck, ShieldAlert, ShieldX, Clock, Target, TrendingUp, Users,
   ArrowRight, Zap, AlertTriangle, BarChart3, Briefcase, Globe2,
 } from 'lucide-react'
-import { useT } from '@/i18n/client'
+import { useT, useLocale } from '@/i18n/client'
 
 import type { ReportContext } from './reportContext'
 export type { ReportContext }
@@ -434,6 +434,7 @@ export function IndividualSections({ data, context }: { data: ReportData; contex
 
 // ── SECTION C — TEAM only: Velocity Impact + 90-Day Sprint Plan ──
 export function TeamSections({ data, context }: { data: ReportData; context: ReportContext }) {
+  const locale = useLocale()
   const t = useT('reportBody')
   if (context !== 'team') return null
   return (
@@ -452,7 +453,7 @@ export function TeamSections({ data, context }: { data: ReportData; context: Rep
           {[
             { label: t('hoursFreedYr'), value: `${Math.round(data.hours_saved)}h`, color: 'text-[#0071e3]', sub: t('velCard1Sub') },
             { label: t('fteEquiv'), value: `${(data.hours_saved / 1800).toFixed(1)}`, color: 'text-emerald-600', sub: t('velCard2Sub') },
-            { label: t('costSavedYr'), value: `\u20ac${Math.round(data.annual_savings).toLocaleString()}`, color: 'text-green-600', sub: t('velCard3Sub') },
+            { label: t('costSavedYr'), value: `\u20ac${Math.round(data.annual_savings).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US')}`, color: 'text-green-600', sub: t('velCard3Sub') },
           ].map(card => (
             <div key={card.label} className="bg-emerald-50 border border-emerald-100 rounded-[14px] p-[16px] sm:p-[20px] text-center min-w-0">
               <div className={`text-[24px] sm:text-[32px] font-bold mb-[4px] ${card.color} truncate`}>{card.value}</div>
@@ -477,7 +478,7 @@ export function TeamSections({ data, context }: { data: ReportData; context: Rep
                   <span className="text-[13px] font-semibold text-[#1d1d1f]">{phase}</span>
                 </div>
                 <div className="text-right">
-                  <div className="text-[16px] font-bold text-[#1d1d1f]">{Math.round(hrs)}h/yr</div>
+                  <div className="text-[16px] font-bold text-[#1d1d1f]">{Math.round(hrs)} {locale === 'de' ? 'Std./J.' : 'h/yr'}</div>
                   <div className="text-[11px] text-[#86868b]">{matched.length} {t('tasksWord')}</div>
                 </div>
               </div>
@@ -504,7 +505,7 @@ export function TeamSections({ data, context }: { data: ReportData; context: Rep
                 <div className="flex items-start justify-between gap-[8px] flex-wrap">
                   <div>
                     <div className="text-[14px] font-semibold text-[#1d1d1f]">{r.task?.name}</div>
-                    <div className="text-[12px] text-[#86868b] mt-[2px]">{Math.round(r.ai_readiness_score)}% {t('ready')} &middot; {Math.round(r.estimated_hours_saved)}h/yr &middot; {r.difficulty === 'easy' ? t('diffEasy') : r.difficulty === 'medium' ? t('diffMedium') : r.difficulty === 'hard' ? t('diffHard') : r.difficulty}</div>
+                    <div className="text-[12px] text-[#86868b] mt-[2px]">{Math.round(r.ai_readiness_score)}% {t('ready')} &middot; {Math.round(r.estimated_hours_saved)} {locale === 'de' ? 'Std./J.' : 'h/yr'} &middot; {r.difficulty === 'easy' ? t('diffEasy') : r.difficulty === 'medium' ? t('diffMedium') : r.difficulty === 'hard' ? t('diffHard') : r.difficulty}</div>
                   </div>
                   <CountdownBadge window={r.countdown_window} />
                 </div>
@@ -523,6 +524,7 @@ export function TeamSections({ data, context }: { data: ReportData; context: Rep
 
 // ── SECTION D — COMPANY only: Competitor Gap + Headcount + Benchmark + Board Summary ──
 export function CompanySections({ data, context, workflowName }: { data: ReportData; context: ReportContext; workflowName: string }) {
+  const locale = useLocale()
   const t = useT('reportBody')
   if (context !== 'company') return null
   const quickWins = data.results.filter(r => r.difficulty === 'easy').length
@@ -540,9 +542,9 @@ export function CompanySections({ data, context, workflowName }: { data: ReportD
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px] mt-[28px] mb-[24px]">
           {[
-            { label: t('gapCard1Label'), value: `\u20ac${Math.round(data.annual_savings).toLocaleString()}/yr`, sub: t('gapCard1Sub'), color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
-            { label: t('gapCard2Label'), value: `\u20ac${Math.round(data.annual_savings * 0.35).toLocaleString()}/yr`, sub: t('gapCard2Sub'), color: 'text-orange-600', bg: 'bg-orange-50 border-orange-100' },
-            { label: t('gapCard3Label'), value: `\u20ac${Math.round(data.annual_savings * 1.4).toLocaleString()}/yr`, sub: t('gapCard3Sub'), color: 'text-red-600', bg: 'bg-red-50 border-red-100' },
+            { label: t('gapCard1Label'), value: `\u20ac${Math.round(data.annual_savings).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US')}${locale === 'de' ? '/Jahr' : '/yr'}`, sub: t('gapCard1Sub'), color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
+            { label: t('gapCard2Label'), value: `\u20ac${Math.round(data.annual_savings * 0.35).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US')}${locale === 'de' ? '/Jahr' : '/yr'}`, sub: t('gapCard2Sub'), color: 'text-orange-600', bg: 'bg-orange-50 border-orange-100' },
+            { label: t('gapCard3Label'), value: `\u20ac${Math.round(data.annual_savings * 1.4).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US')}${locale === 'de' ? '/Jahr' : '/yr'}`, sub: t('gapCard3Sub'), color: 'text-red-600', bg: 'bg-red-50 border-red-100' },
           ].map(card => (
             <div key={card.label} className={`rounded-[14px] border p-[16px] sm:p-[20px] min-w-0 ${card.bg}`}>
               <div className={`text-[20px] sm:text-[26px] font-bold mb-[4px] ${card.color} truncate`}>{card.value}</div>
@@ -573,7 +575,7 @@ export function CompanySections({ data, context, workflowName }: { data: ReportD
           {[
             { label: t('hoursFreedYr'), value: `${Math.round(data.hours_saved)}h`, note: t('head1Note'), color: 'text-[#0071e3]' },
             { label: t('fteEquiv'), value: `${(data.hours_saved / 1800).toFixed(1)}`, note: t('head2Note'), color: 'text-purple-600' },
-            { label: t('head3Label'), value: `\u20ac${Math.round(data.annual_savings / Math.max(data.hours_saved / 1800, 0.1)).toLocaleString()}`, note: t('head3Note'), color: 'text-green-600' },
+            { label: t('head3Label'), value: `\u20ac${Math.round(data.annual_savings / Math.max(data.hours_saved / 1800, 0.1)).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US')}`, note: t('head3Note'), color: 'text-green-600' },
           ].map(item => (
             <div key={item.label} className="bg-[#fafafa] border border-[#e8e8ed] rounded-[14px] p-[16px] sm:p-[20px] text-center min-w-0">
               <div className={`text-[24px] sm:text-[36px] font-bold mb-[6px] ${item.color} truncate`}>{item.value}</div>
@@ -636,8 +638,8 @@ export function CompanySections({ data, context, workflowName }: { data: ReportD
           <div><span className="text-[#86868b]">{t('boardWorkflow')}</span> <span className="text-white font-bold">{workflowName}</span></div>
           {data.industry && <div><span className="text-[#86868b]">{t('boardIndustry')}</span> <span className="text-white">{data.industry}</span></div>}
           <div><span className="text-[#86868b]">{t('boardAutoPotential')}</span> <span className="text-[#0071e3] font-bold">{Math.round(data.automation_score)}%</span> {t('boardOfTasks')}</div>
-          <div><span className="text-[#86868b]">{t('boardAnnualSavings')}</span> <span className="text-green-400 font-bold">\u20ac{Math.round(data.annual_savings).toLocaleString()}</span></div>
-          <div><span className="text-[#86868b]">{t('boardHoursReclaimed')}</span> <span className="text-purple-400 font-bold">{Math.round(data.hours_saved)}h/yr</span></div>
+          <div><span className="text-[#86868b]">{t('boardAnnualSavings')}</span> <span className="text-green-400 font-bold">\u20ac{Math.round(data.annual_savings).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US')}</span></div>
+          <div><span className="text-[#86868b]">{t('boardHoursReclaimed')}</span> <span className="text-purple-400 font-bold">{Math.round(data.hours_saved)} {locale === 'de' ? 'Std./J.' : 'h/yr'}</span></div>
           <div><span className="text-[#86868b]">{t('boardFte')}</span> <span className="text-amber-400 font-bold">{(data.hours_saved / 1800).toFixed(1)} {t('boardRoles')}</span></div>
           <div><span className="text-[#86868b]">{t('boardQuickWins')}</span> <span className="text-white font-bold">{quickWins} {t('tasksWord')}</span> {t('boardImplement')}</div>
           <div><span className="text-[#86868b]">{t('boardRiskFlags')}</span> <span className="text-white font-bold">{data.results.filter(r => r.risk_level !== 'safe').length} {t('tasksWord')}</span> {t('boardCompliance')}</div>

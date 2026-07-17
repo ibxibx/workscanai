@@ -15,14 +15,14 @@ import { useT, useLocale } from '@/i18n/client'
 // /scan and the homepage, Apple-style tokens. The single bold element is the
 // featured "Automation agency" card — our S1 wedge.
 
-const money = (n: number) => '\u20AC' + n.toLocaleString('en-US')
+const money = (n: number, locale: string) => '\u20AC' + n.toLocaleString(locale === 'de' ? 'de-DE' : 'en-US')
 
-function StatRow({ v, readyLabel, perYrLabel }: { v: Vertical; readyLabel: string; perYrLabel: string }) {
+function StatRow({ v, readyLabel, perYrLabel, locale }: { v: Vertical; readyLabel: string; perYrLabel: string; locale: string }) {
   return (
     <div className="flex items-center gap-[16px] text-[12px] text-[#6e6e73]">
       <span><span className="font-semibold text-[#1d1d1f]">{v.score}%</span> {readyLabel}</span>
       <span className="text-[#d2d2d7]">·</span>
-      <span><span className="font-semibold text-[#1d1d1f]">{money(v.annualSavings)}</span>{perYrLabel}</span>
+      <span><span className="font-semibold text-[#1d1d1f]">{money(v.annualSavings, locale)}</span>{perYrLabel}</span>
       <span className="text-[#d2d2d7]">·</span>
       <span><span className="font-semibold text-[#1d1d1f]">{v.hoursSaved}h</span></span>
     </div>
@@ -133,7 +133,7 @@ export default function TemplatesPage() {
               <div className="mt-[22px] flex flex-wrap items-center gap-[16px] text-[13px] text-white/60">
                 <span><span className="font-semibold text-white">{featured.score}%</span> {t('automatableLabel')}</span>
                 <span className="text-white/25">·</span>
-                <span><span className="font-semibold text-white">{money(featured.annualSavings)}</span> {t('perYr')}</span>
+                <span><span className="font-semibold text-white">{money(featured.annualSavings, locale)}</span> {t('perYr')}</span>
                 <span className="text-white/25">·</span>
                 <span><span className="font-semibold text-white">{featured.hoursSaved}h</span> {t('reclaimedLabel')}</span>
                 <span className="text-white/25">·</span>
@@ -157,7 +157,7 @@ export default function TemplatesPage() {
                   </div>
                   <p className="text-[13px] text-[#6e6e73] leading-[1.45] mb-[18px]">{vBlurb(v, locale)}</p>
                 </div>
-                <StatRow v={v} readyLabel={t('readyLabel')} perYrLabel={t('perYr')} />
+                <StatRow v={v} readyLabel={t('readyLabel')} perYrLabel={t('perYr')} locale={locale} />
               </Link>
             ))}
           </div>
