@@ -322,7 +322,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
     setAuthLoading(true); setAuthError('')
     try {
       // Direct to Render — bypasses Vercel proxy which can 504 on cold starts
-      const res = await fetch(`${BACKEND_DIRECT}/api/auth/request`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:authEmail.trim()}) })
+      const res = await fetch(`${BACKEND_DIRECT}/api/auth/request`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:authEmail.trim(), locale}) })
       if (!res.ok) { const d = await safeJson(res); throw new Error(d.detail || t('authErrSendFail')) }
       setAuthStep('code')
     } catch (e: any) { setAuthError(e.message || t('authErrGeneric')) }

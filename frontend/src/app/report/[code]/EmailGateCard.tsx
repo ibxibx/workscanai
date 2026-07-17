@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Mail, ArrowRight, Check, Loader2 } from 'lucide-react'
 import { trackReportEmailRequested, trackReportEmailCaptured } from '@/lib/analytics'
 import { resolveAcquisition } from '@/lib/audience'
-import { useT } from '@/i18n/client'
+import { useT, useLocale } from '@/i18n/client'
 
 // Email the full report direct-to-Render (PDF generation + Resend can exceed
 // Vercel's 10s serverless timeout, so we bypass the Next proxy here).
@@ -22,6 +22,7 @@ export default function EmailGateCard({ shareCode, workflowId }: EmailGateCardPr
   const [status, setStatus] = useState<Status>('idle')
   const [message, setMessage] = useState('')
   const t = useT('report')
+  const locale = useLocale()
 
   const submit = async () => {
     const value = email.trim()
@@ -42,7 +43,7 @@ export default function EmailGateCard({ shareCode, workflowId }: EmailGateCardPr
       const res = await fetch(`${BACKEND_BASE}/api/reports/${shareCode}/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: value, audience }),
+        body: JSON.stringify({ email: value, audience, locale }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {

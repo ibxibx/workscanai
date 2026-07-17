@@ -28,6 +28,7 @@ TOKEN_TTL_MINUTES = 15
 
 class MagicLinkRequest(BaseModel):
     email: str
+    locale: str = "en"  # 'en' (default) or 'de' — chooses the email language
 
 class OTPVerifyRequest(BaseModel):
     email: str
@@ -70,12 +71,27 @@ def _get_or_create_user(email: str, db: Session) -> User:
     return user
 
 
-async def _send_otp_email(email: str, otp_code: str):
+async def _send_otp_email(email: str, otp_code: str, locale: str = "en"):
     resend_key = os.getenv("RESEND_API_KEY", "")
 
     if not resend_key:
         print(f"[DEV] OTP code for {email}: {otp_code}")
         return
+
+    # Localised copy — English is the default; German for wsai_locale=de users.
+    de = locale == "de"
+    L_heading = "Ihr Anmelde-Code" if de else "Your sign-in code"
+    L_body = (
+        f"Geben Sie diesen Code in der App ein, um sich anzumelden. Er läuft in {TOKEN_TTL_MINUTES} Minuten ab."
+        if de else
+        f"Enter this code in the app to sign in. It expires in {TOKEN_TTL_MINUTES} minutes."
+    )
+    L_ignore = (
+        "Falls Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren."
+        if de else
+        "If you didn't request this, you can safely ignore this email."
+    )
+    L_subject = f"{otp_code} ist Ihr WorkScanAI-Code" if de else f"{otp_code} is your WorkScanAI code"
 
     # Resend sandbox mode: onboarding@resend.dev can only send to the account owner.
     # If a RESEND_TEST_EMAIL override is set, redirect all emails there (dev/sandbox use).
@@ -92,15 +108,15 @@ async def _send_otp_email(email: str, otp_code: str):
           <span style="font-size: 16px; font-weight: 600; color: #1d1d1f;">WorkScanAI</span>
         </div>
       </div>
-      <h2 style="margin: 0 0 8px; font-size: 22px; font-weight: 600; color: #1d1d1f;">Your sign-in code</h2>
+      <h2 style="margin: 0 0 8px; font-size: 22px; font-weight: 600; color: #1d1d1f;">{L_heading}</h2>
       <p style="color: #6b7280; margin: 0 0 32px; font-size: 15px; line-height: 1.5;">
-        Enter this code in the app to sign in. It expires in {TOKEN_TTL_MINUTES} minutes.
+        {L_body}
       </p>
       <div style="background: #f5f5f7; border-radius: 14px; padding: 28px 24px; text-align: center; margin-bottom: 28px;">
         <div style="font-size: 56px; font-weight: 700; letter-spacing: 16px; color: #1d1d1f; font-family: 'SF Mono', 'Fira Code', monospace; line-height: 1;">{otp_code}</div>
       </div>
       <p style="color: #9ca3af; font-size: 12px; margin: 0; line-height: 1.6;">
-        If you didn't request this, you can safely ignore this email.
+        {L_ignore}
       </p>
     </div>
     """
@@ -109,7 +125,7 @@ async def _send_otp_email(email: str, otp_code: str):
         resp = await client.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
-            json={"from": FROM_EMAIL, "to": [send_to], "subject": f"{otp_code} is your WorkScanAI code", "html": html},
+            json={"from": FROM_EMAIL, "to": [send_to], "subject": L_subject, "html": html},
             timeout=10,
         )
         if resp.status_code >= 400:
@@ -141,7 +157,7 @@ async def request_magic_link(body: MagicLinkRequest, db: Session = Depends(get_d
     db.commit()
 
     try:
-        await _send_otp_email(email, otp_code)
+        await _send_otp_email(email, otp_code, body.locale)
     except HTTPException:
         raise  # already a proper HTTP error with detail
     except Exception as e:

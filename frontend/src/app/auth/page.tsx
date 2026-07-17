@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { Mail, Brain, ArrowRight, CheckCircle, RefreshCw } from 'lucide-react'
-import { useT } from '@/i18n/client'
+import { useT, useLocale } from '@/i18n/client'
 
 type Stage = 'email' | 'otp' | 'success'
 
 export default function SignInPage() {
   const t = useT('auth')
+  const locale = useLocale()
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
   const [stage, setStage] = useState<Stage>('email')
@@ -32,7 +33,7 @@ export default function SignInPage() {
       const res = await fetch('/api/auth/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailVal }),
+        body: JSON.stringify({ email: emailVal, locale }),
         signal: controller.signal,
       })
       clearTimeout(timeoutId)

@@ -196,48 +196,65 @@ def generate_combined_pdf(body: CombinedReportRequest, db: Session = Depends(get
 class EmailReportRequest(BaseModel):
     email: str
     audience: Optional[str] = None
+    locale: str = "en"  # 'en' (default) or 'de' — chooses the email language
 
 
-def _report_email_html(workflow_name: str, report_url: str, score, hours, savings) -> str:
+def _report_email_html(workflow_name: str, report_url: str, score, hours, savings, locale: str = "en") -> str:
     score_str = f"{round(score)}%" if score is not None else "—"
     hours_str = f"{round(hours):,}h" if hours is not None else "—"
     savings_str = f"€{round(savings):,}" if savings is not None else "—"
+    de = locale == "de"
+    L_heading = "Ihr vollständiger Automatisierungsbericht" if de else "Your full automation report"
+    L_intro = (
+        f"Hier ist die vollständige Analyse Aufgabe für Aufgabe für <strong>{workflow_name}</strong>. Das vollständige PDF ist angehängt, und Ihre importierbaren n8n-Workflows stehen unter dem folgenden Link bereit."
+        if de else
+        f"Here's the complete per-task analysis for <strong>{workflow_name}</strong>. The full PDF is attached, and your importable n8n workflows are ready at the link below."
+    )
+    L_statAutomation = "Automatisierung" if de else "Automation"
+    L_statReclaimed = "Zurückgewonnen / Jahr" if de else "Reclaimed / yr"
+    L_statSaved = "Gespart / Jahr" if de else "Saved / yr"
+    L_button = "Bericht öffnen + n8n-Workflows herunterladen" if de else "Open report + download n8n workflows"
+    L_reply = (
+        "Möchten Sie Hilfe bei der Umsetzung Ihres wichtigsten Quick Wins? Antworten Sie einfach auf diese E-Mail – ein echter Mensch (der Gründer) liest jede einzelne."
+        if de else
+        "Want help implementing your #1 quick win? Just reply to this email — a real human (the founder) reads every one."
+    )
     return f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 40px auto; padding: 40px 32px; border: 1px solid #e5e7eb; border-radius: 16px; background: #ffffff;">
       <div style="display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px;">
         <div style="width: 28px; height: 28px; background: #0071e3; border-radius: 8px; display: inline-block;"></div>
         <span style="font-size: 16px; font-weight: 600; color: #1d1d1f;">WorkScanAI</span>
       </div>
-      <h2 style="margin: 0 0 8px; font-size: 22px; font-weight: 600; color: #1d1d1f;">Your full automation report</h2>
+      <h2 style="margin: 0 0 8px; font-size: 22px; font-weight: 600; color: #1d1d1f;">{L_heading}</h2>
       <p style="color: #6b7280; margin: 0 0 24px; font-size: 15px; line-height: 1.5;">
-        Here's the complete per-task analysis for <strong>{workflow_name}</strong>. The full PDF is attached, and your importable n8n workflows are ready at the link below.
+        {L_intro}
       </p>
       <div style="display: flex; gap: 10px; margin-bottom: 24px;">
         <div style="flex: 1; background: #f5f5f7; border-radius: 12px; padding: 16px; text-align: center;">
           <div style="font-size: 24px; font-weight: 700; color: #0071e3;">{score_str}</div>
-          <div style="font-size: 11px; color: #86868b; margin-top: 2px;">Automation</div>
+          <div style="font-size: 11px; color: #86868b; margin-top: 2px;">{L_statAutomation}</div>
         </div>
         <div style="flex: 1; background: #f5f5f7; border-radius: 12px; padding: 16px; text-align: center;">
           <div style="font-size: 24px; font-weight: 700; color: #1d1d1f;">{hours_str}</div>
-          <div style="font-size: 11px; color: #86868b; margin-top: 2px;">Reclaimed / yr</div>
+          <div style="font-size: 11px; color: #86868b; margin-top: 2px;">{L_statReclaimed}</div>
         </div>
         <div style="flex: 1; background: #f5f5f7; border-radius: 12px; padding: 16px; text-align: center;">
           <div style="font-size: 24px; font-weight: 700; color: #1d1d1f;">{savings_str}</div>
-          <div style="font-size: 11px; color: #86868b; margin-top: 2px;">Saved / yr</div>
+          <div style="font-size: 11px; color: #86868b; margin-top: 2px;">{L_statSaved}</div>
         </div>
       </div>
       <a href="{report_url}" style="display: block; text-align: center; background: #0071e3; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; padding: 14px; border-radius: 12px; margin-bottom: 16px;">
-        Open report + download n8n workflows
+        {L_button}
       </a>
       <p style="color: #9ca3af; font-size: 12px; margin: 0; line-height: 1.6;">
-        Want help implementing your #1 quick win? Just reply to this email — a real human (the founder) reads every one.
+        {L_reply}
       </p>
     </div>
     """
 
 
 async def _send_report_email(email: str, workflow_name: str, report_url: str,
-                             pdf_path: str, score, hours, savings) -> bool:
+                             pdf_path: str, score, hours, savings, locale: str = "en") -> bool:
     """Send the report email with the PDF attached. Returns True on success."""
     if not RESEND_API_KEY:
         print(f"[reports] (dev) would email full report for '{workflow_name}' to {email}: {report_url}")
@@ -257,8 +274,8 @@ async def _send_report_email(email: str, workflow_name: str, report_url: str,
             json={
                 "from": FROM_EMAIL,
                 "to": [send_to],
-                "subject": f"Your WorkScanAI report — {workflow_name}",
-                "html": _report_email_html(workflow_name, report_url, score, hours, savings),
+                "subject": (f"Ihr WorkScanAI-Bericht – {workflow_name}" if locale == "de" else f"Your WorkScanAI report — {workflow_name}"),
+                "html": _report_email_html(workflow_name, report_url, score, hours, savings, locale),
                 "attachments": [{
                     "filename": f"WorkScanAI_Report_{safe_name}.pdf",
                     "content": pdf_b64,
@@ -304,6 +321,7 @@ async def email_full_report(share_code: str, body: EmailReportRequest, db: Sessi
         sent_ok = await _send_report_email(
             email, workflow.name, report_url, output_path,
             analysis.automation_score, analysis.hours_saved, analysis.annual_savings,
+            body.locale,
         )
     except Exception as e:
         print(f"[reports] email_full_report send failed: {e}")
