@@ -91,10 +91,24 @@ def score_color(score):
     else: return RED, RED_LIGHT
 
 
-def score_label(score):
-    if score >= 70: return 'HIGH'
-    elif score >= 40: return 'MEDIUM'
-    else: return 'LOW'
+# ── i18n helper (Stage 6b) ──────────────────────────────────────────────────
+# English is the default/canonical report language; German ('de') is served when
+# the frontend forwards the wsai_locale cookie. Only STATIC template labels are
+# localised — AI-generated body prose (recommendations, task analysis) stays in
+# the language the analyzer produced (English) until the Stage-7 per-locale
+# prompt work lands, mirroring the on-screen report.
+def _tr(loc, en, de):
+    return de if loc == 'de' else en
+
+# Module-level active locale for the page footer (NumberedCanvas has no access to
+# the call args). Set at the top of each generate_* method before doc.build().
+_ACTIVE_LOCALE = 'en'
+
+
+def score_label(score, loc='en'):
+    if score >= 70: return _tr(loc, 'HIGH', 'HOCH')
+    elif score >= 40: return _tr(loc, 'MEDIUM', 'MITTEL')
+    else: return _tr(loc, 'LOW', 'NIEDRIG')
 
 
 def split_rec(text):
@@ -135,8 +149,11 @@ class NumberedCanvas(rl_canvas.Canvas):
         self.setStrokeColor(GRAY_200); self.setLineWidth(0.5)
         self.line(18*mm, 16*mm, w - 18*mm, 16*mm)
         self.setFont('Helvetica', 8); self.setFillColor(GRAY_600)
-        self.drawString(18*mm, 11*mm, 'WorkScanAI — AI-Powered Workflow Analysis')
-        self.drawRightString(w - 18*mm, 11*mm, f'Page {self._pageNumber} of {page_count}')
+        self.drawString(18*mm, 11*mm, _tr(_ACTIVE_LOCALE, 'WorkScanAI — AI-Powered Workflow Analysis',
+                                          'WorkScanAI — KI-gestützte Workflow-Analyse'))
+        self.drawRightString(w - 18*mm, 11*mm,
+            _tr(_ACTIVE_LOCALE, f'Page {self._pageNumber} of {page_count}',
+                f'Seite {self._pageNumber} von {page_count}'))
         self.restoreState()
 
 
@@ -147,7 +164,7 @@ class ReportGenerator:
     # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _pdf_task_blocks(sorted_results, analysis_data, W, s, ST, style_fn):
+    def _pdf_task_blocks(sorted_results, analysis_data, W, s, ST, style_fn, loc='en'):
         """Return a list of KeepTogether blocks for detailed task analysis."""
         blocks = []
         hourly = analysis_data.get('hourly_rate', 50)
@@ -155,7 +172,7 @@ class ReportGenerator:
             task = result['task']
             task_score = result['ai_readiness_score']
             tc, tc_light = score_color(task_score)
-            lbl = score_label(task_score)
+            lbl = score_label(task_score, loc)
             block = []
 
             # Header — number column wide enough for 2 digits on one line
@@ -185,12 +202,12 @@ class ReportGenerator:
             hrs_sv = result.get('estimated_hours_saved', 0)
             val_sv = hrs_sv * hourly
             details = [
-                ['Description',    task.get('description', '-')],
-                ['Frequency',      task.get('frequency', 'N/A').capitalize()],
-                ['Time per Task',  f'{task.get("time_per_task", 0)} min'],
-                ['Category',       task.get('category', 'N/A').replace('_', ' ').title()],
-                ['Implementation', result.get('difficulty', 'N/A').title()],
-                ['Annual Savings', f'{hrs_sv:.1f} hrs  /  \u20ac{val_sv:,.0f}'],
+                [_tr(loc,'Description','Beschreibung'),    task.get('description', '-')],
+                [_tr(loc,'Frequency','Häufigkeit'),      task.get('frequency', 'N/A').capitalize()],
+                [_tr(loc,'Time per Task','Zeit pro Aufgabe'),  f'{task.get("time_per_task", 0)} {_tr(loc,"min","Min.")}'],
+                [_tr(loc,'Category','Kategorie'),       task.get('category', 'N/A').replace('_', ' ').title()],
+                [_tr(loc,'Implementation','Umsetzung'), result.get('difficulty', 'N/A').title()],
+                [_tr(loc,'Annual Savings','Jährl. Einsparung'), f'{hrs_sv:.1f} {_tr(loc,"hrs","Std.")}  /  \u20ac{val_sv:,.0f}'],
             ]
             block.append(Table(
                 [[Paragraph(f'<b>{k}</b>', ST['label']), Paragraph(v, ST['body'])] for k, v in details],
@@ -205,7 +222,7 @@ class ReportGenerator:
             if result.get('recommendation'):
                 rec_html, _ = split_rec(result['recommendation'])
                 block.append(Table([[
-                    Paragraph('<b>Recommendation</b>', style_fn(f'reclbl{idx}', fontSize=11,
+                    Paragraph(f'<b>{_tr(loc,"Recommendation","Empfehlung")}</b>', style_fn(f'reclbl{idx}', fontSize=11,
                         fontName='Helvetica-Bold', textColor=BLUE, leading=14)),
                     Paragraph(rec_html, style_fn(f'rec{idx}', fontSize=11, fontName='Helvetica',
                         textColor=GRAY_900, leading=16, spaceAfter=0)),
@@ -216,8 +233,8 @@ class ReportGenerator:
                     ('LINEBEFORE',(0,0),(0,-1),3,BLUE)])))
 
             # F1 Sub-scores
-            sub_keys = [('score_repeatability','Repeatability'),('score_data_availability','Data Avail.'),
-                        ('score_error_tolerance','Error Tol.'),('score_integration','Integration')]
+            sub_keys = [('score_repeatability',_tr(loc,'Repeatability','Wiederholbarkeit')),('score_data_availability',_tr(loc,'Data Avail.','Datenverfügb.')),
+                        ('score_error_tolerance',_tr(loc,'Error Tol.','Fehlertol.')),('score_integration',_tr(loc,'Integration','Integration'))]
             sub_vals = [(lbl2, result.get(k)) for k, lbl2 in sub_keys if result.get(k) is not None]
             if sub_vals:
                 sub_cells = [[
@@ -236,8 +253,8 @@ class ReportGenerator:
                 conf_hex = {'high': '34c759', 'medium': '6e6e73', 'low': 'ff9f0a'}.get(conf, '6e6e73')
                 conf_color = {'high': GREEN, 'medium': GRAY_600, 'low': AMBER}.get(conf, GRAY_600)
                 block.append(Paragraph(
-                    f'<font color="#{conf_hex}">Score confidence: <b>{conf.capitalize()}</b></font> '
-                    f'<font size="7" color="#86868b">(how much the four sub-scores agree)</font>',
+                    f'<font color="#{conf_hex}">{_tr(loc,"Score confidence","Score-Konfidenz")}: <b>{conf.capitalize()}</b></font> '
+                    f'<font size="7" color="#86868b">({_tr(loc,"how much the four sub-scores agree","wie stark die vier Teilbewertungen übereinstimmen")})</font>',
                     style_fn(f'conf{idx}', fontSize=8, fontName='Helvetica', textColor=conf_color, leading=11)))
 
             # F3 Risk
@@ -247,7 +264,7 @@ class ReportGenerator:
                 rc_map = {'safe':(GREEN,GREEN_LIGHT),'caution':(AMBER,AMBER_LIGHT),'warning':(RED,RED_LIGHT)}
                 rc_fg, rc_bg = rc_map.get(risk_level, (GREEN, GREEN_LIGHT))
                 block.append(Table([[
-                    Paragraph('<b>Risk</b>', style_fn(f'rk{idx}', fontSize=9, fontName='Helvetica-Bold', textColor=rc_fg, leading=12)),
+                    Paragraph(f'<b>{_tr(loc,"Risk","Risiko")}</b>', style_fn(f'rk{idx}', fontSize=9, fontName='Helvetica-Bold', textColor=rc_fg, leading=12)),
                     Paragraph(risk_flag, style_fn(f'rf{idx}', fontSize=9, fontName='Helvetica', textColor=GRAY_900, leading=13)),
                 ]], colWidths=[18*mm, W-18*mm],
                 style=TableStyle([('BACKGROUND',(0,0),(-1,-1),rc_bg),
@@ -261,21 +278,21 @@ class ReportGenerator:
                 phase_n = result.get('agent_phase', 1)
                 ph_color = {1:AMBER,2:BLUE,3:GREEN}.get(phase_n, BLUE)
                 agent_rows = [[
-                    Paragraph('<b>Agentification</b>', style_fn(f'agl{idx}', fontSize=9, fontName='Helvetica-Bold', textColor=ph_color, leading=12)),
+                    Paragraph(f'<b>{_tr(loc,"Agentification","Agentifizierung")}</b>', style_fn(f'agl{idx}', fontSize=9, fontName='Helvetica-Bold', textColor=ph_color, leading=12)),
                     Paragraph(agent_label, style_fn(f'agv{idx}', fontSize=9, fontName='Helvetica-Bold', textColor=GRAY_900, leading=13)),
                 ]]
                 if result.get('agent_milestone'):
                     agent_rows.append([
-                        Paragraph('Milestone', style_fn(f'aml{idx}', fontSize=8, fontName='Helvetica', textColor=GRAY_600, leading=12)),
+                        Paragraph(_tr(loc,'Milestone','Meilenstein'), style_fn(f'aml{idx}', fontSize=8, fontName='Helvetica', textColor=GRAY_600, leading=12)),
                         Paragraph(result['agent_milestone'], style_fn(f'amv{idx}', fontSize=9, fontName='Helvetica', textColor=GRAY_900, leading=13)),
                     ])
                 if result.get('orchestration'):
                     orch_raw = result['orchestration']
                     orch_label_map = {
-                        'pipeline': 'Fully Automated Pipeline',
-                        'human-assist': 'Human-Assisted Automation',
-                        'human_assist': 'Human-Assisted Automation',
-                        'supervised': 'Supervised Automation',
+                        'pipeline': _tr(loc,'Fully Automated Pipeline','Vollautomatische Pipeline'),
+                        'human-assist': _tr(loc,'Human-Assisted Automation','Menschenunterstützte Automatisierung'),
+                        'human_assist': _tr(loc,'Human-Assisted Automation','Menschenunterstützte Automatisierung'),
+                        'supervised': _tr(loc,'Supervised Automation','Überwachte Automatisierung'),
                     }
                     orch_display = orch_label_map.get(orch_raw.lower().replace(' ','-'), orch_raw.replace('-',' ').replace('_',' ').title())
                     agent_rows.append([
@@ -294,7 +311,7 @@ class ReportGenerator:
 
 
     @staticmethod
-    def _pdf_context_sections(story, analysis_data, W, style_fn, ST):
+    def _pdf_context_sections(story, analysis_data, W, style_fn, ST, loc='en'):
         """Append context-specific pages: Individual / Team / Company."""
         context = analysis_data.get('analysis_context', 'individual')
         results = analysis_data['results']
@@ -628,7 +645,9 @@ class ReportGenerator:
     # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def generate_pdf_report(analysis_data: Dict, output_path: str):
+    def generate_pdf_report(analysis_data: Dict, output_path: str, loc: str = 'en'):
+        global _ACTIVE_LOCALE
+        _ACTIVE_LOCALE = loc  # picked up by NumberedCanvas footer
         doc = SimpleDocTemplate(output_path, pagesize=A4,
             leftMargin=18*mm, rightMargin=18*mm, topMargin=20*mm, bottomMargin=24*mm)
         W = A4[0] - 36*mm
@@ -670,28 +689,35 @@ class ReportGenerator:
             fontName='Helvetica-Bold', spaceAfter=10)))
 
         context = analysis_data.get('analysis_context', 'individual')
-        ctx_label = {'individual': 'Personal Career Analysis', 'team': 'Team / Startup Analysis',
-                     'company': 'Company / Department Analysis'}.get(context, 'Workflow Analysis')
+        ctx_label = {
+            'individual': _tr(loc, 'Personal Career Analysis', 'Persönliche Karriereanalyse'),
+            'team': _tr(loc, 'Team / Startup Analysis', 'Team-/Startup-Analyse'),
+            'company': _tr(loc, 'Company / Department Analysis', 'Unternehmens-/Abteilungsanalyse'),
+        }.get(context, _tr(loc, 'Workflow Analysis', 'Workflow-Analyse'))
         story.append(Paragraph(ctx_label, style('ctx_lbl', fontSize=11, textColor=GRAY_600,
             fontName='Helvetica', spaceAfter=6)))
-        story.append(Paragraph('Automation Opportunity Audit',
+        story.append(Paragraph(_tr(loc, 'Automation Opportunity Audit', 'Automatisierungspotenzial-Audit'),
             style('ct', fontSize=22, leading=27, textColor=GRAY_900, spaceAfter=6, fontName='Helvetica-Bold')))
         story.append(Paragraph(workflow['name'], style('wn', fontSize=22, leading=26,
             textColor=BLUE, fontName='Helvetica-Bold', spaceAfter=10)))
         if workflow.get('description'):
             story.append(Paragraph(workflow['description'], ST['cover_sub']))
         if workflow.get('industry'):
-            story.append(Paragraph(f"Industry: {workflow['industry']}",
+            story.append(Paragraph(f"{_tr(loc, 'Industry', 'Branche')}: {workflow['industry']}",
                 style('ind', fontSize=9, textColor=GRAY_600, fontName='Helvetica', spaceAfter=4)))
 
         source_text = workflow.get('source_text', '').strip()
         if source_text:
-            mode_labels = {'voice':'Voice Transcript','document':'Extracted Document Text','manual':'Original Input'}
+            mode_labels = {
+                'voice': _tr(loc, 'Voice Transcript', 'Sprachtranskript'),
+                'document': _tr(loc, 'Extracted Document Text', 'Extrahierter Dokumenttext'),
+                'manual': _tr(loc, 'Original Input', 'Ursprüngliche Eingabe'),
+            }
             # Truncate long source text to keep cover page compact
             max_chars = 600
             display_text = source_text[:max_chars] + ('…' if len(source_text) > max_chars else '')
             story.append(Spacer(1, 4*mm))
-            story.append(Paragraph(mode_labels.get(workflow.get('input_mode','manual'),'Original Input'),
+            story.append(Paragraph(mode_labels.get(workflow.get('input_mode','manual'), mode_labels['manual']),
                 style('src_lbl', fontSize=9, leading=12, textColor=BLUE, fontName='Helvetica-Bold', spaceAfter=4)))
             story.append(Table([[Paragraph(display_text,
                 style('src', fontSize=8, leading=12, textColor=GRAY_600, fontName='Helvetica'))]],
@@ -710,33 +736,35 @@ class ReportGenerator:
             _ap_rows = []
             if _pf:
                 _pf_e = _pf[:120].replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                _ap_rows.append([Paragraph('PREPARED FOR', ST['label']),
+                _ap_rows.append([Paragraph(_tr(loc, 'PREPARED FOR', 'ERSTELLT FÜR'), ST['label']),
                     Paragraph(_pf_e, style('pf', fontSize=11, leading=15,
                         textColor=GRAY_900, fontName='Helvetica-Bold'))])
             if _pb:
                 _pb_e = _pb[:120].replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                _ap_rows.append([Paragraph('PREPARED BY', ST['label']),
+                _ap_rows.append([Paragraph(_tr(loc, 'PREPARED BY', 'ERSTELLT VON'), ST['label']),
                     Paragraph(_pb_e, style('pb', fontSize=11, leading=15,
                         textColor=GRAY_900, fontName='Helvetica-Bold'))])
             story.append(Table(_ap_rows, colWidths=[W*0.28, W*0.72],
                 style=TableStyle([('TOPPADDING',(0,0),(-1,-1),2),('BOTTOMPADDING',(0,0),(-1,-1),2),
                     ('LEFTPADDING',(0,0),(-1,-1),0),('VALIGN',(0,0),(-1,-1),'MIDDLE')])))
             story.append(Spacer(1, 4*mm))
-        story.append(Paragraph(f"Generated {datetime.now().strftime('%B %d, %Y')}", ST['cover_meta']))
+        story.append(Paragraph(
+            _tr(loc, f"Generated {datetime.now().strftime('%B %d, %Y')}",
+                f"Erstellt am {datetime.now().strftime('%d.%m.%Y')}"), ST['cover_meta']))
         story.append(Spacer(1, 14*mm))
 
         hero = Table([[
-            Paragraph(f'<font size="48"><b>{score:.0f}%</b></font><br/><font size="14" color="#6e6e73">Automation Score</font>',
+            Paragraph(f'<font size="48"><b>{score:.0f}%</b></font><br/><font size="14" color="#6e6e73">{_tr(loc, "Automation Score", "Automatisierungsgrad")}</font>',
                        style('hs', fontName='Helvetica-Bold', alignment=TA_CENTER, leading=54)),
-            Table([[Paragraph('<b>Annual Savings</b>', ST['label']),''],
+            Table([[Paragraph(f'<b>{_tr(loc, "Annual Savings", "Jährliche Einsparung")}</b>', ST['label']),''],
                    [Paragraph(f'\u20ac{savings:,.0f}', style('sv', fontSize=22, fontName='Helvetica-Bold', textColor=GRAY_900, spaceAfter=6)),''],
                    [Spacer(1, 4*mm),''],
-                   [Paragraph(f'{hours:.0f} hours reclaimed', style('hr', fontSize=10, textColor=GRAY_600, fontName='Helvetica')),'']],
+                   [Paragraph(f'{hours:.0f} {_tr(loc, "hours reclaimed", "Stunden zurückgewonnen")}', style('hr', fontSize=10, textColor=GRAY_600, fontName='Helvetica')),'']],
                   colWidths=[W*0.35, W*0.05]),
-            Table([[Paragraph('<b>Tasks Analyzed</b>', ST['label']),''],
+            Table([[Paragraph(f'<b>{_tr(loc, "Tasks Analyzed", "Analysierte Aufgaben")}</b>', ST['label']),''],
                    [Paragraph(str(len(results)), style('tc', fontSize=22, fontName='Helvetica-Bold', textColor=GRAY_900, spaceAfter=0)),''],
                    [Spacer(1, 3*mm),''],
-                   [Paragraph('workflow tasks', style('tl', fontSize=10, textColor=GRAY_600, fontName='Helvetica', spaceBefore=0)),'']],
+                   [Paragraph(_tr(loc, 'workflow tasks', 'Workflow-Aufgaben'), style('tl', fontSize=10, textColor=GRAY_600, fontName='Helvetica', spaceBefore=0)),'']],
                   colWidths=[W*0.25, W*0.05]),
         ]], colWidths=[W*0.28, W*0.42, W*0.30],
         style=TableStyle([('BACKGROUND',(0,0),(-1,-1),sc_light),
@@ -746,9 +774,9 @@ class ReportGenerator:
         story.append(hero)
         story.append(Spacer(1, 10*mm))
         story.append(Table([[
-            Paragraph(f'<font color="#34c759"><b>{len(high)} HIGH</b></font> potential', ST['body']),
-            Paragraph(f'<font color="#ff9f0a"><b>{len(med)} MEDIUM</b></font> potential', ST['body']),
-            Paragraph(f'<font color="#ff3b30"><b>{len(low)} LOW</b></font> potential', ST['body']),
+            Paragraph(f'<font color="#34c759"><b>{len(high)} {_tr(loc, "HIGH", "HOCH")}</b></font> {_tr(loc, "potential", "Potenzial")}', ST['body']),
+            Paragraph(f'<font color="#ff9f0a"><b>{len(med)} {_tr(loc, "MEDIUM", "MITTEL")}</b></font> {_tr(loc, "potential", "Potenzial")}', ST['body']),
+            Paragraph(f'<font color="#ff3b30"><b>{len(low)} {_tr(loc, "LOW", "NIEDRIG")}</b></font> {_tr(loc, "potential", "Potenzial")}', ST['body']),
         ]], colWidths=[W/3,W/3,W/3],
         style=TableStyle([('BACKGROUND',(0,0),(-1,-1),GRAY_100),
             ('TOPPADDING',(0,0),(-1,-1),10),('BOTTOMPADDING',(0,0),(-1,-1),10),
@@ -758,22 +786,25 @@ class ReportGenerator:
 
         # ── F4 AI Readiness ───────────────────────────────────────────────
         rs = analysis_data.get('readiness_score')
-        rd_labels = [('Data Quality',analysis_data.get('readiness_data_quality')),
-                     ('Process Clarity',analysis_data.get('readiness_process_docs')),
-                     ('Tool Maturity',analysis_data.get('readiness_tool_maturity')),
-                     ('Error Tolerance',analysis_data.get('readiness_team_skills'))]
+        rd_labels = [(_tr(loc,'Data Quality','Datenqualität'),analysis_data.get('readiness_data_quality')),
+                     (_tr(loc,'Process Clarity','Prozessklarheit'),analysis_data.get('readiness_process_docs')),
+                     (_tr(loc,'Tool Maturity','Tool-Reife'),analysis_data.get('readiness_tool_maturity')),
+                     (_tr(loc,'Error Tolerance','Fehlertoleranz'),analysis_data.get('readiness_team_skills'))]
         rd_vals = [(l,v) for l,v in rd_labels if v is not None]
         if rs is not None or rd_vals:
-            story.append(Paragraph('AI Readiness Assessment', ST['section_title']))
+            story.append(Paragraph(_tr(loc,'AI Readiness Assessment','KI-Reifegrad-Bewertung'), ST['section_title']))
             story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=8))
             if rs is not None:
                 rs_color, rs_bg = score_color(rs)
                 story.append(Table([[
                     Paragraph(f'<font size="32"><b>{rs:.0f}</b></font><font size="12" color="#6e6e73"> / 100</font><br/>'
-                               f'<font size="10" color="#6e6e73">Overall AI Readiness</font>',
+                               f'<font size="10" color="#6e6e73">{_tr(loc,"Overall AI Readiness","Gesamter KI-Reifegrad")}</font>',
                         style('rso', fontName='Helvetica-Bold', alignment=TA_CENTER, leading=38)),
-                    Paragraph('How prepared your organisation is for AI automation based on data quality, '
-                               'process documentation, tool maturity and team skills.',
+                    Paragraph(_tr(loc,
+                        'How prepared your organisation is for AI automation based on data quality, '
+                        'process documentation, tool maturity and team skills.',
+                        'Wie gut Ihre Organisation auf KI-Automatisierung vorbereitet ist – gemessen an '
+                        'Datenqualität, Prozessdokumentation, Tool-Reife und Team-Kompetenzen.'),
                         style('rsd', fontSize=9, fontName='Helvetica', textColor=GRAY_600, leading=14)),
                 ]], colWidths=[W*0.3, W*0.7],
                 style=TableStyle([('BACKGROUND',(0,0),(-1,-1),rs_bg),
@@ -797,30 +828,31 @@ class ReportGenerator:
                 story.append(Spacer(1, 10*mm))
 
         # ── Detailed Task Analysis ────────────────────────────────────────
-        task_blocks = ReportGenerator._pdf_task_blocks(sorted_results, analysis_data, W, s, ST, style)
+        task_blocks = ReportGenerator._pdf_task_blocks(sorted_results, analysis_data, W, s, ST, style, loc)
+        _task_hd = _tr(loc, 'Detailed Task Analysis', 'Detaillierte Aufgabenanalyse')
         # Keep section heading with first task block to avoid orphan header
         if task_blocks:
             story.append(KeepTogether([
-                Paragraph('Detailed Task Analysis', ST['section_title']),
+                Paragraph(_task_hd, ST['section_title']),
                 HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10),
                 task_blocks[0],
             ]))
             for blk in task_blocks[1:]:
                 story.append(blk)
         else:
-            story.append(Paragraph('Detailed Task Analysis', ST['section_title']))
+            story.append(Paragraph(_task_hd, ST['section_title']))
             story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
 
         # ── Implementation Roadmap ────────────────────────────────────────
         story.append(PageBreak())
-        story.append(Paragraph('Implementation Roadmap', ST['section_title']))
+        story.append(Paragraph(_tr(loc, 'Implementation Roadmap', 'Umsetzungs-Roadmap'), ST['section_title']))
         story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
         phases = [
-            ('Phase 1 — Quick Wins','0–3 months','High score + easy setup = immediate ROI.',
+            (_tr(loc,'Phase 1 — Quick Wins','Phase 1 — Quick Wins'),_tr(loc,'0–3 months','0–3 Monate'),_tr(loc,'High score + easy setup = immediate ROI.','Hoher Score + einfache Einrichtung = sofortiger ROI.'),
              GREEN,GREEN_LIGHT,[r for r in sorted_results if r['ai_readiness_score']>=70 and r.get('difficulty','').lower()=='easy']),
-            ('Phase 2 — Medium-Term','3–6 months','Technical setup required but significant savings.',
+            (_tr(loc,'Phase 2 — Medium-Term','Phase 2 — Mittelfristig'),_tr(loc,'3–6 months','3–6 Monate'),_tr(loc,'Technical setup required but significant savings.','Technische Einrichtung nötig, aber erhebliche Einsparungen.'),
              AMBER,AMBER_LIGHT,[r for r in sorted_results if r['ai_readiness_score']>=50 and r.get('difficulty','').lower()=='medium']),
-            ('Phase 3 — Advanced','6–12 months','Complex automations and custom development.',
+            (_tr(loc,'Phase 3 — Advanced','Phase 3 — Fortgeschritten'),_tr(loc,'6–12 months','6–12 Monate'),_tr(loc,'Complex automations and custom development.','Komplexe Automatisierungen und individuelle Entwicklung.'),
              BLUE,BLUE_LIGHT,[r for r in sorted_results if r['ai_readiness_score']>=40 and r.get('difficulty','').lower()=='hard']),
         ]
         for title,timeline,desc,col,col_light,phase_tasks in phases:
@@ -843,24 +875,24 @@ class ReportGenerator:
                         Paragraph('>', style(f'ar{r["task"]["name"][:8]}', fontSize=10,
                             fontName='Helvetica-Bold', textColor=col)),
                         Paragraph(f'<b>{r["task"]["name"]}</b>  <font size="9" color="#6e6e73">'
-                            f'Score {r["ai_readiness_score"]:.0f}%  ·  {r.get("estimated_hours_saved",0):.0f} hrs saved</font>',
+                            f'Score {r["ai_readiness_score"]:.0f}%  ·  {r.get("estimated_hours_saved",0):.0f} {_tr(loc,"hrs saved","Std. gespart")}</font>',
                             style(f'ri{r["task"]["name"][:8]}', fontSize=10, fontName='Helvetica',
                                 textColor=GRAY_900, leading=14)),
                     ]], colWidths=[8*mm, W-8*mm],
                     style=TableStyle([('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5),
                         ('LEFTPADDING',(0,0),(-1,-1),12),('LINEBELOW',(0,0),(-1,-1),0.3,GRAY_200)])))
             else:
-                pb.append(Paragraph('No tasks in this phase.', style(f'np{title}', fontSize=9,
+                pb.append(Paragraph(_tr(loc,'No tasks in this phase.','Keine Aufgaben in dieser Phase.'), style(f'np{title}', fontSize=9,
                     textColor=GRAY_600, fontName='Helvetica-Oblique', leftIndent=12, spaceAfter=4)))
             pb.append(Spacer(1, 8*mm))
             story.append(KeepTogether(pb))
 
         # ── Context-specific sections ─────────────────────────────────────
-        ReportGenerator._pdf_context_sections(story, analysis_data, W, style, ST)
+        ReportGenerator._pdf_context_sections(story, analysis_data, W, style, ST, loc)
 
         # ── Conclusion ────────────────────────────────────────────────────
         story.append(PageBreak())
-        story.append(Paragraph('Conclusion', ST['section_title']))
+        story.append(Paragraph(_tr(loc, 'Conclusion', 'Fazit'), ST['section_title']))
         story.append(HRFlowable(width=W, thickness=0.5, color=GRAY_200, spaceAfter=10))
         story.append(Paragraph(
             f'This analysis identified automation opportunities across <b>{len(results)} tasks</b> '
@@ -868,11 +900,19 @@ class ReportGenerator:
             f'<b>{hours:.0f} hours annually</b>, worth approximately <b>\u20ac{savings:,.0f}</b>.',
             ST['body']))
         story.append(Spacer(1, 6*mm))
-        for item in ['Begin with Phase 1 quick wins — ROI within weeks, not months.',
-                     'Use human-in-the-loop for tasks scored 40–70 to reduce risk.',
-                     'Track time saved monthly to measure and communicate impact.',
-                     'Revisit quarterly — new AI tools appear constantly.',
-                     'Train team members on newly automated workflows.']:
+        _concl_items = [
+            'Beginnen Sie mit den Quick Wins aus Phase 1 — ROI in Wochen, nicht Monaten.',
+            'Nutzen Sie Human-in-the-Loop für Aufgaben mit Score 40–70, um Risiken zu senken.',
+            'Erfassen Sie die gesparte Zeit monatlich, um die Wirkung zu messen und zu kommunizieren.',
+            'Prüfen Sie vierteljährlich erneut — ständig kommen neue KI-Tools hinzu.',
+            'Schulen Sie Ihr Team zu den neu automatisierten Workflows.',
+        ] if loc == 'de' else [
+            'Begin with Phase 1 quick wins — ROI within weeks, not months.',
+            'Use human-in-the-loop for tasks scored 40–70 to reduce risk.',
+            'Track time saved monthly to measure and communicate impact.',
+            'Revisit quarterly — new AI tools appear constantly.',
+            'Train team members on newly automated workflows.']
+        for item in _concl_items:
             story.append(Table([[
                 Paragraph('>', style(f'ai{item[:10]}', fontSize=11, textColor=BLUE, fontName='Helvetica-Bold')),
                 Paragraph(item, ST['body']),
