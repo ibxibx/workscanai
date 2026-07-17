@@ -351,6 +351,23 @@ export const en = {
     jobStepResearch: "Research", jobStepAnalysis: "Analysis",
     jobTasksFound: "{n} tasks found",
   },
+  results: {
+    loadingTitle: "Loading your analysis…",
+    warmingLong: "The server is waking up from sleep — this can take 20–40 seconds on the free tier.",
+    warmingShort: "This may take a few seconds if the server is warming up.",
+    noData: "No analysis data found",
+    errWaking: "The analysis server may still be waking up. Reloading usually resolves this once it's ready.",
+    tryAgain: "Try again",
+    backToDashboard: "Back to dashboard",
+    ctxPersonal: "Personal Analysis",
+    ctxTeam: "Team Analysis",
+    ctxCompany: "Company Analysis",
+    humanEdgeLabel: "Human Edge",
+    humanEdgeSub: "Irreplaceable value",
+    analysisId: "Analysis ID: {id} · {date}",
+    n8nCanvasBtn: "n8n Canvas .json",
+    viewRoadmap: "View Roadmap",
+  },
 }
 
 export type Messages = typeof en
