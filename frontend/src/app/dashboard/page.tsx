@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Sparkles, Clock, Plus, TrendingUp, DollarSign, Zap, Download, Loader2, RefreshCw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth'
+import { useT, useLocale } from '@/i18n/client'
 import { wakeBackend, fetchWithWake } from '@/lib/wake-ping'
 import BackendWarming from '@/components/BackendWarming'
 
@@ -176,6 +177,8 @@ async function enrichWorkflow(
 
 export default function DashboardPage() {
   const { email, isLoaded } = useAuth()
+  const t = useT('dashboard')
+  const locale = useLocale()
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [warming, setWarming] = useState(false)
@@ -302,7 +305,7 @@ export default function DashboardPage() {
       URL.revokeObjectURL(url)
     } catch (e) {
       console.error(e)
-      alert('Failed to generate combined report. Please try again.')
+      alert(t('alertCombinedFail'))
     } finally {
       setDownloadingCombined(null)
     }
@@ -319,8 +322,8 @@ export default function DashboardPage() {
             Dashboard
           </h1>
           <p className="text-[15px] sm:text-[19px] italic text-[#6e6e73]">
-            <span className="hidden sm:inline">Your workflow analyses and automation insights.</span>
-            <span className="sm:hidden">Workflow analyses & insights.</span>
+            <span className="hidden sm:inline">{t('subtitle')}</span>
+            <span className="sm:hidden">{t('subtitleShort')}</span>
           </p>
         </div>
 
@@ -328,12 +331,12 @@ export default function DashboardPage() {
         {isLoaded && !email && (
           <div className="bg-amber-50 border border-amber-200 rounded-[18px] p-[20px] sm:p-[24px] mb-[32px] flex items-center justify-between gap-[16px]">
             <div className="min-w-0">
-              <div className="text-[13px] sm:text-[14px] font-semibold text-amber-800 mb-[2px]">Sign in to see all your analyses</div>
-              <div className="text-[13px] text-amber-700 hidden sm:block">Analyses are tied to your account — sign in to access them on any device.</div>
-              <div className="text-[12px] text-amber-700 sm:hidden">Sign in to access analyses on any device.</div>
+              <div className="text-[13px] sm:text-[14px] font-semibold text-amber-800 mb-[2px]">{t('signInTitle')}</div>
+              <div className="text-[13px] text-amber-700 hidden sm:block">{t('signInDesc')}</div>
+              <div className="text-[12px] text-amber-700 sm:hidden">{t('signInDescShort')}</div>
             </div>
             <Link href="/auth" className="shrink-0 inline-flex items-center gap-[8px] bg-amber-600 hover:bg-amber-700 text-white px-[16px] sm:px-[20px] py-[10px] rounded-full text-[13px] sm:text-[14px] font-semibold transition-all">
-              Sign in
+              {t('signIn')}
             </Link>
           </div>
         )}
@@ -346,14 +349,14 @@ export default function DashboardPage() {
                 <div className="inline-flex items-center gap-[8px] mb-[12px]">
                   <Sparkles className="h-[20px] w-[20px] text-[#0071e3]" />
                   <span className="text-[12px] font-semibold text-[#0071e3] tracking-wide uppercase">
-                    Start New
+                    {t('startNew')}
                   </span>
                 </div>
                 <h2 className="text-[20px] sm:text-[28px] font-semibold italic tracking-tight mb-[8px]">
-                  Analyze a Workflow
+                  {t('analyzeWorkflow')}
                 </h2>
                 <p className="text-[13px] sm:text-[15px] text-[#6e6e73] max-w-[600px]">
-                  Upload a document, record your voice, or enter tasks manually to discover automation opportunities and calculate ROI.
+                  {t('analyzeWorkflowDesc')}
                 </p>
               </div>
               <div className="hidden md:flex items-center justify-center w-[56px] h-[56px] rounded-full bg-white/60 group-hover:bg-white transition-all border border-blue-100">
@@ -369,7 +372,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-[8px] mb-[12px]">
               <TrendingUp className="h-[16px] w-[16px] text-[#86868b]" />
               <div className="text-[12px] font-semibold text-[#86868b] tracking-wide uppercase">
-                Total Analyses
+                {t('totalAnalyses')}
               </div>
             </div>
             {loading ? (
@@ -379,10 +382,10 @@ export default function DashboardPage() {
             )}
             <div className="text-[13px] text-[#86868b]">
               {unreachableCount > 0
-                ? `${unreachableCount} to reload`
+                ? t('toReload', { n: unreachableCount })
                 : pendingCount > 0
-                  ? `${pendingCount} pending analysis`
-                  : 'All workflows analyzed'}
+                  ? t('pendingAnalysis', { n: pendingCount })
+                  : t('allAnalyzed')}
             </div>
           </div>
 
@@ -390,7 +393,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-[8px] mb-[12px]">
               <Clock className="h-[16px] w-[16px] text-[#86868b]" />
               <div className="text-[12px] font-semibold text-[#86868b] tracking-wide uppercase">
-                Time Saved
+                {t('timeSaved')}
               </div>
             </div>
             {loading ? (
@@ -398,17 +401,17 @@ export default function DashboardPage() {
             ) : (
               <div className="stat-number text-[32px] sm:text-[40px] font-semibold tracking-tight mb-[4px]">
                 <span className="text-green-600">{Math.round(totalHours)}</span>
-                <span className="text-[20px] sm:text-[24px] text-[#86868b]"> hrs</span>
+                <span className="text-[20px] sm:text-[24px] text-[#86868b]"> {t('hrs')}</span>
               </div>
             )}
-            <div className="text-[13px] text-[#86868b]">Annual hours saved across workflows</div>
+            <div className="text-[13px] text-[#86868b]">{t('hrsSubtitle')}</div>
           </div>
 
           <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-[18px] p-[24px] sm:p-[32px] hover-lift hover-stat cursor-default">
             <div className="flex items-center gap-[8px] mb-[12px]">
               <Zap className="h-[16px] w-[16px] text-[#86868b]" />
               <div className="text-[12px] font-semibold text-[#86868b] tracking-wide uppercase">
-                Avg Score
+                {t('avgScore')}
               </div>
             </div>
             {loading ? (
@@ -422,7 +425,7 @@ export default function DashboardPage() {
                 )}
               </div>
             )}
-            <div className="text-[13px] text-[#86868b]">Average automation readiness</div>
+            <div className="text-[13px] text-[#86868b]">{t('avgSubtitle')}</div>
           </div>
         </div>
 
@@ -432,14 +435,14 @@ export default function DashboardPage() {
             <div>
               <div className="flex items-center gap-[8px] mb-[6px]">
                 <DollarSign className="h-[18px] w-[18px] text-green-600" />
-                <span className="text-[13px] font-semibold text-green-700 uppercase tracking-wide">Total Potential Savings</span>
+                <span className="text-[13px] font-semibold text-green-700 uppercase tracking-wide">{t('totalSavings')}</span>
               </div>
               <div className="text-[36px] font-semibold text-green-700 tracking-tight">
                 €{Math.round(totalSavings).toLocaleString()}
               </div>
             </div>
             <div className="text-[13px] text-green-600 text-right max-w-[200px]">
-              Annual cost reduction across your analyzed workflows
+              {t('savingsSubtitle')}
             </div>
           </div>
         )}
@@ -450,10 +453,10 @@ export default function DashboardPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px]">
               <div>
                 <div className="text-[15px] font-semibold text-[#1d1d1f] mb-[4px]">
-                  Download all {analyzed.length} analyses as one report
+                  {t('combinedTitle', { n: analyzed.length })}
                 </div>
                 <div className="text-[13px] text-[#6e6e73]">
-                  Combined document with every workflow, task breakdown, and roadmap in one file.
+                  {t('combinedDesc')}
                 </div>
               </div>
               <div className="flex gap-[10px] shrink-0">
@@ -463,7 +466,7 @@ export default function DashboardPage() {
                   className="inline-flex items-center gap-[8px] bg-[#1d1d1f] hover:bg-[#3d3d3f] disabled:bg-[#86868b] disabled:cursor-not-allowed text-white px-[20px] py-[10px] rounded-full text-[14px] font-medium transition-all"
                 >
                   {downloadingCombined === 'docx'
-                    ? <><Loader2 className="h-[14px] w-[14px] animate-spin" /> Generating…</>
+                    ? <><Loader2 className="h-[14px] w-[14px] animate-spin" /> {t('generating')}</>
                     : <><Download className="h-[14px] w-[14px]" /> DOCX</>}
                 </button>
                 <button
@@ -472,7 +475,7 @@ export default function DashboardPage() {
                   className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] disabled:bg-[#86868b] disabled:cursor-not-allowed text-white px-[20px] py-[10px] rounded-full text-[14px] font-medium transition-all"
                 >
                   {downloadingCombined === 'pdf'
-                    ? <><Loader2 className="h-[14px] w-[14px] animate-spin" /> Generating…</>
+                    ? <><Loader2 className="h-[14px] w-[14px] animate-spin" /> {t('generating')}</>
                     : <><Download className="h-[14px] w-[14px]" /> PDF</>}
                 </button>
               </div>
@@ -483,7 +486,7 @@ export default function DashboardPage() {
         {/* Recent Analyses */}
         <div>
           <div className="flex items-center justify-between mb-[24px]">
-            <h2 className="text-[22px] sm:text-[28px] font-semibold italic tracking-tight">Recent Analyses</h2>
+            <h2 className="text-[22px] sm:text-[28px] font-semibold italic tracking-tight">{t('recentAnalyses')}</h2>
           </div>
 
           {loading ? (
@@ -500,11 +503,9 @@ export default function DashboardPage() {
               <div className="inline-flex items-center justify-center w-[64px] h-[64px] rounded-full bg-white border border-[#d2d2d7] mb-[20px]">
                 <Clock className="h-[28px] w-[28px] text-[#86868b]" />
               </div>
-              <h3 className="text-[19px] font-semibold italic mb-[8px]">No analyses yet</h3>
+              <h3 className="text-[19px] font-semibold italic mb-[8px]">{t('noAnalysesYet')}</h3>
               <p className="text-[15px] text-[#6e6e73] mb-[24px] max-w-[400px] mx-auto">
-                {email
-                  ? 'Create your first workflow analysis to unlock automation insights and ROI calculations.'
-                  : 'Sign in to see all your analyses across devices, or create a new one below.'}
+                {email ? t('noAnalysesEmail') : t('noAnalysesGuest')}
               </p>
               <div className="flex flex-wrap justify-center gap-[12px]">
                 <Link
@@ -512,14 +513,14 @@ export default function DashboardPage() {
                   className="inline-flex items-center gap-[8px] bg-[#0071e3] hover:bg-[#0077ed] text-white px-[24px] py-[12px] rounded-full text-[15px] font-medium transition-all"
                 >
                   <Plus className="h-[16px] w-[16px]" />
-                  Create analysis
+                  {t('createAnalysis')}
                 </Link>
                 {!email && (
                   <Link
                     href="/auth"
                     className="inline-flex items-center gap-[8px] border border-[#d2d2d7] hover:border-[#b8b8bd] text-[#1d1d1f] px-[24px] py-[12px] rounded-full text-[15px] font-medium transition-all"
                   >
-                    Sign in
+                    {t('signIn')}
                   </Link>
                 )}
               </div>
@@ -543,13 +544,13 @@ export default function DashboardPage() {
                           </h3>
                           {wf.analysisState === 'none' && (
                             <span className="shrink-0 px-[10px] py-[4px] bg-[#e8e8ed] text-[#86868b] text-[12px] font-semibold rounded-full border border-[#d2d2d7]">
-                              No analysis
+                              {t('cardNoAnalysis')}
                             </span>
                           )}
                           {wf.analysisState === 'unreachable' && (
                             <span className="shrink-0 inline-flex items-center gap-[5px] px-[10px] py-[4px] bg-amber-50 text-amber-700 text-[12px] font-semibold rounded-full border border-amber-200">
                               <RefreshCw className={`h-[11px] w-[11px] ${isRefreshing ? 'animate-spin' : ''}`} />
-                              {isRefreshing ? 'Loading…' : 'Tap to open'}
+                              {isRefreshing ? t('cardLoading') : t('cardTapOpen')}
                             </span>
                           )}
                         </div>
@@ -557,19 +558,19 @@ export default function DashboardPage() {
                           <p className="text-[14px] text-[#6e6e73] mb-[12px] truncate">{wf.description}</p>
                         )}
                         <div className="flex flex-wrap items-center gap-[16px] text-[13px] text-[#86868b]">
-                          <span>{wf.task_count} task{wf.task_count !== 1 ? 's' : ''}</span>
+                          <span>{wf.task_count === 1 ? t('taskOne', { n: wf.task_count }) : t('tasksMany', { n: wf.task_count })}</span>
                           <span>·</span>
-                          <span>{new Date(wf.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          <span>{new Date(wf.created_at).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                           {wf.hours_saved !== null && (
                             <>
                               <span>·</span>
-                              <span className="text-green-600 font-medium">{Math.round(wf.hours_saved)} hrs/yr saved</span>
+                              <span className="text-green-600 font-medium">{t('hrsSaved', { n: Math.round(wf.hours_saved) })}</span>
                             </>
                           )}
                           {wf.annual_savings !== null && (
                             <>
                               <span>·</span>
-                              <span className="text-green-600 font-medium">€{Math.round(wf.annual_savings).toLocaleString()} saved</span>
+                              <span className="text-green-600 font-medium">{t('savedAmount', { amount: Math.round(wf.annual_savings).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US') })}</span>
                             </>
                           )}
                         </div>
@@ -582,7 +583,7 @@ export default function DashboardPage() {
                             className="mt-[14px] inline-flex items-center gap-[7px] text-[13px] font-semibold text-[#0071e3] hover:text-[#0077ed] disabled:text-[#86868b] transition-colors"
                           >
                             <RefreshCw className={`h-[13px] w-[13px] ${isRefreshing ? 'animate-spin' : ''}`} />
-                            {isRefreshing ? 'Checking the server…' : 'Click to refresh — this analysis may still be loading'}
+                            {isRefreshing ? t('checkingServer') : t('clickRefresh')}
                           </button>
                         )}
                       </div>
@@ -592,14 +593,14 @@ export default function DashboardPage() {
                           <div className={`inline-flex items-center px-[14px] py-[8px] rounded-full border text-[15px] font-semibold ${getScoreBadge(wf.automation_score)}`}>
                             {Math.round(wf.automation_score)}%
                           </div>
-                          <div className="text-[11px] text-[#86868b] mt-[4px]">automation ready</div>
+                          <div className="text-[11px] text-[#86868b] mt-[4px]">{t('automationReady')}</div>
                         </div>
                       )}
 
                       {wf.analysisState === 'unreachable' && (
                         <div className="shrink-0 text-right">
                           <div className="inline-flex items-center px-[14px] py-[8px] rounded-full border border-amber-200 bg-amber-50 text-amber-700 text-[13px] font-semibold">
-                            View →
+                            {t('viewArrow')}
                           </div>
                         </div>
                       )}
