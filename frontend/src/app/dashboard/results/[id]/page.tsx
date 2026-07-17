@@ -303,7 +303,7 @@ export default function ResultsPage() {
 
 
 		{/* Recommended n8n Workflows (shared with public report) */}
-		<N8nWorkflowsSection templates={suggestedTemplates} workflowName={analysisData.workflow.name} />
+		<N8nWorkflowsSection templates={suggestedTemplates} workflowName={analysisData.workflow.name} workflowId={analysisData.workflow.id} />
 
  {/* Actions */}
  <div className="mt-[40px] sm:mt-[56px] pb-[8px]">

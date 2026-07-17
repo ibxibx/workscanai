@@ -231,7 +231,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
         />
 
         {/* Recommended n8n Workflows (shared with dashboard) */}
-        <N8nWorkflowsSection templates={n8nTemplates} workflowName={data.workflow.name} />
+        <N8nWorkflowsSection templates={n8nTemplates} workflowName={data.workflow.name} workflowId={data.workflow_id} shareCode={code} />
 
         {/* Email-gate — capture the wowed visitor at peak intent, right after
             they've seen the full report + their importable n8n workflows. */}

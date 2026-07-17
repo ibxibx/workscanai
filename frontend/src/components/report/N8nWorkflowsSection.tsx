@@ -4,7 +4,9 @@
 // buttons), used by BOTH the dashboard results page and the public /report page
 // so they stay in sync. Renders nothing when there are no templates.
 
-import { Download, ArrowRight } from 'lucide-react'
+import { Download, ArrowRight, FileText } from 'lucide-react'
+import { trackWorkflowDownloaded, trackWorkflowSetupGuideDownloaded } from '@/lib/analytics'
+import { buildN8nSetupGuide, downloadMarkdown } from '@/lib/n8nSetupGuide'
 
 export interface N8nTemplate {
   id: number
@@ -21,13 +23,27 @@ export interface N8nTemplate {
 export default function N8nWorkflowsSection({
   templates,
   workflowName,
+  workflowId,
+  shareCode,
 }: {
   templates: N8nTemplate[]
   workflowName: string
+  workflowId?: number
+  shareCode?: string
 }) {
   if (!templates || templates.length === 0) return null
 
   const downloadTemplate = (tpl: N8nTemplate) => {
+    // #54 — this per-template download was previously untracked.
+    trackWorkflowDownloaded({
+      source: 'recommended_template',
+      template_id: tpl.id,
+      task_name: tpl.task_name,
+      node_count: tpl.node_count,
+      format: 'json',
+      workflow_id: workflowId,
+      share_code: shareCode,
+    })
     try {
       const blob = new Blob([JSON.stringify(tpl.workflow_json, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -35,6 +51,31 @@ export default function N8nWorkflowsSection({
       a.href = url
       a.download = `${workflowName.replace(/\s+/g, '_')}_n8n_${tpl.id}.json`
       document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
+    } catch { /* ignore */ }
+  }
+
+  // #37 — auto-written Markdown setup guide for this workflow (additive; the
+  // JSON export above is unchanged).
+  const downloadGuide = (tpl: N8nTemplate) => {
+    trackWorkflowSetupGuideDownloaded({
+      source: 'recommended_template',
+      template_id: tpl.id,
+      task_name: tpl.task_name,
+      node_count: tpl.node_count,
+      workflow_id: workflowId,
+      share_code: shareCode,
+    })
+    try {
+      const md = buildN8nSetupGuide({
+        workflowName,
+        templateName: tpl.name,
+        taskName: tpl.task_name,
+        url: tpl.url,
+        relevanceReason: tpl.relevance_reason,
+        nodeCount: tpl.node_count,
+        workflowJson: tpl.workflow_json,
+      })
+      downloadMarkdown(`${workflowName.replace(/\s+/g, '_')}_n8n_${tpl.id}_SETUP.md`, md)
     } catch { /* ignore */ }
   }
 
@@ -79,12 +120,21 @@ export default function N8nWorkflowsSection({
                 ))}
               </div>
             )}
-            <button
-              onClick={() => downloadTemplate(tpl)}
-              className="mt-auto flex items-center justify-center gap-[6px] w-full bg-[#f5f5f7] hover:bg-[#e8e8ed] text-[#1d1d1f] text-[12px] font-semibold px-[12px] py-[8px] rounded-[8px] transition border border-[#d2d2d7]"
-            >
-              <Download className="h-[13px] w-[13px]" /> Import into n8n
-            </button>
+            <div className="mt-auto flex gap-[8px]">
+              <button
+                onClick={() => downloadTemplate(tpl)}
+                className="flex-1 flex items-center justify-center gap-[6px] bg-[#f5f5f7] hover:bg-[#e8e8ed] text-[#1d1d1f] text-[12px] font-semibold px-[12px] py-[8px] rounded-[8px] transition border border-[#d2d2d7]"
+              >
+                <Download className="h-[13px] w-[13px]" /> Import into n8n
+              </button>
+              <button
+                onClick={() => downloadGuide(tpl)}
+                title="Download a short Markdown setup guide for this workflow"
+                className="shrink-0 flex items-center justify-center gap-[6px] bg-white hover:bg-[#f0f7ff] text-[#0071e3] text-[12px] font-semibold px-[12px] py-[8px] rounded-[8px] transition border border-[#cce0ff]"
+              >
+                <FileText className="h-[13px] w-[13px]" /> Setup guide
+              </button>
+            </div>
           </div>
         ))}
       </div>

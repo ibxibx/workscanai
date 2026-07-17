@@ -23,9 +23,14 @@ FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@workscanai.com")
 APP_URL = os.getenv("APP_URL", "https://workscanai.vercel.app")
 
 
-def _build_analysis_data(workflow: Workflow, analysis: Analysis) -> dict:
+def _build_analysis_data(workflow: Workflow, analysis: Analysis,
+                         prepared_for: Optional[str] = None,
+                         prepared_by: Optional[str] = None) -> dict:
     """Shared helper — build the analysis dict used by ReportGenerator."""
     data = {
+        # #32 Automation Audit — optional client-ready framing (consultant leave-behind)
+        'prepared_for': (prepared_for or '').strip() or None,
+        'prepared_by': (prepared_by or '').strip() or None,
         'workflow': {
             'id': workflow.id,
             'name': workflow.name,
@@ -90,7 +95,8 @@ def _build_analysis_data(workflow: Workflow, analysis: Analysis) -> dict:
 
 
 @router.get("/reports/{workflow_id}/docx")
-def generate_docx_report(workflow_id: int, db: Session = Depends(get_db)):
+def generate_docx_report(workflow_id: int, prepared_for: Optional[str] = None,
+                         prepared_by: Optional[str] = None, db: Session = Depends(get_db)):
     workflow = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -99,16 +105,19 @@ def generate_docx_report(workflow_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No analysis found for this workflow")
 
     output_path = os.path.join(tempfile.gettempdir(), f"workscan_report_{workflow_id}.docx")
-    ReportGenerator.generate_docx_report(_build_analysis_data(workflow, analysis), output_path)
+    ReportGenerator.generate_docx_report(
+        _build_analysis_data(workflow, analysis, prepared_for, prepared_by), output_path)
+    _stem = "WorkScanAI_Automation_Audit" if (prepared_for or prepared_by) else "WorkScanAI_Report"
     return FileResponse(
         output_path,
         media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        filename=f"WorkScanAI_Report_{workflow.name.replace(' ', '_')}.docx",
+        filename=f"{_stem}_{workflow.name.replace(' ', '_')}.docx",
     )
 
 
 @router.get("/reports/{workflow_id}/pdf")
-def generate_pdf_report(workflow_id: int, db: Session = Depends(get_db)):
+def generate_pdf_report(workflow_id: int, prepared_for: Optional[str] = None,
+                        prepared_by: Optional[str] = None, db: Session = Depends(get_db)):
     workflow = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -117,11 +126,13 @@ def generate_pdf_report(workflow_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No analysis found for this workflow")
 
     output_path = os.path.join(tempfile.gettempdir(), f"workscan_report_{workflow_id}.pdf")
-    ReportGenerator.generate_pdf_report(_build_analysis_data(workflow, analysis), output_path)
+    ReportGenerator.generate_pdf_report(
+        _build_analysis_data(workflow, analysis, prepared_for, prepared_by), output_path)
+    _stem = "WorkScanAI_Automation_Audit" if (prepared_for or prepared_by) else "WorkScanAI_Report"
     return FileResponse(
         output_path,
         media_type='application/pdf',
-        filename=f"WorkScanAI_Report_{workflow.name.replace(' ', '_')}.pdf",
+        filename=f"{_stem}_{workflow.name.replace(' ', '_')}.pdf",
     )
 
 

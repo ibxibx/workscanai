@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Download, Share2, Check, FileText, FileJson, Loader2, Linkedin } from 'lucide-react'
+import { Download, Share2, Check, FileText, FileJson, Loader2, Linkedin, FileSignature } from 'lucide-react'
 import { trackReportShared, trackReportExported, trackWorkflowDownloaded, trackResultViewed, trackReportSharedLinkedin } from '@/lib/analytics'
 
 interface ReportActionsProps {
@@ -36,6 +36,10 @@ export default function ReportActions({
   const [copied, setCopied] = useState(false)
   const [liShared, setLiShared] = useState(false)
   const [downloading, setDownloading] = useState<string | null>(null)
+  // #32 Automation Audit — optional client-ready framing (prepared for / by)
+  const [showAudit, setShowAudit] = useState(false)
+  const [preparedFor, setPreparedFor] = useState('')
+  const [preparedBy, setPreparedBy] = useState('')
 
   // result_viewed — fires once when a finished public report renders.
   useEffect(() => {
@@ -98,13 +102,20 @@ export default function ReportActions({
     trackReportExported({ format: fmt, share_code: shareCode, workflow_id: workflowId })
     setDownloading(fmt)
     try {
-      const response = await fetch(`/api/reports/${workflowId}/${fmt}`)
+      const params = new URLSearchParams()
+      if (preparedFor.trim()) params.set('prepared_for', preparedFor.trim())
+      if (preparedBy.trim()) params.set('prepared_by', preparedBy.trim())
+      const qs = params.toString()
+      const response = await fetch(`/api/reports/${workflowId}/${fmt}${qs ? `?${qs}` : ''}`)
       if (!response.ok) throw new Error('Failed to generate report')
       const blob = await response.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
+      const stem = (preparedFor.trim() || preparedBy.trim())
+        ? 'WorkScanAI-Automation-Audit'
+        : 'WorkScanAI'
       a.href = url
-      a.download = `WorkScanAI-${workflowName.replace(/\s+/g, '-')}.${fmt}`
+      a.download = `${stem}-${workflowName.replace(/\s+/g, '-')}.${fmt}`
       document.body.appendChild(a); a.click()
       document.body.removeChild(a); URL.revokeObjectURL(url)
     } catch {
@@ -115,7 +126,13 @@ export default function ReportActions({
   }
 
   const downloadN8n = async () => {
-    trackWorkflowDownloaded({ share_code: shareCode, workflow_id: workflowId })
+    trackWorkflowDownloaded({
+      share_code: shareCode,
+      workflow_id: workflowId,
+      source: 'job_scan_canvas',
+      format: 'json',
+      has_generated_json: !!n8nWorkflowJson,
+    })
     setDownloading('n8n')
     // Small delay so the loading state renders before the sync blob work
     await new Promise(r => setTimeout(r, 80))
@@ -174,6 +191,47 @@ export default function ReportActions({
       <p className="text-[11px] font-semibold text-[#86868b] uppercase tracking-widest mb-[16px] sm:mb-[20px]">
         Export &amp; Share
       </p>
+
+      {/* #32 Automation Audit — optional client-ready framing for the PDF/DOCX cover */}
+      <div className="mb-[18px]">
+        <button
+          type="button"
+          onClick={() => setShowAudit((v) => !v)}
+          className="inline-flex items-center gap-[6px] text-[13px] font-medium text-[#0071e3] hover:text-[#0077ed]"
+        >
+          <FileSignature className="h-[14px] w-[14px] shrink-0" />
+          {showAudit ? 'Hide audit details' : 'Prepare as a client audit (optional)'}
+        </button>
+        {showAudit && (
+          <div className="mt-[12px] grid grid-cols-1 sm:grid-cols-2 gap-[12px] max-w-[560px]">
+            <label className="flex flex-col gap-[4px]">
+              <span className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wide">Prepared for</span>
+              <input
+                type="text"
+                value={preparedFor}
+                onChange={(e) => setPreparedFor(e.target.value)}
+                placeholder="Client or company name"
+                maxLength={120}
+                className="px-[12px] py-[9px] rounded-[10px] border border-[#d2d2d7] focus:border-[#0071e3] focus:outline-none text-[14px] text-[#1d1d1f]"
+              />
+            </label>
+            <label className="flex flex-col gap-[4px]">
+              <span className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wide">Prepared by</span>
+              <input
+                type="text"
+                value={preparedBy}
+                onChange={(e) => setPreparedBy(e.target.value)}
+                placeholder="Your name / consultancy"
+                maxLength={120}
+                className="px-[12px] py-[9px] rounded-[10px] border border-[#d2d2d7] focus:border-[#0071e3] focus:outline-none text-[14px] text-[#1d1d1f]"
+              />
+            </label>
+            <p className="sm:col-span-2 text-[12px] text-[#86868b] leading-[1.5]">
+              Adds an “Automation Opportunity Audit” cover with these fields to your PDF &amp; DOCX — a client-ready leave-behind.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Downloading hint — appears while any download is in progress */}
       {isAnyDownloading && (
