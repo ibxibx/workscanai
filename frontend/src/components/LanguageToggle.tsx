@@ -67,7 +67,7 @@ export default function LanguageToggle({ className = '' }: { className?: string 
         aria-label={isDE ? 'Switch to English / Auf Englisch umschalten' : 'Switch to German / Auf Deutsch umschalten'}
         onClick={() => choose(isDE ? 'en' : 'de')}
         className="relative h-[22px] w-[44px] shrink-0 rounded-full overflow-hidden cursor-pointer
-                   border border-black/10 shadow-[0_1px_2px_rgba(0,0,0,0.2)]
+                   shadow-[0_1px_2px_rgba(0,0,0,0.2),inset_0_0_0_1px_rgba(0,0,0,0.1)]
                    focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071e3]/50"
       >
         {/* Flag layers — crossfade on switch */}
@@ -84,16 +84,17 @@ export default function LanguageToggle({ className = '' }: { className?: string 
           <GermanFlag />
         </span>
 
-        {/* Inset shadow for recessed-track depth */}
-        <span className="pointer-events-none absolute inset-0 rounded-full shadow-[inset_0_1px_3px_rgba(0,0,0,0.38)]" />
+        {/* Inset shadow for recessed-track depth (subtle so the flag rim stays visible) */}
+        <span className="pointer-events-none absolute inset-0 rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.26)]" />
 
-        {/* Raised 3D knob — slides left (EN) / right (DE) */}
+        {/* Raised 3D knob — concentric on the bar's vertical axis, snug so only ~2px
+            of flag rims it; slides left (EN) / right (DE) */}
         <span
-          className="absolute top-[3px] left-[3px] h-[16px] w-[16px] rounded-full
+          className="absolute top-1/2 left-[2px] h-[18px] w-[18px] rounded-full
                      bg-gradient-to-b from-white to-[#e7e7ea]
                      shadow-[0_1px_2px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.9),0_0_0_0.5px_rgba(0,0,0,0.08)]
                      transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-          style={{ transform: isDE ? 'translateX(22px)' : 'translateX(0)' }}
+          style={{ transform: isDE ? 'translate(22px,-50%)' : 'translate(0px,-50%)' }}
         />
       </button>
 
