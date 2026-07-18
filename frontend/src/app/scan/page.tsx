@@ -93,11 +93,11 @@ function ScanContent() {
               <Brain className="h-[18px] w-[18px] sm:h-[20px] sm:w-[20px]" />
               WorkScanAI
             </Link>
-            <div className="flex gap-[12px] md:gap-[32px] text-[11px] md:text-[12px] shrink-0">
-              <LanguageToggle />
+            <div className="flex items-center gap-[12px] md:gap-[32px] text-[11px] md:text-[12px] shrink-0">
               <Link href="/" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">{t('navHome')}</Link>
               <Link href="/templates" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">{t('navTemplates')}</Link>
               <a href="#scan" className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors whitespace-nowrap">{t('navScanRole')}</a>
+              <LanguageToggle />
             </div>
           </div>
         </div>
