@@ -26,7 +26,6 @@ export default function SiteHeader() {
 
         {/* Nav */}
         <nav className="flex items-center gap-2 md:gap-6 shrink-0">
-          <LanguageToggle />
           <Link href="/dashboard" className="text-[12px] md:text-[13px] text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">
             <span className="hidden md:inline">{t('pastAnalyses')}</span>
             <span className="md:hidden">{t('history')}</span>
@@ -57,6 +56,7 @@ export default function SiteHeader() {
               </Link>
             )
           )}
+          <LanguageToggle />
         </nav>
       </div>
     </header>

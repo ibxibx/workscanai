@@ -91,8 +91,7 @@ export default function LandingPage() {
               <Brain className="h-[18px] w-[18px] sm:h-[20px] sm:w-[20px]" />
               WorkScanAI
             </Link>
-            <div className="flex gap-[12px] md:gap-[32px] text-[11px] md:text-[12px] shrink-0">
-              <LanguageToggle />
+            <div className="flex items-center gap-[12px] md:gap-[32px] text-[11px] md:text-[12px] shrink-0">
               <Link
                 href="/scan"
                 className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap"
@@ -121,6 +120,7 @@ export default function LandingPage() {
                 <span className="hidden md:inline">{t('navNewLong')}</span>
                 <span className="md:hidden">{t('navAnalyzeShort')}</span>
               </a>
+              <LanguageToggle />
             </div>
           </div>
         </div>
