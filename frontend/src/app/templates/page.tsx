@@ -33,6 +33,7 @@ export default function TemplatesPage() {
   const [spotlightPos, setSpotlightPos] = useState({ x: 50, y: 50 })
   const [spotlightVisible, setSpotlightVisible] = useState(false)
   const t = useT('templates')
+  const tc = useT('common')
   const locale = useLocale()
 
   // Pre-warm the Render backend on landing, so if a visitor jumps from a sample
@@ -68,6 +69,10 @@ export default function TemplatesPage() {
               <Link href="/" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">{t('navHome')}</Link>
               <Link href="/scan" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">{t('navScanRole')}</Link>
               <Link href="/#analyze" className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors whitespace-nowrap">{t('navAnalyzeYours')}</Link>
+              <Link href="/dashboard" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">
+                <span className="hidden md:inline">{tc('pastAnalyses')}</span>
+                <span className="md:hidden">{tc('history')}</span>
+              </Link>
               <LanguageToggle />
             </div>
           </div>
