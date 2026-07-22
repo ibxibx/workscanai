@@ -12,8 +12,13 @@ export default function SiteHeader() {
   const pathname = usePathname()
   const t = useT('common')
 
-  // Hide header on auth pages and landing page (has its own nav)
-  if (pathname?.startsWith('/auth') || pathname === '/') return null
+  // Hide header on auth pages, landing, /scan and /templates (each has its own nav)
+  if (
+    pathname?.startsWith('/auth') ||
+    pathname === '/' ||
+    pathname === '/scan' ||
+    pathname === '/templates'
+  ) return null
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#e5e5ea]">

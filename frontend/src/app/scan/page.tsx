@@ -32,6 +32,7 @@ function ScanContent() {
   const [spotlightVisible, setSpotlightVisible] = useState(false)
   const analyzeRef = useRef<HTMLElement>(null)
   const t = useT('scan')
+  const tc = useT('common')
 
   // Resolve niche copy + pre-filled role from URL params on mount. The audience
   // super-property itself is registered globally by PostHogProvider; here we only
@@ -97,6 +98,10 @@ function ScanContent() {
               <Link href="/" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">{t('navHome')}</Link>
               <Link href="/templates" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">{t('navTemplates')}</Link>
               <a href="#scan" className="text-[#0071e3] hover:text-[#0077ed] font-medium transition-colors whitespace-nowrap">{t('navScanRole')}</a>
+              <Link href="/dashboard" className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors whitespace-nowrap">
+                <span className="hidden md:inline">{tc('pastAnalyses')}</span>
+                <span className="md:hidden">{tc('history')}</span>
+              </Link>
               <LanguageToggle />
             </div>
           </div>
