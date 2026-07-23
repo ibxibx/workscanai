@@ -1,11 +1,20 @@
-﻿import Link from 'next/link'
+﻿'use client'
+
+import Link from 'next/link'
 import { Brain } from 'lucide-react'
+import LanguageToggle from '@/components/LanguageToggle'
+import { useT } from '@/i18n/client'
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Reuses the `home` namespace's navNewLong key ("New Analysis" / "Neue
+  // Analyse") -- this nav was the one surface left un-internationalized and
+  // missing the language toggle entirely (found during a full DE coverage audit).
+  const t = useT('home')
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -27,8 +36,9 @@ export default function DashboardLayout({
                 href="/#analyze" 
                 className="text-[#6e6e73] hover:text-[#1d1d1f] transition-colors"
               >
-                New Analysis
+                {t('navNewLong')}
               </Link>
+              <LanguageToggle />
             </div>
           </div>
         </div>

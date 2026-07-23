@@ -12,9 +12,12 @@ export default function SiteHeader() {
   const pathname = usePathname()
   const t = useT('common')
 
-  // Hide header on auth pages, landing, /scan and /templates (each has its own nav)
+  // Hide header on auth pages, landing, /scan, /templates and everything under
+  // /dashboard (each has its own nav -- dashboard/layout.tsx owns its own
+  // logo + Dashboard/New Analysis links + LanguageToggle for every nested route).
   if (
     pathname?.startsWith('/auth') ||
+    pathname?.startsWith('/dashboard') ||
     pathname === '/' ||
     pathname === '/scan' ||
     pathname === '/templates'
