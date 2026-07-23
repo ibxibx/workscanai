@@ -137,6 +137,7 @@ export const ROLES: Role[] = [
     automatableTasksDe: ['Datensätze bereinigen und aufbereiten', 'Routine-Dashboards aktualisieren', 'Standardberichte erstellen', 'Erste explorative Analysen', 'Wiederkehrende SQL-Abfragen schreiben'],
     humanTasks: ['Framing the right business questions', 'Interpreting results in context', 'Influencing decisions with stakeholders'],
     humanTasksDe: ['Die richtigen geschäftlichen Fragen formulieren', 'Ergebnisse im Kontext interpretieren', 'Entscheidungen mit Stakeholdern beeinflussen'],
+    sampleCode: '0234ac',
   },
   {
     slug: 'executive-assistant',
@@ -169,6 +170,7 @@ export const ROLES: Role[] = [
     automatableTasksDe: ['Erste Textentwürfe und Gliederungen erstellen', 'Content für verschiedene Formate aufbereiten', 'SEO-Briefings und Meta-Texte schreiben', 'Auf Grammatik und Konsistenz redigieren', 'Varianten zum Testen erstellen'],
     humanTasks: ['Original angles and narrative', 'Brand voice and editorial taste', 'Fact-checking and accountability'],
     humanTasksDe: ['Originelle Blickwinkel und Erzählweise', 'Markenstimme und redaktionelles Gespür', 'Faktenprüfung und Verantwortung'],
+    sampleCode: 'e07429',
   },
   {
     slug: 'operations-manager',
@@ -185,6 +187,7 @@ export const ROLES: Role[] = [
     automatableTasksDe: ['Betriebsberichte zusammenstellen', 'Planung und Ressourcenkoordination', 'Prozesse dokumentieren und abbilden', 'Routinekommunikation mit Lieferanten', 'KPIs verfolgen und Auffälligkeiten melden'],
     humanTasks: ['Cross-team prioritization and trade-offs', 'Exception and crisis handling', 'Leading and developing people'],
     humanTasksDe: ['Teamübergreifende Priorisierung und Abwägungen', 'Ausnahmen und Krisen bewältigen', 'Menschen führen und entwickeln'],
+    sampleCode: 'bf3dcd',
   },
   {
     slug: 'paralegal',
@@ -201,6 +204,7 @@ export const ROLES: Role[] = [
     automatableTasksDe: ['Dokumente prüfen und zusammenfassen', 'Daten aus Verträgen extrahieren', 'Erste juristische Recherche', 'Standardklauseln und -schreiben entwerfen', 'Akten und Fristen organisieren'],
     humanTasks: ['Legal judgement and interpretation', 'Client interaction and advice', 'Accountability and sign-off'],
     humanTasksDe: ['Juristisches Urteil und Auslegung', 'Mandantenkontakt und Beratung', 'Verantwortung und Freigabe'],
+    sampleCode: '358522',
   },
 ]
 

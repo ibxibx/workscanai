@@ -55,8 +55,28 @@ export default function TemplatesPage() {
   const featured = VERTICALS.find((v) => v.featured)
   const rest = VERTICALS.filter((v) => !v.featured)
 
+  // ItemList JSON-LD (#50) — marks this page up as an indexable gallery/
+  // collection of the 9 real sample reports for crawlers + LLMs (GEO). Always
+  // English/canonical, independent of the visible locale toggle.
+  const galleryJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Automation sample reports by industry',
+    url: 'https://workscanai.vercel.app/templates',
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: VERTICALS.map((v, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        url: `https://workscanai.vercel.app/report/${v.shareCode}`,
+        name: v.label,
+      })),
+    },
+  }
+
   return (
     <div className="min-h-screen text-[#1d1d1f]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(galleryJsonLd) }} />
       {/* Navigation — mirrors homepage / scan for brand continuity */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#d2d2d7]">
         <div className="max-w-[980px] mx-auto px-4 sm:px-6">
