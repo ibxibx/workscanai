@@ -145,6 +145,8 @@ export const de: Messages = {
     genBy: "Erstellt mit",
     reportWord: "Bericht",
     disclaimer: "WorkScanAI-Schätzungen dienen nur zur allgemeinen Orientierung und stellen keine Anlage-, Beschäftigungs-, Finanz-, Rechts- oder Unternehmensberatung dar – prüfen Sie sie unabhängig, bevor Sie handeln.",
+    relatedHeading: "Weitere Beispielberichte nach Branche",
+    relatedCta: "Alle Beispiele ansehen",
     walkTitle: "Möchten Sie Unterstützung bei der Umsetzung?",
     walkDesc: "Vereinbaren Sie ein kostenloses 30-minütiges Gespräch – ich erläutere Ihnen Ihre wichtigsten Automatisierungspotenziale und wie Sie sie umsetzen.",
     walkBtn: "Beratungsgespräch vereinbaren",

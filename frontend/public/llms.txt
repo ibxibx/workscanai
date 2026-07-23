@@ -5,8 +5,21 @@
 ## Core tools
 
 - [Job Scanner](https://workscanai.vercel.app/scan): Enter any job title. AI researches the role, extracts real tasks, scores automation potential per task, and surfaces importable n8n workflows. Answers "is my job automatable?" in about a minute, free, no signup.
-- [Sample reports by industry](https://workscanai.vercel.app/templates): One-click, pre-generated automation reports for customer support, finance & accounting, HR & recruiting, marketing, sales operations, and automation agencies. Each shows real scores, annual savings, hours reclaimed, and n8n workflows.
+- [Sample reports by industry](https://workscanai.vercel.app/templates): One-click, pre-generated automation reports across 9 industries. Each shows real scores, annual savings, hours reclaimed, and n8n workflows.
 - [Which jobs are automatable?](https://workscanai.vercel.app/automatable): Role-by-role automation analysis hub, with a task-by-task breakdown of what AI can automate today versus what stays human-led.
+
+## Sample reports by industry (real, pre-generated analyses)
+
+- [Automation agency](https://workscanai.vercel.app/report/06c952): 68% automatable, €25,495/yr saved, 510h reclaimed.
+- [Customer support](https://workscanai.vercel.app/report/ceaefa): 74% automatable, €8,098/yr saved, 162h reclaimed.
+- [Finance & accounting](https://workscanai.vercel.app/report/0c6c25): 75% automatable, €7,579/yr saved, 152h reclaimed.
+- [HR & recruiting](https://workscanai.vercel.app/report/fa6d5d): 82% automatable, €7,426/yr saved, 149h reclaimed.
+- [Marketing](https://workscanai.vercel.app/report/e07429): 61% automatable, €19,159/yr saved, 383h reclaimed.
+- [Sales operations](https://workscanai.vercel.app/report/4696b7): 76% automatable, €8,945/yr saved, 179h reclaimed.
+- [Operations & logistics](https://workscanai.vercel.app/report/bf3dcd): 73% automatable, €9,062/yr saved, 181h reclaimed.
+- [IT & software engineering](https://workscanai.vercel.app/report/0234ac): 81% automatable, €10,513/yr saved, 210h reclaimed.
+- [Legal & compliance](https://workscanai.vercel.app/report/358522): 79% automatable, €10,540/yr saved, 210h reclaimed.
+- [E-commerce operations](https://workscanai.vercel.app/report/373f0f): 79% automatable, €8,992/yr saved, 179h reclaimed.
 
 ## Role automation pages
 

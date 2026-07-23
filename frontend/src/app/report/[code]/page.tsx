@@ -8,6 +8,8 @@ import { TaskBreakdown, ContextSections, type SharedTaskResult } from '@/compone
 import { resolveContext } from '@/components/report/reportContext'
 import N8nWorkflowsSection, { type N8nTemplate } from '@/components/report/N8nWorkflowsSection'
 import { getT, getLocale } from '@/i18n/server'
+import Link from 'next/link'
+import { VERTICALS, vLabel, vBlurb } from '../../templates/verticals'
 
 interface WorkflowTask { id: number; name: string; description: string }
 
@@ -159,8 +161,34 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
   // n8n workflow cards: stored canvas first, else server-side live fetch.
   const n8nTemplates = await getN8nTemplates(data)
 
+  // Gallery pairing (#50): if this share code is one of the public vertical
+  // samples (templates/verticals.ts), surface 3 other industries so a viewer
+  // can browse the gallery from any single report, and mark the page up as
+  // part of that collection for crawlers/LLMs (Article JSON-LD, EN canonical).
+  const verticalIdx = VERTICALS.findIndex((v) => v.shareCode === code)
+  const isGallerySample = verticalIdx !== -1
+  const otherVerticals = isGallerySample
+    ? [...VERTICALS.slice(verticalIdx + 1), ...VERTICALS.slice(0, verticalIdx)]
+        .filter((v) => v.shareCode !== code)
+        .slice(0, 3)
+    : []
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: `${data.workflow.name} — WorkScanAI Automation Analysis`,
+    description: `Automation score: ${Math.round(data.automation_score)}%. Potential annual savings: €${Math.round(data.annual_savings).toLocaleString('en-US')}.`,
+    about: isGallerySample ? VERTICALS[verticalIdx].label : data.workflow.name,
+    author: { '@type': 'Organization', name: 'WorkScanAI' },
+    publisher: { '@type': 'Organization', name: 'WorkScanAI' },
+    mainEntityOfPage: shareUrl,
+    ...(isGallerySample && { isPartOf: { '@type': 'CollectionPage', name: 'WorkScanAI sample reports by industry', url: 'https://workscanai.vercel.app/templates' } }),
+  }
+
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <div className="min-h-screen bg-white text-[#1d1d1f]">
       {/* Top banner */}
       <div className="bg-[#0071e3] text-white px-4 py-[10px]">
         <div className="max-w-[980px] mx-auto flex items-center justify-between gap-[8px] min-w-0">
@@ -262,6 +290,33 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
             }))}
         />
 
+        {/* Related industries — gallery cross-links (#50), samples only */}
+        {isGallerySample && (
+          <div className="mb-[32px] sm:mb-[48px]">
+            <h2 className="text-[13px] font-semibold text-[#86868b] uppercase tracking-wide mb-[16px]">
+              {t('relatedHeading')}
+            </h2>
+            <div className="flex flex-wrap gap-[10px]">
+              {otherVerticals.map((v) => (
+                <Link
+                  key={v.key}
+                  href={`/report/${v.shareCode}?utm_source=gallery&utm_medium=cross_link&utm_campaign=related_industries`}
+                  className="text-[13px] text-[#0071e3] hover:text-[#0077ed] border border-[#d2d2d7] rounded-full px-[14px] py-[7px] hover:border-[#0071e3]/40 transition-colors"
+                  title={vBlurb(v, locale)}
+                >
+                  {vLabel(v, locale)}
+                </Link>
+              ))}
+              <Link
+                href="/templates"
+                className="text-[13px] text-[#0071e3] hover:text-[#0077ed] border border-[#d2d2d7] rounded-full px-[14px] py-[7px] hover:border-[#0071e3]/40 transition-colors"
+              >
+                {t('relatedCta')}
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* CTA */}
         <div className="bg-[#1d1d1f] rounded-[24px] p-[32px] sm:p-[56px] text-center">
           <h2 className="text-[22px] sm:text-[32px] font-semibold italic tracking-tight text-white mb-[12px]">{t('ctaTitle')}</h2>
@@ -285,6 +340,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
