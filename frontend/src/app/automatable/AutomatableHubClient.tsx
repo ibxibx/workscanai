@@ -7,9 +7,11 @@
 import Link from 'next/link'
 import { ROLES, roleHref, rTitle } from './roles'
 import { useT, useLocale } from '@/i18n/client'
+import { resetConsent } from '@/lib/consent'
 
 export default function AutomatableHubClient() {
   const t = useT('roles')
+  const tc = useT('common')
   const locale = useLocale()
 
   return (
@@ -59,11 +61,14 @@ export default function AutomatableHubClient() {
 
       <footer className="border-t border-[#d2d2d7]">
         <div className="max-w-[820px] mx-auto px-6 py-[28px]">
-          <div className="flex justify-between items-center text-[12px] text-[#86868b]">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-[12px] text-[12px] text-[#86868b]">
             <div>© 2026 WorkScanAI</div>
-            <div className="flex gap-[24px]">
+            <div className="flex flex-wrap justify-center gap-[24px]">
               <a href="https://ianworks.dev" target="_blank" rel="noopener noreferrer" className="hover:text-[#1d1d1f] transition-colors">Ian Baumeister</a>
               <a href="https://github.com/ibxibx/workscanai" target="_blank" rel="noopener noreferrer" className="hover:text-[#1d1d1f] transition-colors">GitHub</a>
+              <Link href="/privacy" className="hover:text-[#1d1d1f] transition-colors">{tc('privacyLink')}</Link>
+              <Link href="/impressum" className="hover:text-[#1d1d1f] transition-colors">{tc('impressumLink')}</Link>
+              <button type="button" onClick={() => resetConsent()} className="hover:text-[#1d1d1f] transition-colors">{tc('cookieSettingsLink')}</button>
             </div>
           </div>
         </div>

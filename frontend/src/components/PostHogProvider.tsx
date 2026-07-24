@@ -5,12 +5,15 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { isPostHogReady } from '@/lib/analytics'
 import { resolveAcquisition } from '@/lib/audience'
+import { CONSENT_EVENT, getConsent, type ConsentValue } from '@/lib/consent'
 
 /**
  * Initializes PostHog (client-side) and fires SPA $pageview events on every
- * App-Router route change. Dormant unless NEXT_PUBLIC_POSTHOG_KEY is set, so
- * the build ships safely with no key and starts collecting once the key is
- * added in Vercel env. Session replay + autocapture are enabled here.
+ * App-Router route change. Dormant unless NEXT_PUBLIC_POSTHOG_KEY is set AND
+ * the visitor has granted cookie consent — GDPR/TTDSG require opt-in before
+ * any non-essential tracking cookie or session recording is set. Gated via
+ * lib/consent.ts + the CookieConsent banner; if consent is later revoked we
+ * opt out and reset local PostHog state immediately.
  *
  * The /admin route is excluded from capture so the owner's own dashboard
  * sessions don't pollute funnels (mirrors PageTracker's behaviour).
@@ -21,8 +24,7 @@ export default function PostHogProvider() {
   const initialized = useRef(false)
   const lastPath = useRef<string | null>(null)
 
-  // One-time init
-  useEffect(() => {
+  const initPostHog = () => {
     if (initialized.current) return
     const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
     const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com'
@@ -63,6 +65,34 @@ export default function PostHogProvider() {
     } catch { /* never break init on attribution */ }
 
     initialized.current = true
+
+    // Fire the pageview PostHog missed while it was waiting for consent
+    // (e.g. consent granted mid-session, same URL, no route-change effect).
+    const url = window.location.pathname + window.location.search
+    if (!pathname?.startsWith('/admin')) {
+      posthog.capture('$pageview', { $current_url: window.location.href })
+      lastPath.current = url
+    }
+  }
+
+  // React to consent: init on grant; opt out + wipe local state on denial
+  // or revocation (footer "Cookie settings" → reset → re-decide).
+  useEffect(() => {
+    const apply = (value: ConsentValue) => {
+      if (value === 'granted') {
+        initPostHog()
+      } else if (value === 'denied' && initialized.current) {
+        try {
+          posthog.opt_out_capturing()
+          posthog.reset()
+        } catch { /* never throw from analytics */ }
+      }
+    }
+    apply(getConsent())
+    const onChange = (e: Event) => apply((e as CustomEvent<ConsentValue>).detail)
+    window.addEventListener(CONSENT_EVENT, onChange)
+    return () => window.removeEventListener(CONSENT_EVENT, onChange)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // SPA pageview on route change (App Router doesn't fire native pageviews)

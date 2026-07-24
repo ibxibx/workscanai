@@ -8,6 +8,7 @@ import posthog from 'posthog-js'
 import { getFeatureFlag, registerExperimentVariant, isPostHogReady } from '@/lib/analytics'
 import LanguageToggle from '@/components/LanguageToggle'
 import { useT } from '@/i18n/client'
+import { resetConsent } from '@/lib/consent'
 
 // Canonical pre-generated sample report (real AI analysis of a marketing-team
 // workflow). Lets visitors see a credible result instantly — value before input,
@@ -25,6 +26,7 @@ export default function LandingPage() {
   const [referredBy, setReferredBy] = useState<string | null>(null)
   const analyzeRef = useRef<HTMLElement>(null)
   const t = useT('home')
+  const tc = useT('common')
 
   // Read ?ref={code} — the share_code of a report a viewer came from. Persist in
   // sessionStorage so it survives even if the param is stripped on later navs.
@@ -341,15 +343,18 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-[#d2d2d7]">
         <div className="max-w-[980px] mx-auto px-6 py-[32px]">
-          <div className="flex justify-between items-center text-[12px] text-[#86868b]">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-[12px] text-[12px] text-[#86868b]">
             <div>© 2026 WorkScanAI</div>
-            <div className="flex gap-[24px]">
+            <div className="flex flex-wrap justify-center gap-[24px]">
               <a href="https://ianworks.dev" target="_blank" rel="noopener noreferrer" className="hover:text-[#1d1d1f] transition-colors">
                 Ian Baumeister
               </a>
               <a href="https://github.com/ibxibx/workscanai" target="_blank" rel="noopener noreferrer" className="hover:text-[#1d1d1f] transition-colors">
                 GitHub
               </a>
+              <Link href="/privacy" className="hover:text-[#1d1d1f] transition-colors">{tc('privacyLink')}</Link>
+              <Link href="/impressum" className="hover:text-[#1d1d1f] transition-colors">{tc('impressumLink')}</Link>
+              <button type="button" onClick={() => resetConsent()} className="hover:text-[#1d1d1f] transition-colors">{tc('cookieSettingsLink')}</button>
             </div>
           </div>
         </div>
