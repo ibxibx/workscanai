@@ -1,11 +1,12 @@
 'use client'
 
-// Impressum (§ 5 DDG legal notice) — stub content, bilingual. Placeholder
-// fields ([Full name / registered business name], [Street address...],
-// [email address]) must be replaced with Ian's real legal identity/contact
-// details before this is relied on for real customers — a commercial German
-// site is required to publish these regardless of the cookie-consent
-// question. See the `legal` namespace in i18n/messages/{en,de}.ts.
+// Impressum (§ 5 DDG legal notice) — bilingual. Deliberately kept to the
+// simplest form for now: "Ian Baumeister / ianworks.dev" as provider and
+// contact, no postal address. A commercial German site's Impressum is
+// technically expected to include a full postal address (§ 5 DDG) — this
+// minimal version was an explicit choice for the current pre-revenue stage;
+// revisit once WorkScanAI has paying customers. See the `legal` namespace in
+// i18n/messages/{en,de}.ts.
 //
 // Note: the EU Online Dispute Resolution (ODR) platform was discontinued on
 // 20 July 2025, so the once-standard ODR link/clause is deliberately omitted
