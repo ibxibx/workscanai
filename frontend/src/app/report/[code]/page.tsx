@@ -173,6 +173,10 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
         .slice(0, 3)
     : []
 
+  // #64/C6.3 — resolved once, reused for the badge, WalkthroughCta reframe,
+  // and ContextSections below.
+  const reportContext = resolveContext(data.workflow.analysis_context)
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -209,7 +213,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
         <div className="mb-[32px] sm:mb-[48px]">
           <div className="inline-flex items-center gap-[8px] bg-[#f5f5f7] border border-[#d2d2d7] rounded-full px-[14px] py-[6px] text-[12px] text-[#86868b] font-medium mb-[16px] sm:mb-[20px]">
             <span className="w-[6px] h-[6px] rounded-full bg-green-500 inline-block"></span>
-            {t('badgeLabel')}
+            {reportContext === 'individual' ? t('badgeLabel') : t('badgeLabelCompany')}
           </div>
           <h1 className="text-[28px] sm:text-[40px] leading-[1.1] font-semibold italic tracking-tight mb-[8px] break-words">{data.workflow.name}</h1>
           {data.workflow.input_mode === 'job_scan' && (
@@ -241,6 +245,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
           shareCode={code}
           workflowId={data.workflow_id}
           isJobScan={data.workflow.input_mode === 'job_scan'}
+          context={reportContext}
         />
 
         {/* Task Breakdown + full context-aware sections (shared with dashboard) */}
@@ -258,7 +263,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ c
             results: data.results as SharedTaskResult[],
             industry: data.workflow.industry,
           }}
-          context={resolveContext(data.workflow.analysis_context)}
+          context={reportContext}
           workflowName={data.workflow.name}
         />
 
