@@ -1,10 +1,11 @@
 'use client'
 
-// Privacy Policy — stub content, bilingual via the same i18n system used
-// everywhere else. Placeholder fields ([Full name / registered business
-// name], [Street address...], [email address]) must be filled in with real
-// legal/contact details before this is relied on for real customers — see
-// the `legal` namespace in i18n/messages/{en,de}.ts.
+// Privacy Policy — bilingual via the same i18n system used everywhere else.
+// Kept intentionally minimal for now: controller/contact both point to
+// "Ian Baumeister / ianworks.dev" rather than a full postal address. Fine
+// for the current pre-revenue stage; revisit with real business/address
+// details once WorkScanAI has paying customers. See the `legal` namespace
+// in i18n/messages/{en,de}.ts.
 
 import Link from 'next/link'
 import { Brain } from 'lucide-react'
