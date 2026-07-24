@@ -5,6 +5,7 @@ import { AuthProvider } from "@/lib/auth";
 import SiteHeader from "@/components/SiteHeader";
 import PageTracker from "@/components/PageTracker";
 import PostHogProvider from "@/components/PostHogProvider";
+import CookieConsent from "@/components/CookieConsent";
 import { Suspense } from "react";
 import { I18nProvider } from "@/i18n/client";
 
@@ -88,6 +89,7 @@ export default function RootLayout({
             <PageTracker />
             <SiteHeader />
             {children}
+            <CookieConsent />
           </AuthProvider>
         </I18nProvider>
       </body>
