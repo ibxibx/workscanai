@@ -26,6 +26,11 @@
 <details>
 <summary><strong>📑 Contents</strong> — click to expand</summary>
 
+---
+
+<details>
+<summary><strong>📑 Contents</strong> — click to expand</summary>
+
 - [Demo](#demo) · [Screenshots](#screenshots)
 - [The Problem](#the-problem) · [The Solution](#the-solution) · [Value Proposition](#value-proposition)
 - [Key Features](#key-features)
