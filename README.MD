@@ -2,6 +2,7 @@
 
 **WorkScanAI
 AI-Powered Workflow Analysis for the Age of Automation**
+
 <img src="pics/WorkScanAILogo.png" alt="WorkScanAI Logo" width="470" />
 
 
@@ -59,9 +60,7 @@ AI-Powered Workflow Analysis for the Age of Automation**
 
 *The future of work starts with knowing what to automate.*
 **WorkScanAI analyzes your team's workflows and identifies automation opportunities in minutes, not months.**
-
 <div align="center">
-
 ![WorkScanAI Demo — type a job title, get a full AI automation report in 45 seconds](workscanai-demo.gif)
 
 **Type any job title → AI researches the role → scores every task for automation readiness → generates ROI, roadmap, and ready-to-import n8n workflows — in under 45 seconds.**
