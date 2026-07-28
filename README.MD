@@ -1,10 +1,8 @@
 <div align="center">
 
+**WorkScanAI — AI-Powered Workflow Analysis for the Age of Automation**
+
 <img src="pics/WorkScanAILogo.png" alt="WorkScanAI Logo" width="470" />
-
-# WorkScanAI
-
-**AI-Powered Workflow Analysis for the Age of Automation**
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
