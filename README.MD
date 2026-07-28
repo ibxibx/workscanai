@@ -27,7 +27,7 @@
 <summary><strong>📑 Contents</strong> — click to expand</summary>
 
 - [Demo](#demo) · [Screenshots](#screenshots)
-- [The Problem](#the-problem) · [The Solution](#the-solution)
+- [The Problem](#the-problem) · [The Solution](#the-solution) · [Value Proposition](#value-proposition)
 - [Key Features](#key-features)
   — Input & Data Capture · Core Analysis Engine · Role-Based Output · Automation & n8n Export · Reporting, Sharing & Retention · Growth, SEO & Discovery · Localization · Security, Privacy & Compliance · Analytics & Admin
 - [Tech Stack](#tech-stack) · [Architecture](#architecture)
@@ -59,7 +59,7 @@
 
 ![WorkScanAI Demo — type a job title, get a full AI automation report in 45 seconds](workscanai-demo.gif)
 
-*Type any job title → AI researches the role → scores every task for automation readiness → generates ROI, roadmap, and ready-to-import n8n workflows — in under 45 seconds.*
+**Type any job title → AI researches the role → scores every task for automation readiness → generates ROI, roadmap, and ready-to-import n8n workflows — in under 45 seconds.**
 
 </div>
 
@@ -94,12 +94,22 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 
 ---
 
+## Value Proposition
+
+With the help of WorkScanAI — plus my personal free consultation (at your disposal, whenever you'd like it) for a custom-tailored implementation of a workflow automation — you get the following, depending on who you are:
+
+- **Individuals / Independent Professionals** — Accelerate your workflow and cut down on time-consuming work. Benefit from cutting-edge automation tools to free up more time and keep growing.
+- **Small Businesses / Startups** — Find new ways to be more productive and less dependent on legacy systems and their limitations. Explore viable new paths for your business and benefit from innovative workflow automations that support and propel it forward.
+- **Medium Businesses / Scale-Ups** — Unlock and leverage the power of AI and technology to smartly consolidate and optimize your daily workflows, reduce costs, strengthen your daily operations, deliver more value to your clients, and meaningfully reduce overhead while mitigating risk.
+
+---
+
 ## Key Features
 
 35+ shipped features, grouped by function — jump to a category or scroll straight through.
 
-### 📥 Input & Data Capture
-*How work gets into the system.*
+<h3 align="center">📥 Input & Data Capture</h3>
+<p align="center"><em>How work gets into the system.</em></p>
 
 | Feature | Description |
 |---|---|
@@ -108,8 +118,8 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 | ✍️ **Manual Entry** | Type tasks directly with dynamic add/remove controls |
 | 🔍 **Job Scanner** | Enter a job title — Tavily web-searches the role, Claude extracts tasks and context automatically |
 
-### 🧠 Core Analysis Engine
-*Runs on every submission, regardless of who's asking.*
+<h3 align="center">🧠 Core Analysis Engine</h3>
+<p align="center"><em>Runs on every submission, regardless of who's asking.</em></p>
 
 | Feature | Description |
 |---|---|
@@ -124,8 +134,8 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 | 🛡️ **Risk & Compliance Flags** | Flags tasks with PII, financial, legal, or compliance concerns |
 | 📡 **Live Analysis Progress** | `/api/analyze` streams real progress over SSE (analyzing → ROI → n8n → done); falls back to plain JSON automatically on older deploys |
 
-### 🎯 Role-Based Output
-*Same task list, different report — tailored to who's reading it.*
+<h3 align="center">🎯 Role-Based Output</h3>
+<p align="center"><em>Same task list, different report — tailored to who's reading it.</em></p>
 
 | Feature | Applies To | Description |
 |---|---|---|
@@ -136,15 +146,15 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 | 🏢 **AI-First Competitor Gap** | Company / Dept | Cost of inaction — what a competitor gains if they move first |
 | 👥 **Headcount Signal** | Company / Dept | FTE equivalent freed, redeployment recommendation |
 
-### ⚙️ Automation & n8n Export
-*Turning the analysis into something that actually runs.*
+<h3 align="center">⚙️ Automation & n8n Export</h3>
+<p align="center"><em>Turning the analysis into something that actually runs.</em></p>
 
 | Feature | Description |
 |---|---|
 | ⚙️ **n8n Workflow Download** | Every Job Scanner result includes a ready-to-import n8n canvas — one column per task, real trigger→process→output chains, downloadable as JSON |
 
-### 📊 Reporting, Sharing & Retention
-*Getting the analysis in front of the right people — and back in front of them again.*
+<h3 align="center">📊 Reporting, Sharing & Retention</h3>
+<p align="center"><em>Getting the analysis in front of the right people — and back in front of them again.</em></p>
 
 | Feature | Description |
 |---|---|
@@ -155,23 +165,23 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 | 📧 **Email-Gated Full Report** | Visitors can unlock the full PDF + n8n export by email — captured as a named lead |
 | ⏰ **Quick-Win Retention Digest** | Daily cron emails report-gate leads their single highest-ROI quick win 3 days after they viewed a report |
 
-### 🌐 Growth, SEO & Discovery
-*Public surfaces built to bring people in.*
+<h3 align="center">🌐 Growth, SEO & Discovery</h3>
+<p align="center"><em>Public surfaces built to bring people in.</em></p>
 
 | Feature | Description |
 |---|---|
 | 🔎 **Programmatic SEO Hub** | `/automatable` — per-role automation breakdowns (marketing manager, bookkeeper, recruiter, SDR, support agent…) for organic + GEO discovery |
 | 🗂️ **Industry Sample Gallery** | `/templates` — public pre-built sample reports across verticals, indexed via `sitemap.ts` |
 
-### 🌍 Localization
-*One product, two languages.*
+<h3 align="center">🌍 Localization</h3>
+<p align="center"><em>One product, two languages.</em></p>
 
 | Feature | Description |
 |---|---|
 | 🌍 **Bilingual (EN/DE)** | Full German translation — landing, scanner, dashboard, reports, PDFs, and transactional emails, toggled by a 3D flag switch |
 
-### 🔐 Security, Privacy & Compliance
-*Protecting users, visitors, and the site itself.*
+<h3 align="center">🔐 Security, Privacy & Compliance</h3>
+<p align="center"><em>Protecting users, visitors, and the site itself.</em></p>
 
 | Feature | Description |
 |---|---|
@@ -179,8 +189,8 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 | ⚡ **Rate Limiting** | DB-backed daily cap per IP + per email, with reCAPTCHA v3 and an owner/admin bypass |
 | 🍪 **GDPR/TTDSG Cookie Consent** | Explicit opt-in banner gates all non-essential analytics; Privacy Policy + Impressum pages |
 
-### 📈 Analytics & Admin Operations
-*The owner's view of what's happening across the product.*
+<h3 align="center">📈 Analytics & Admin Operations</h3>
+<p align="center"><em>The owner's view of what's happening across the product.</em></p>
 
 | Feature | Description |
 |---|---|
