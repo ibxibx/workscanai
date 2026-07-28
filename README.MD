@@ -86,9 +86,9 @@
 
 Curious what a full WorkScanAI report actually looks like? Have a look — three real, complete analyses pulled straight from production, each for a different profession:
 
-- 📄 **[HR & Recruiting](sample-reports/WorkScanAI_Sample_Report_HR_Recruiting.pdf)** — 82% automation score · €7,426/yr saved · 149 hours reclaimed
-- 📄 **[Legal & Compliance](sample-reports/WorkScanAI_Sample_Report_Legal_Compliance.pdf)** — 79% automation score · €10,540/yr saved · 210 hours reclaimed
-- 📄 **[Sales Operations](sample-reports/WorkScanAI_Sample_Report_Sales_Operations.pdf)** — 76% automation score · €8,945/yr saved · 179 hours reclaimed
+- <a href="https://raw.githubusercontent.com/ibxibx/workscanai/main/sample-reports/WorkScanAI_Sample_Report_HR_Recruiting.pdf" target="_blank" rel="noopener noreferrer"><span style="font-size:1.8em; vertical-align:middle; line-height:1;">📄</span> <strong>HR & Recruiting</strong></a> — 82% automation score · €7,426/yr saved · 149 hours reclaimed
+- <a href="https://raw.githubusercontent.com/ibxibx/workscanai/main/sample-reports/WorkScanAI_Sample_Report_Legal_Compliance.pdf" target="_blank" rel="noopener noreferrer"><span style="font-size:1.8em; vertical-align:middle; line-height:1;">📄</span> <strong>Legal & Compliance</strong></a> — 79% automation score · €10,540/yr saved · 210 hours reclaimed
+- <a href="https://raw.githubusercontent.com/ibxibx/workscanai/main/sample-reports/WorkScanAI_Sample_Report_Marketing_and_Sales.pdf" target="_blank" rel="noopener noreferrer"><span style="font-size:1.8em; vertical-align:middle; line-height:1;">📄</span> <strong>Marketing and Sales</strong></a> — 69% automation score · €12,790/yr saved · 256 hours reclaimed (18 tasks, 26-page deep-dive with career pivot analysis)
 
 These are the genuine, full-length PDF export — cover KPIs, AI Readiness Assessment, per-task scoring and recommendations, Implementation Roadmap, and the role-specific strategy section included, nothing trimmed for the demo. Want to see more? There are real samples across 10 industries at [workscanai.vercel.app/templates](https://workscanai.vercel.app/templates).
 
