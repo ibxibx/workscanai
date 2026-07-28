@@ -55,6 +55,9 @@
 
 ## Demo
 
+*The future of work starts with knowing what to automate.*
+**WorkScanAI analyzes your team's workflows and identifies automation opportunities in minutes, not months.**
+
 <div align="center">
 
 ![WorkScanAI Demo — type a job title, get a full AI automation report in 45 seconds](workscanai-demo.gif)
@@ -96,11 +99,11 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 
 ## Value Proposition
 
-With the help of WorkScanAI — plus my personal free consultation (at your disposal, whenever you'd like it) for a custom-tailored implementation of a workflow automation — you get the following, depending on who you are:
+With the help of **WorkScanAI** — plus my **personal free consultation** (at your disposal, whenever you'd like it) for a custom-tailored implementation of a workflow automation — you get the following, depending on who you are:
 
-- **Individuals / Independent Professionals** — Accelerate your workflow and cut down on time-consuming work. Benefit from cutting-edge automation tools to free up more time and keep growing.
-- **Small Businesses / Startups** — Find new ways to be more productive and less dependent on legacy systems and their limitations. Explore viable new paths for your business and benefit from innovative workflow automations that support and propel it forward.
-- **Medium Businesses / Scale-Ups** — Unlock and leverage the power of AI and technology to smartly consolidate and optimize your daily workflows, reduce costs, strengthen your daily operations, deliver more value to your clients, and meaningfully reduce overhead while mitigating risk.
+- **<u>Individuals / Independent Professionals</u>** — Accelerate your workflow and cut down on time-consuming work. Benefit from cutting-edge automation tools to free up more time and keep growing.
+- **<u>Small Businesses / Startups</u>** — Find new ways to be more productive and less dependent on legacy systems and their limitations. Explore viable new paths for your business and benefit from innovative workflow automations that support and propel it forward.
+- **<u>Medium Businesses / Scale-Ups</u>** — Unlock and leverage the power of AI and technology to smartly consolidate and optimize your daily workflows, reduce costs, strengthen your daily operations, deliver more value to your clients, and meaningfully reduce overhead while mitigating risk.
 
 ---
 
