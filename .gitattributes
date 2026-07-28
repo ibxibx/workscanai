@@ -1,0 +1,11 @@
+# Never let git rewrite line endings inside binary files — CRLF normalization
+# corrupts binary formats since it can insert/alter bytes inside exact
+# byte-offset structures (PDF xref tables, DOCX/XLSX zip containers, images).
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
