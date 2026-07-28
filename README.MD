@@ -4,6 +4,12 @@
 
 <img src="pics/WorkScanAILogo.png" alt="WorkScanAI Logo" width="470" />
 
+
+
+*Submit your team's workflow → get a ranked automation plan with real ROI numbers in under 5 minutes.*
+
+🌐 **Live:** [workscanai.vercel.app](https://workscanai.vercel.app) &nbsp;·&nbsp; **Repo:** [github.com/ibxibx/workscanai](https://github.com/ibxibx/workscanai)
+
 [![Python](https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)](https://react.dev/)
@@ -12,11 +18,6 @@
 [![Claude AI](https://img.shields.io/badge/Claude-Anthropic-cc785c)](https://www.anthropic.com/)
 [![i18n](https://img.shields.io/badge/i18n-EN%20%7C%20DE-6366f1)](#localization-en--de)
 [![License](https://img.shields.io/badge/License-MIT-22c55e)](LICENSE)
-
-*Submit your team's workflow → get a ranked automation plan with real ROI numbers in under 5 minutes.*
-
-🌐 **Live:** [workscanai.vercel.app](https://workscanai.vercel.app) &nbsp;·&nbsp; **Repo:** [github.com/ibxibx/workscanai](https://github.com/ibxibx/workscanai)
-
 </div>
 
 ---
