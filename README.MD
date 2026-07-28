@@ -23,6 +23,36 @@
 
 ---
 
+<details>
+<summary><strong>📑 Contents</strong> — click to expand</summary>
+
+- [Demo](#demo) · [Screenshots](#screenshots)
+- [The Problem](#the-problem) · [The Solution](#the-solution)
+- [Key Features](#key-features)
+  — Input & Data Capture · Core Analysis Engine · Role-Based Output · Automation & n8n Export · Reporting, Sharing & Retention · Growth, SEO & Discovery · Localization · Security, Privacy & Compliance · Analytics & Admin
+- [Tech Stack](#tech-stack) · [Architecture](#architecture)
+- [Analysis Intelligence](#analysis-intelligence)
+- [Authentication](#authentication)
+- [Database: Turso (libSQL)](#database-turso-libsql)
+- [Input Modes](#input-modes)
+- [Shareable Reports](#shareable-reports)
+- [Export Reports (PDF + DOCX)](#export-reports-pdf--docx)
+- [Admin Dashboard](#admin-dashboard)
+- [Localization (EN / DE)](#localization-en--de)
+- [Privacy, Consent & Analytics](#privacy-consent--analytics)
+- [Growth & SEO Surfaces](#growth--seo-surfaces)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Deployment](#deployment)
+- [Key Engineering Lessons](#key-engineering-lessons)
+- [Example Output](#example-output)
+- [Contributing](#contributing)
+- [License](#license)
+
+</details>
+
+---
+
 ## Demo
 
 <div align="center">
@@ -66,14 +96,23 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 
 ## Key Features
 
+35+ shipped features, grouped by function — jump to a category or scroll straight through.
+
+### 📥 Input & Data Capture
+*How work gets into the system.*
+
 | Feature | Description |
 |---|---|
 | 🎙️ **Voice Input** | Record tasks verbally — Web Speech API transcribes in real time |
 | 📄 **Document Upload** | Parse PDFs, Word, Excel, PowerPoint, images (20+ formats) via Claude Vision OCR |
 | ✍️ **Manual Entry** | Type tasks directly with dynamic add/remove controls |
 | 🔍 **Job Scanner** | Enter a job title — Tavily web-searches the role, Claude extracts tasks and context automatically |
-| ⚙️ **n8n Workflow Download** | Every Job Scanner result includes a ready-to-import n8n canvas — one column per task, real trigger→process→output chains, downloadable as JSON |
-| 👤 **3 Analysis Contexts** | Individual (career survival), Team/Startup (velocity), Company/Dept (strategic ROI) |
+
+### 🧠 Core Analysis Engine
+*Runs on every submission, regardless of who's asking.*
+
+| Feature | Description |
+|---|---|
 | 🤖 **AI-Readiness Scoring** | 0–100% composite score per task: Repeatability, Data Access, Error Tolerance, Integration |
 | 🧩 **Decision Layer Analysis** | Explicitly flags tasks requiring human judgment vs fully automatable — no oversimplification |
 | ⚡ **900-Day Countdown Clock** | Per-task urgency: Automate NOW / 12–24 mo / 24–48 mo / Safe 48+ months |
@@ -83,27 +122,70 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 | 🤖 **Agentification Roadmap** | Phase 1: Human-in-Loop → Phase 2: Supervised → Phase 3: Full Delegation per task |
 | ⚙️ **Orchestration Blueprint** | Multi-agent pipeline description per automatable task |
 | 🛡️ **Risk & Compliance Flags** | Flags tasks with PII, financial, legal, or compliance concerns |
-| 🎯 **Career Pivot Plan** | Skills to develop + adjacent lower-risk roles (Individual context) |
-| 🚀 **90-Day Sprint Plan** | Highest-ROI quick wins prioritised for first sprint (Team context) |
-| 📊 **Board-Ready Summary** | Copy-paste executive memo with savings, FTE, and 90-day recommendation (Company context) |
-| 🏆 **Industry Benchmark** | Your score vs sector average (58%) vs AI-first top 10% (81%) |
-| 🏢 **AI-First Competitor Gap** | Cost of inaction — what a competitor gains if they move first |
-| 👥 **Headcount Signal** | FTE equivalent freed, redeployment recommendation |
+| 📡 **Live Analysis Progress** | `/api/analyze` streams real progress over SSE (analyzing → ROI → n8n → done); falls back to plain JSON automatically on older deploys |
+
+### 🎯 Role-Based Output
+*Same task list, different report — tailored to who's reading it.*
+
+| Feature | Applies To | Description |
+|---|---|---|
+| 🎯 **Career Pivot Plan** | Individual | Skills to develop + adjacent lower-risk roles |
+| 🚀 **90-Day Sprint Plan** | Team / Startup | Highest-ROI quick wins prioritised for first sprint |
+| 📊 **Board-Ready Summary** | Company / Dept | Copy-paste executive memo with savings, FTE, and 90-day recommendation |
+| 🏆 **Industry Benchmark** | Company / Dept | Your score vs sector average (58%) vs AI-first top 10% (81%) |
+| 🏢 **AI-First Competitor Gap** | Company / Dept | Cost of inaction — what a competitor gains if they move first |
+| 👥 **Headcount Signal** | Company / Dept | FTE equivalent freed, redeployment recommendation |
+
+### ⚙️ Automation & n8n Export
+*Turning the analysis into something that actually runs.*
+
+| Feature | Description |
+|---|---|
+| ⚙️ **n8n Workflow Download** | Every Job Scanner result includes a ready-to-import n8n canvas — one column per task, real trigger→process→output chains, downloadable as JSON |
+
+### 📊 Reporting, Sharing & Retention
+*Getting the analysis in front of the right people — and back in front of them again.*
+
+| Feature | Description |
+|---|---|
 | 📥 **Export Reports** | Full PDF + DOCX with all sections — complete parity with the web dashboard |
 | 🔗 **Shareable Reports** | Public `/report/{code}` URL with auto-generated OG image for LinkedIn sharing |
 | 📊 **Visual Dashboard** | All analyses with aggregate stats, euro savings, combined report download |
-| 🔐 **Magic Link Auth** | Email OTP authentication via 4-digit CSPRNG code — no passwords, brute-force locked after 5 attempts |
-| ⚡ **Rate Limiting** | DB-backed daily cap per IP + per email, with reCAPTCHA v3 and an owner/admin bypass |
-| 📡 **Live Analysis Progress** | `/api/analyze` streams real progress over SSE (analyzing → ROI → n8n → done); falls back to plain JSON automatically on older deploys |
-| 🌍 **Bilingual (EN/DE)** | Full German translation — landing, scanner, dashboard, reports, PDFs, and transactional emails, toggled by a 3D flag switch |
-| 🍪 **GDPR/TTDSG Cookie Consent** | Explicit opt-in banner gates all non-essential analytics; Privacy Policy + Impressum pages |
-| 📈 **Dual Analytics Stack** | PostHog product analytics (consent-gated) + a first-party, privacy-safe page-view tracker (hashed IPs, no cookie needed) |
-| 🗺️ **Admin Geo Dashboard** | Country/city traffic breakdown with rolling 1/3/6-month windows, `/admin` → Geo tab |
+| 🛡️ **Legal & Accuracy Disclaimer** | Standardised disclaimer footer on every report surface (web, PDF, DOCX) |
 | 📧 **Email-Gated Full Report** | Visitors can unlock the full PDF + n8n export by email — captured as a named lead |
 | ⏰ **Quick-Win Retention Digest** | Daily cron emails report-gate leads their single highest-ROI quick win 3 days after they viewed a report |
+
+### 🌐 Growth, SEO & Discovery
+*Public surfaces built to bring people in.*
+
+| Feature | Description |
+|---|---|
 | 🔎 **Programmatic SEO Hub** | `/automatable` — per-role automation breakdowns (marketing manager, bookkeeper, recruiter, SDR, support agent…) for organic + GEO discovery |
 | 🗂️ **Industry Sample Gallery** | `/templates` — public pre-built sample reports across verticals, indexed via `sitemap.ts` |
-| 🛡️ **Legal & Accuracy Disclaimer** | Standardised disclaimer footer on every report surface (web, PDF, DOCX) |
+
+### 🌍 Localization
+*One product, two languages.*
+
+| Feature | Description |
+|---|---|
+| 🌍 **Bilingual (EN/DE)** | Full German translation — landing, scanner, dashboard, reports, PDFs, and transactional emails, toggled by a 3D flag switch |
+
+### 🔐 Security, Privacy & Compliance
+*Protecting users, visitors, and the site itself.*
+
+| Feature | Description |
+|---|---|
+| 🔐 **Magic Link Auth** | Email OTP authentication via 4-digit CSPRNG code — no passwords, brute-force locked after 5 attempts |
+| ⚡ **Rate Limiting** | DB-backed daily cap per IP + per email, with reCAPTCHA v3 and an owner/admin bypass |
+| 🍪 **GDPR/TTDSG Cookie Consent** | Explicit opt-in banner gates all non-essential analytics; Privacy Policy + Impressum pages |
+
+### 📈 Analytics & Admin Operations
+*The owner's view of what's happening across the product.*
+
+| Feature | Description |
+|---|---|
+| 📈 **Dual Analytics Stack** | PostHog product analytics (consent-gated) + a first-party, privacy-safe page-view tracker (hashed IPs, no cookie needed) |
+| 🗺️ **Admin Geo Dashboard** | Country/city traffic breakdown with rolling 1/3/6-month windows, `/admin` → Geo tab |
 | 🔥 **Cold-Start Warming** | Frontend pings the Render backend and shows a "waking up" state instead of a blank error on free-tier cold starts |
 | 🛠️ **Admin Dashboard** | `/admin` — usage stats, geo breakdown, all submissions, result links, user table, backfill + rate-limit reset tools |
 
@@ -633,54 +715,9 @@ Hard-won insights from building this project.
 | 4-digit OTP crackable in a live session | Codes were TTL-limited but not attempt-limited — 10,000 combinations is brute-forceable inside 15 minutes | Track failed attempts per email in-memory, lock after 5 within the TTL window until a new code is requested |
 | Dashboard/results/roadmap 403'd on a fresh session | Authenticated routes had no recovery path if the session email didn't match the workflow owner (e.g. after a logout/login) | Recover access via the workflow's public `share_code` instead of hard-failing to a dead end |
 | First page load after Render cold-start looked broken | No visual difference between "still loading" and "backend is down" on a 20–50s free-tier wake-up | `wake-ping.ts` fires an early warm-up request; `BackendWarming.tsx` renders an explicit "waking up" state instead of a raw error |
+| Analysis calls timed out on Render's free tier | Each task was sent to Claude as a separate sequential API call — N tasks meant N round-trips | Batch every task into ONE Claude API request per analysis |
 
----
-
-## What's Built — Feature Inventory
-
-### Analysis Engine
-- **Batched Claude API call** — all tasks analyzed in ONE API request (was N sequential calls, caused timeouts on Render free tier)
-- **McKinsey-grade scoring** — 4 sub-scores weighted into composite, with explicit calibration rules for strategic vs data-processing tasks
-- **Decision Layer field** (`none` / `partial` / `full`) — distinguishes fully automatable from human-judgment-required tasks
-- **900-day countdown** per task — based on Mostaque's prediction framework
-- **Human Edge Score** per task — irreplaceability as a percentage
-- **Career Pivot Plan** — skills to develop + adjacent roles with automation risk scores (Individual context)
-- **Agentification phases** — Phase 1/2/3 per task with concrete milestones
-- **Orchestration blueprints** — multi-agent pipeline descriptions for automatable tasks
-- **Risk flags** — PII, financial, legal, compliance concerns per task
-- **AI Readiness Assessment** — org-level readiness across 4 dimensions
-- **n8n canvas generation** — `N8nTemplateClient` builds one merged importable canvas per Job Scanner result: purpose-built workflow JSON for 40+ task categories (no broken community API dependency), one column per task, real trigger→process→output chains, correct node `typeVersion` numbers, downloadable as `.json`
-- **SSE progress streaming** — `/api/analyze` streams staged progress events instead of a single blocking response, with automatic fallback to JSON
-
-### Frontend
-- **Apple-inspired design** — clean white cards, `#0071e3` blue accent, hover lifts, stat animations
-- **3-context selector** — Individual / Team / Startup / Company with context-specific result sections
-- **4-digit OTP login** — paste, auto-advance, backspace hold-to-erase, auto-submit
-- **Job Scanner tab** — URL input with Tavily + Claude pipeline; profile selector hidden in scan mode; context auto-set from extraction; pre-fills task list ready to analyse or edit
-- **Mobile-responsive** — all stat grids use responsive font sizes (`text-[22px] sm:text-[36px]`) and `grid-cols-1 sm:grid-cols-3` to prevent overflow on small screens
-- **Decision Layer badge** — `🧩 Human Required` (violet) or `🔀 AI + Human` (sky blue) per task card
-- **Recommendation renderer** — splits on "Option 2" AND "Decision layer:" patterns, renders decision content in violet
-- **Live progress modal** — real SSE-driven steps (not a fake progress bar) during analysis
-- **Cold-start warming state** — explicit "waking up" UI instead of a blank fetch error on Render free-tier spin-up
-
-### Localization, Growth & Compliance
-- **Full EN/DE bilingual UI** — cookie-based locale layer, no routing changes; covers app, PDFs, and transactional emails
-- **3D flag language toggle** in the site header
-- **Programmatic SEO hub** — `/automatable/{role}` per-role pages + `/templates` industry sample gallery, both wired into `sitemap.ts`
-- **GDPR/TTDSG cookie consent banner** gating PostHog behind explicit opt-in, plus `/privacy` and `/impressum` pages
-- **Legal/accuracy disclaimer** standardised across every report surface
-
-### Growth & Retention
-- **Email-gated full report** — unlock the PDF + n8n export by email, capturing a named `ReportLead`
-- **Quick-win retention digest** — daily cron emails leads their best automation win 3 days after viewing a report
-- **Dual analytics** — PostHog (consent-gated product analytics) + a first-party, IP-hashed page-view tracker feeding the admin geo dashboard
-
-### Infrastructure
-- **Turso custom DBAPI shim** — full SQLAlchemy compatibility via libSQL HTTP API
-- **Magic link / OTP auth** — Resend email provider, CSPRNG 4-digit code, brute-force lockout, DB-backed daily rate limit per IP + email
-- **Centralized secrets & config** — one `Settings` object (`app.core.config`) with fail-loud production checks; centralized, constant-time admin auth
-- **Keep-alive cron** — Vercel cron pings Render every 5 days to prevent free-tier spin-down
-- **Admin dashboard** — stats, geo breakdown, all users, all submissions, backfill + rate-limit-reset tools, direct result + share URLs
+> Looking for implementation detail behind any feature above? Every category has its own deep-dive section further down — Analysis Intelligence, Input Modes, Admin Dashboard, Localization, Privacy & Analytics, Growth & SEO Surfaces. Use the **📑 Contents** dropdown at the top of this file to jump straight there.
 
 ---
 
