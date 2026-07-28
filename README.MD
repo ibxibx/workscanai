@@ -31,7 +31,7 @@ AI-Powered Workflow Analysis for the Age of Automation**
 <details>
 <summary><strong>📑 Contents</strong> — click to expand</summary>
 
-- [Demo](#demo) · [Screenshots](#screenshots)
+- [Demo](#demo) · [Screenshots](#screenshots) · [Sample Reports](#sample-reports)
 - [The Problem](#the-problem) · [The Solution](#the-solution) · [Value Proposition](#value-proposition)
 - [Key Features](#key-features)
   — Input & Data Capture · Core Analysis Engine · Role-Based Output · Automation & n8n Export · Reporting, Sharing & Retention · Growth, SEO & Discovery · Localization · Security, Privacy & Compliance · Analytics & Admin
@@ -78,6 +78,18 @@ AI-Powered Workflow Analysis for the Age of Automation**
 | ![Landing Page](pics/Screenshot1.jpg) | ![Input Methods](pics/Screenshot2.jpg) |
 | **Analysis Results & ROI** | **Implementation Roadmap** |
 | ![Analysis Results](pics/Screenshot3.jpg) | ![Roadmap](pics/Screenshot4.jpg) |
+
+---
+
+## Sample Reports
+
+Curious what a full WorkScanAI report actually looks like? Have a look — three real, complete analyses pulled straight from production, each for a different profession:
+
+- 📄 **[HR & Recruiting](sample-reports/WorkScanAI_Sample_Report_HR_Recruiting.pdf)** — 82% automation score · €7,426/yr saved · 149 hours reclaimed
+- 📄 **[Legal & Compliance](sample-reports/WorkScanAI_Sample_Report_Legal_Compliance.pdf)** — 79% automation score · €10,540/yr saved · 210 hours reclaimed
+- 📄 **[Sales Operations](sample-reports/WorkScanAI_Sample_Report_Sales_Operations.pdf)** — 76% automation score · €8,945/yr saved · 179 hours reclaimed
+
+These are the genuine, full-length PDF export — cover KPIs, AI Readiness Assessment, per-task scoring and recommendations, Implementation Roadmap, and the role-specific strategy section included, nothing trimmed for the demo. Want to see more? There are real samples across 10 industries at [workscanai.vercel.app/templates](https://workscanai.vercel.app/templates).
 
 ---
 
