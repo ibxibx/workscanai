@@ -1,6 +1,7 @@
 <div align="center">
 
-**WorkScanAI — AI-Powered Workflow Analysis for the Age of Automation**
+**WorkScanAI
+AI-Powered Workflow Analysis for the Age of Automation**
 <img src="pics/WorkScanAILogo.png" alt="WorkScanAI Logo" width="470" />
 
 
@@ -21,10 +22,6 @@
 [![License](https://img.shields.io/badge/License-MIT-22c55e)](LICENSE)
 </div>
 
----
-
-<details>
-<summary><strong>📑 Contents</strong> — click to expand</summary>
 
 ---
 
