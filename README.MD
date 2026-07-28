@@ -11,6 +11,8 @@ AI-Powered Workflow Analysis for the Age of Automation**
 
 
 
+
+
 🌐 **Live:** [workscanai.vercel.app](https://workscanai.vercel.app) &nbsp;·&nbsp; **Repo:** [github.com/ibxibx/workscanai](https://github.com/ibxibx/workscanai)
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white)](https://www.python.org/)
@@ -58,10 +60,10 @@ AI-Powered Workflow Analysis for the Age of Automation**
 
 ## Demo
 
-*The future of work starts with knowing what to automate.*
+**The future of work starts with knowing what to automate.**
 **WorkScanAI analyzes your team's workflows and identifies automation opportunities in minutes, not months.**
 <div align="center">
-![WorkScanAI Demo — type a job title, get a full AI automation report in 45 seconds](workscanai-demo.gif)
+**Submit or describe your workflow, and get a valuable full AI automation report in 45 seconds!**
 
 **Type any job title → AI researches the role → scores every task for automation readiness → generates ROI, roadmap, and ready-to-import n8n workflows — in under 45 seconds.**
 
