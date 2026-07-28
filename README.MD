@@ -7,10 +7,12 @@
 **AI-Powered Workflow Analysis for the Age of Automation**
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white)](https://www.python.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-14+-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-latest-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Claude AI](https://img.shields.io/badge/Claude-Anthropic-cc785c)](https://www.anthropic.com/)
+[![i18n](https://img.shields.io/badge/i18n-EN%20%7C%20DE-6366f1)](#localization-en--de)
 [![License](https://img.shields.io/badge/License-MIT-22c55e)](LICENSE)
 
 *Submit your team's workflow → get a ranked automation plan with real ROI numbers in under 5 minutes.*
@@ -90,9 +92,20 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 | 📥 **Export Reports** | Full PDF + DOCX with all sections — complete parity with the web dashboard |
 | 🔗 **Shareable Reports** | Public `/report/{code}` URL with auto-generated OG image for LinkedIn sharing |
 | 📊 **Visual Dashboard** | All analyses with aggregate stats, euro savings, combined report download |
-| 🔐 **Magic Link Auth** | Email OTP authentication via 4-digit code — no passwords |
-| ⚡ **Rate Limiting** | 5 analyses per 24 hours per email (configurable) |
-| 🛠️ **Admin Dashboard** | `/admin` — usage stats, all submissions, result links, user table |
+| 🔐 **Magic Link Auth** | Email OTP authentication via 4-digit CSPRNG code — no passwords, brute-force locked after 5 attempts |
+| ⚡ **Rate Limiting** | DB-backed daily cap per IP + per email, with reCAPTCHA v3 and an owner/admin bypass |
+| 📡 **Live Analysis Progress** | `/api/analyze` streams real progress over SSE (analyzing → ROI → n8n → done); falls back to plain JSON automatically on older deploys |
+| 🌍 **Bilingual (EN/DE)** | Full German translation — landing, scanner, dashboard, reports, PDFs, and transactional emails, toggled by a 3D flag switch |
+| 🍪 **GDPR/TTDSG Cookie Consent** | Explicit opt-in banner gates all non-essential analytics; Privacy Policy + Impressum pages |
+| 📈 **Dual Analytics Stack** | PostHog product analytics (consent-gated) + a first-party, privacy-safe page-view tracker (hashed IPs, no cookie needed) |
+| 🗺️ **Admin Geo Dashboard** | Country/city traffic breakdown with rolling 1/3/6-month windows, `/admin` → Geo tab |
+| 📧 **Email-Gated Full Report** | Visitors can unlock the full PDF + n8n export by email — captured as a named lead |
+| ⏰ **Quick-Win Retention Digest** | Daily cron emails report-gate leads their single highest-ROI quick win 3 days after they viewed a report |
+| 🔎 **Programmatic SEO Hub** | `/automatable` — per-role automation breakdowns (marketing manager, bookkeeper, recruiter, SDR, support agent…) for organic + GEO discovery |
+| 🗂️ **Industry Sample Gallery** | `/templates` — public pre-built sample reports across verticals, indexed via `sitemap.ts` |
+| 🛡️ **Legal & Accuracy Disclaimer** | Standardised disclaimer footer on every report surface (web, PDF, DOCX) |
+| 🔥 **Cold-Start Warming** | Frontend pings the Render backend and shows a "waking up" state instead of a blank error on free-tier cold starts |
+| 🛠️ **Admin Dashboard** | `/admin` — usage stats, geo breakdown, all submissions, result links, user table, backfill + rate-limit reset tools |
 
 ---
 
@@ -100,12 +113,15 @@ Receive a scored automation assessment, concrete ROI projection, phased implemen
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| **Frontend** | Next.js 14, TypeScript, Tailwind CSS | App Router, SSR, client components |
-| **Backend** | Python 3.11, FastAPI | REST API, AI orchestration |
+| **Frontend** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4 | SSR, client components, edge routes |
+| **Backend** | Python 3.11, FastAPI 0.115 | REST API, SSE streaming, AI orchestration |
 | **AI / LLM** | Anthropic Claude — `claude-haiku-4-5` (analysis), `claude-sonnet-4` (extraction) | Batched task scoring, structured extraction, Vision OCR |
 | **Database** | Turso (libSQL cloud SQLite) | Persistent cloud SQLite — survives Render redeploys, free forever |
-| **Auth** | Resend (transactional email) + custom OTP | Magic link / 4-digit OTP email flow |
-| **Reports** | ReportLab (PDF), python-docx (DOCX) | Full-featured export with all analysis sections |
+| **Auth** | Resend (transactional email) + custom CSPRNG OTP | Magic link / 4-digit OTP email flow, brute-force locked |
+| **Search** | Tavily Search API | Real job-posting research for the Job Scanner |
+| **Analytics** | PostHog (client, consent-gated) + first-party tracker (`app/api/routes/track.py`) | Product analytics + privacy-safe geo traffic reporting |
+| **Reports** | ReportLab (PDF), python-docx (DOCX) | Full-featured export with all analysis sections, bilingual EN/DE |
+| **i18n** | Custom cookie-based locale layer (`frontend/src/i18n`) | Dependency-free EN/DE translation across app, PDFs, and emails |
 | **Deployment** | Vercel (Next.js frontend) + Render (FastAPI backend) | Frontend on Vercel, long-running backend on Render |
 | **OG Images** | Next.js `ImageResponse` (edge runtime) | Auto-generated share cards per report |
 
@@ -126,6 +142,17 @@ Browser
 ```
 
 **Why this split:** Vercel serverless functions have a 10-second hard limit on the Hobby tier. The AI analysis endpoint takes 25–31 seconds for 6+ tasks. Those three routes call Render directly from the browser to bypass the Vercel timeout — all other endpoints go through the Next.js proxy as normal.
+
+### Live Progress via SSE
+`POST /api/analyze` streams real progress over Server-Sent Events instead of leaving the user staring at a spinner for 25–31 seconds:
+
+1. Client requests with `Accept: text/event-stream`
+2. Backend emits staged events as they actually happen: `analyzing` → `roi` → `n8n` → `done` (with a `: ping` heartbeat every 15s to keep the connection alive through proxies)
+3. Frontend advances a real progress modal in lock-step with each stage
+4. If the deployed backend doesn't support SSE yet (or the client requests plain JSON), the endpoint transparently falls back to a single synchronous response — fully backward compatible
+
+### Cold-Start Warming
+The Render free tier spins the backend down after inactivity, causing the first request to hang for 20–50s. `wake-ping.ts` fires a warm-up ping as soon as the page loads, and `BackendWarming.tsx` shows an explicit "waking up the server" state on the dashboard, results, roadmap, and public report pages instead of a raw fetch error.
 
 ---
 
@@ -175,11 +202,17 @@ Every task is mapped to an automation maturity phase:
 WorkScanAI uses a **magic link / OTP email flow** — no passwords:
 
 1. User enters their email address
-2. A 4-digit OTP is sent via **Resend** transactional email
+2. A 4-digit OTP is sent via **Resend** transactional email (English or German, based on locale)
 3. User enters the code in a 4-box OTP input (paste, auto-advance, backspace, auto-submit)
 4. Session stored in `localStorage` — persists across tabs and page refreshes
 
-**Rate limiting:** 5 analyses per 24 hours per email. IP-based rate limiting is also available (currently disabled for testing — re-enable in `workflows.py`).
+**Security hardening:**
+- OTP codes are generated with `secrets.choice` (CSPRNG) — not `random`, which is predictable
+- Verification uses `secrets.compare_digest` / `hmac.compare_digest` — constant-time, no timing side-channel
+- Brute-force lock: 5 failed attempts per email within the 15-minute code TTL locks further attempts until a new code is requested
+- Admin auth (`x-admin-secret`) is centralized in one module (`app.core.auth`) — fails closed (rejects everything) if the secret is unset, instead of falling back to a hardcoded default
+
+**Rate limiting:** Daily analysis cap enforced per IP *and* per signed-in email (DB-backed, not just in-memory), plus optional reCAPTCHA v3 scoring on the analyze form. The site owner and admin (`x-admin-secret`) bypass the cap entirely — matched against `OWNER_IP`, which supports exact IPs, ISP-block prefixes (`84.59.*`), or a full wildcard for local dev.
 
 ---
 
@@ -266,6 +299,17 @@ Every analysis generates a unique 6-character share code (e.g. `/report/4m5gd9`)
   - Countdown urgency label ("⚡ Act now — within 12 months")
   - Blue CTA card with `workscanai.vercel.app`
 - When pasted to LinkedIn, Twitter, or Slack — the card auto-renders as a rich preview
+- A standardised **legal/accuracy disclaimer** renders at the bottom of every report surface — web, PDF, and DOCX
+
+### Email-Gated Full Report + Lead Capture
+Visitors on a public `/report/{code}` page can unlock the full PDF report and the n8n export by entering their email:
+
+- `POST /reports/{share_code}/email` captures the visitor as a named lead (`ReportLead`) **before** attempting to send — so a lead is never lost even if the email delivery fails
+- The full PDF (bilingual, EN/DE) is generated on demand and sent as an email attachment via Resend
+- `EmailGateCard.tsx` renders the gate on the report page; `WalkthroughCta.tsx` offers a guided next step after unlock
+
+### Quick-Win Retention Digest
+A daily cron job (`POST /cron/quick-win-digest`, secured by `x-admin-secret`) finds report leads captured ~3 days earlier who haven't yet received a follow-up, picks the single highest-ROI *easy* task from their report, and emails it as a gentle nudge — turning a one-time report view into a second touch.
 
 ---
 
@@ -291,15 +335,52 @@ Always rendered — falls back to sensible default skills (AI prompt engineering
 
 ## Admin Dashboard
 
-Available at `/admin` (password-protected via `x-admin-secret` header):
+Available at `/admin` (password-protected via `x-admin-secret` header, constant-time comparison, fail-closed if unset):
 
 - **Stats** — total users, workflows, analyses, tasks, average automation score
 - **Context breakdown** — analyses by Individual / Team / Company
 - **Input mode breakdown** — manual / voice / document / LinkedIn
+- **Traffic & referral breakdown** — sourced from the first-party page-view tracker
+- **Geo dashboard** — `GET /admin/geo` — country + city traffic with visitor counts and percentages, filterable to the last 1/3/6 months or all-time; shows the full long tail, no top-N cap
 - **User table** — all registered emails with workflow counts
 - **All submissions** — every workflow with expandable task names, source text, and direct links:
   - `results ↗` → `/dashboard/results/{id}` (full authenticated results page)
   - `share ↗` → `/report/{share_code}` (public shareable link)
+- **Maintenance tools** — `POST /admin/backfill-n8n/{id}` and `POST /admin/backfill-confidence/{id}` to regenerate data on older workflows; `POST /admin/reset-rate-limits` to manually clear a rate-limited IP/email during testing or support
+
+---
+
+## Localization (EN / DE)
+
+WorkScanAI ships a full, dependency-free bilingual experience — not machine-translated on the fly, but hand-translated and wired through every surface:
+
+- **Cookie-based locale** (`wsai_locale`) — no routing changes, no `[locale]` segments; a lightweight custom layer (`frontend/src/i18n/`) reads the cookie server- and client-side
+- **Coverage** — landing page, `/scan`, `/templates`, the full report (task breakdown, badges, AI-readiness, all three context sections, n8n section), dashboard, auth (OTP request/verify), the `/automatable` role hub, admin chrome, 404/error pages, transactional emails (OTP + report email), and both the PDF and DOCX report generators
+- **3D flag toggle** — a physical-feeling language switch component (`LanguageToggle.tsx`) in the site header
+- **Locale-aware formatting** — currency and hour units render per-locale in both the web UI and generated reports
+- English stays the canonical/SEO surface (metadata, canonical URLs); German is a full parallel translation layer for the visible UI
+
+---
+
+## Privacy, Consent & Analytics
+
+- **GDPR (Art. 6(1)(a)) / German TTDSG (§25) compliant cookie consent** — a banner (`CookieConsent.tsx`) gates all non-essential tracking behind explicit opt-in; the decision is stored client-side and broadcast via a `CustomEvent` so `PostHogProvider` and the banner itself react immediately. A "Cookie settings" footer link lets visitors withdraw consent at any time.
+- **Privacy Policy** (`/privacy`) and **Impressum** (`/impressum`) pages for German legal compliance
+- **PostHog** — consent-gated product analytics + session insights (`posthog-js` on the client, a Python client server-side for backend events)
+- **First-party page tracking** (`POST /api/track`) — a lightweight, privacy-conscious alternative that never blocks or fails the caller: resolves country/region/city from IP (via a free geo API), stores only a **salted SHA-256 hash of the IP** (never the raw address), and feeds the admin Geo dashboard. Designed to degrade silently — a tracking failure never affects the visitor's experience.
+
+---
+
+## Growth & SEO Surfaces
+
+Two public, unauthenticated content surfaces built for organic search *and* GEO (generative engine optimization — Bing's index feeds ChatGPT/Copilot answers, so the same pages help there too):
+
+| Route | Purpose |
+|---|---|
+| `/automatable` | Programmatic hub linking to `/automatable/{role}` — a dedicated, crawlable page per role (marketing manager, bookkeeper, recruiter, support agent, SDR, and more) with a task-by-task automation breakdown and a CTA into the real scanner |
+| `/templates` | Public gallery of pre-generated sample reports across industry verticals, each backed by a real `/report/{code}` |
+
+Both are listed in `sitemap.ts` alongside static routes; `/admin`, `/auth`, and `/dashboard` are deliberately excluded as private/non-indexable. `robots.ts` and per-page `Metadata` (canonical URLs, Open Graph, Twitter cards) round out the SEO layer.
 
 ---
 
@@ -310,39 +391,48 @@ workscanai/
 ├── backend/
 │   ├── app/
 │   │   ├── api/routes/
-│   │   │   ├── workflows.py      # POST /workflows, POST /analyze, GET /results/{id}
-│   │   │   │                     # GET /share/{code}, rate limiting, auth
+│   │   │   ├── workflows.py      # POST /workflows, POST /analyze (SSE + JSON), GET /results/{id}
+│   │   │   │                     # GET /share/{code}, DB-backed rate limiting
 │   │   │   ├── extraction.py     # POST /parse-tasks, POST /extract-tasks (Job Scanner),
-│   │   │                     # POST /extract-linkedin
-│   │   └── job_scan.py       # POST /job-scan/research, POST /job-scan/analyze
-│   │                         # GET /quota, POST /job-scan/n8n-templates
-│   │   │   ├── reports.py        # GET /reports/{id}/pdf, GET /reports/{id}/docx
-│   │   │   │                     # POST /reports/combined/{format}
-│   │   │   ├── auth.py           # POST /auth/request, POST /auth/verify (OTP flow)
-│   │   │   └── admin.py          # GET /admin/stats (password-protected)
+│   │   │   │                     # POST /extract-linkedin, POST /transcribe
+│   │   │   ├── job_scan.py       # POST /job-scan/research, POST /job-scan/analyze
+│   │   │   │                     # GET /quota, POST /job-scan/n8n-templates
+│   │   │   ├── reports.py        # GET /reports/{id}/pdf|docx, POST /reports/combined/{format}
+│   │   │   │                     # POST /reports/{share_code}/email (gated report + lead capture)
+│   │   │   ├── auth.py           # POST /auth/request, /auth/verify-otp — CSPRNG OTP + brute-force lock
+│   │   │   ├── admin.py          # GET /admin/stats, /admin/geo, backfill + reset-rate-limits tools
+│   │   │   ├── cron.py           # POST /cron/quick-win-digest — T+3 retention email
+│   │   │   └── track.py          # POST /track — first-party privacy-safe page view tracking
 │   │   ├── core/
+│   │   │   ├── config.py         # Pydantic Settings — single source of truth for all secrets/env
+│   │   │   ├── auth.py           # Centralized admin auth — constant-time compare, fail-closed
 │   │   │   ├── database.py       # SQLAlchemy engine — Turso (prod) or SQLite (dev)
 │   │   │   ├── turso_dbapi.py    # Custom Python DBAPI shim for Turso HTTP API
-│   │   │   └── security.py       # Rate limiting, reCAPTCHA verification
+│   │   │   ├── security.py       # Rate limiting, owner-IP bypass, reCAPTCHA v3 verification
+│   │   │   └── posthog_client.py # Server-side PostHog event capture
 │   │   ├── models/
-│   │   │   └── workflow.py       # ORM: User, MagicToken, Workflow, Task,
-│   │   │                         # Analysis, AnalysisResult (inc. decision_layer)
+│   │   │   └── workflow.py       # ORM: User, MagicToken, Workflow, Task, Analysis,
+│   │   │                         # AnalysisResult (inc. decision_layer), ReportLead, PageView
 │   │   ├── schemas/
 │   │   │   └── workflow.py       # Pydantic schemas — all fields inc. decision_layer
 │   │   ├── services/
 │   │   │   ├── ai_analyzer.py    # Batched Claude API call — all tasks in ONE request
 │   │   │   │                     # Decision-layer scoring rules, strategic task calibration
-│   │   │   ├── n8n_template_client.py # Purpose-built n8n canvas per task category
-│   │   │   │                          # 40+ categories, merged importable JSON, correct typeVersions
+│   │   │   ├── n8n_template_client.py    # Purpose-built n8n canvas per task category
+│   │   │   ├── n8n_workflows_extended.py # Extended builder library — 40+ categories total
 │   │   │   ├── job_scanner.py    # JobScanner service — Tavily search + Claude task extraction
-│   │   │   └── report_generator.py # PDF (ReportLab) + DOCX (python-docx) — full parity
-│   │   └── main.py               # FastAPI app, CORS (hardcoded Vercel origins), routes
+│   │   │   └── report_generator.py # PDF (ReportLab) + DOCX (python-docx) — bilingual, full parity
+│   │   └── main.py               # FastAPI app, CORS, route registration
+│   ├── tests/                    # pytest — analyzer, n8n canvas, job scanner, security, SSE streaming
 │   └── requirements.txt
 │
 ├── frontend/
 │   └── src/
 │       ├── app/
 │       │   ├── page.tsx                        # Landing page + workflow input form
+│       │   ├── scan/page.tsx                   # Job Scanner
+│       │   ├── templates/page.tsx              # Public industry sample-report gallery
+│       │   ├── automatable/                    # Programmatic SEO role hub (hub + [slug] pages)
 │       │   ├── dashboard/
 │       │   │   ├── page.tsx                    # Dashboard — analyses, aggregate stats
 │       │   │   └── results/[id]/
@@ -350,15 +440,26 @@ workscanai/
 │       │   │       └── roadmap/page.tsx        # Phased implementation roadmap
 │       │   ├── report/[code]/
 │       │   │   ├── page.tsx                    # Public share page (no auth)
+│       │   │   ├── EmailGateCard.tsx            # Email-gated full report unlock
+│       │   │   ├── WalkthroughCta.tsx           # Post-unlock guided next step
 │       │   │   └── opengraph-image.tsx         # Auto-generated OG card (edge runtime)
 │       │   ├── auth/page.tsx                   # Email + 4-digit OTP login
-│       │   ├── admin/page.tsx                  # Admin dashboard
+│       │   ├── admin/page.tsx                  # Admin dashboard (stats, geo, tools)
+│       │   ├── privacy/page.tsx, impressum/page.tsx  # GDPR/TTDSG legal pages
+│       │   ├── sitemap.ts, robots.ts           # SEO — programmatic sitemap of all indexable routes
 │       │   └── api/[...path]/route.ts          # Catch-all Vercel proxy → Render
 │       ├── components/
-│       │   └── WorkflowForm.tsx                # All input modes + context selector
-│       │                                       # Job Scanner tab: URL input → Tavily fetch → Claude extract
+│       │   ├── WorkflowForm.tsx                # All input modes, context selector, SSE progress
+│       │   ├── CookieConsent.tsx               # GDPR/TTDSG consent banner
+│       │   ├── LanguageToggle.tsx              # 3D flag EN/DE switch
+│       │   ├── PostHogProvider.tsx             # Consent-gated PostHog init
+│       │   ├── BackendWarming.tsx              # Cold-start "waking up" UI state
+│       │   └── report/                         # N8nWorkflowsSection, ReportSections
+│       ├── i18n/                               # Cookie-based EN/DE locale layer (config, client, server, messages)
 │       └── lib/
-│           └── auth.ts                         # useAuth hook — email from localStorage
+│           ├── auth.tsx                        # useAuth hook — email from localStorage
+│           ├── consent.ts                      # Cookie-consent state + CustomEvent bus
+│           └── wake-ping.ts                    # Backend warm-up ping on page load
 │
 ├── vercel.json                  # Cron: keep-alive ping to Render every 5 days
 ├── render.yaml                  # Render deployment config
@@ -374,8 +475,10 @@ workscanai/
 - Python 3.11+
 - Node.js 18+
 - An [Anthropic API key](https://console.anthropic.com/)
+- A [Tavily API key](https://tavily.com/) for the Job Scanner (optional — only needed for that feature)
 - A [Resend API key](https://resend.com/) for email OTP
 - A [Turso](https://turso.tech/) database (free tier) — or skip and use local SQLite
+- Optional: [PostHog](https://posthog.com/) project keys for analytics, [reCAPTCHA v3](https://www.google.com/recaptcha/about/) keys for bot protection
 
 ### Backend Setup
 
@@ -387,20 +490,38 @@ venv\Scripts\activate        # Windows
 pip install -r requirements.txt
 ```
 
-Create `backend/.env`:
+Create `backend/.env` (see `backend/.env.example` for the authoritative list):
 ```env
 ANTHROPIC_API_KEY=sk-ant-...
+TAVILY_API_KEY=tvly-...          # Job Scanner web research
 RESEND_API_KEY=re_...
+FROM_EMAIL=noreply@workscanai.com
+APP_URL=https://workscanai.vercel.app
+
+# Admin — generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+# Empty = every admin/cron endpoint fails closed (rejects all requests).
 ADMIN_SECRET=your-admin-password
 
+# Owner rate-limit bypass — exact IP, prefix ("84.59.*"), or "*" for local dev
+OWNER_IP=
+
+# Bot protection
+MAX_ANALYSES_PER_HOUR=5
+RECAPTCHA_SECRET_KEY=
+RECAPTCHA_MIN_SCORE=0.5
+
 # Production (Turso):
-DATABASE_URL=libsql://your-db.aws-eu-west-1.turso.io
+TURSO_DATABASE_URL=libsql://your-db.aws-eu-west-1.turso.io
 TURSO_AUTH_TOKEN=eyJ...
 
-# Local dev (SQLite — falls back automatically):
+# Local dev (SQLite — falls back automatically when Turso vars are unset):
 DATABASE_URL=sqlite:///C:/absolute/path/outside/project/workscan.db
 # ⚠️ Path must be OUTSIDE the project directory — SQLite inside triggers
 #    Next.js/Turbopack infinite rebuild loops on every DB write.
+
+# PostHog server-side analytics (optional)
+POSTHOG_API_KEY=phc_...
+POSTHOG_HOST=https://eu.i.posthog.com
 
 CORS_ORIGINS=http://localhost:3000,https://yourapp.vercel.app
 ```
@@ -419,7 +540,16 @@ npm install
 Create `frontend/.env.local`:
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
-# On Vercel, set this to: https://workscanai.onrender.com
+API_URL=http://localhost:8000
+# On Vercel, set both to: https://workscanai.onrender.com
+
+# Long-running endpoints call Render directly, bypassing the Vercel proxy — see below
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+
+# Optional
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=
+NEXT_PUBLIC_POSTHOG_KEY=
+NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
 ```
 
 ```bash
@@ -439,8 +569,10 @@ The FastAPI backend runs as a **web service** on Render:
 
 **Environment variables** — set via the Render dashboard or API:
 ```
-ANTHROPIC_API_KEY, RESEND_API_KEY, ADMIN_SECRET,
-DATABASE_URL, TURSO_AUTH_TOKEN, CORS_ORIGINS
+ANTHROPIC_API_KEY, TAVILY_API_KEY, RESEND_API_KEY, FROM_EMAIL, APP_URL,
+ADMIN_SECRET, OWNER_IP, RECAPTCHA_SECRET_KEY,
+TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, CORS_ORIGINS,
+POSTHOG_API_KEY, POSTHOG_HOST
 ```
 
 > ⚠️ Never use the Render dashboard's "Environment" editor to save vars — it replaces ALL vars on each save. Use the Render REST API (`PUT /v1/services/{id}/env-vars`) instead.
@@ -456,7 +588,11 @@ DATABASE_URL, TURSO_AUTH_TOKEN, CORS_ORIGINS
 
 **Environment variables on Vercel:**
 ```
+NEXT_PUBLIC_API_URL=https://your-render-service.onrender.com
 NEXT_PUBLIC_BACKEND_URL=https://your-render-service.onrender.com
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=...
+NEXT_PUBLIC_POSTHOG_KEY=...
+NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
 ```
 
 ### Long-Running Endpoint Workaround
@@ -492,6 +628,11 @@ Hard-won insights from building this project.
 | React StrictMode double API calls | StrictMode double-mounts components in dev, resetting `useRef` guards | Disable StrictMode in `next.config.ts` during development |
 | Render env vars silently wiped | Render dashboard "Save" replaces ALL vars atomically | Use Render REST API (`PUT /v1/services/{id}/env-vars`) for any env var changes |
 | Vercel `vercel.json` ignored | Root directory was set to `frontend` in Vercel dashboard | Clear root directory; set explicit build commands |
+| Hardcoded admin-secret fallback (a backdoor) | Three route files each defined their own `_require_admin` and read `ADMIN_SECRET` via scattered `os.getenv` calls, so one copy drifted to a literal fallback | Centralize into one `require_admin` dependency (`app.core.auth`) backed by typed `Settings` — fails closed when unset, constant-time compare |
+| `/admin/backfill-confidence` returned Turso `500` | Route read `workflow.confidence` for the JSON response *after* `db.commit()` — Turso's HTTP-pipeline session had already detached the object | Snapshot the response fields into local variables *before* calling `commit()` |
+| 4-digit OTP crackable in a live session | Codes were TTL-limited but not attempt-limited — 10,000 combinations is brute-forceable inside 15 minutes | Track failed attempts per email in-memory, lock after 5 within the TTL window until a new code is requested |
+| Dashboard/results/roadmap 403'd on a fresh session | Authenticated routes had no recovery path if the session email didn't match the workflow owner (e.g. after a logout/login) | Recover access via the workflow's public `share_code` instead of hard-failing to a dead end |
+| First page load after Render cold-start looked broken | No visual difference between "still loading" and "backend is down" on a 20–50s free-tier wake-up | `wake-ping.ts` fires an early warm-up request; `BackendWarming.tsx` renders an explicit "waking up" state instead of a raw error |
 
 ---
 
@@ -509,6 +650,7 @@ Hard-won insights from building this project.
 - **Risk flags** — PII, financial, legal, compliance concerns per task
 - **AI Readiness Assessment** — org-level readiness across 4 dimensions
 - **n8n canvas generation** — `N8nTemplateClient` builds one merged importable canvas per Job Scanner result: purpose-built workflow JSON for 40+ task categories (no broken community API dependency), one column per task, real trigger→process→output chains, correct node `typeVersion` numbers, downloadable as `.json`
+- **SSE progress streaming** — `/api/analyze` streams staged progress events instead of a single blocking response, with automatic fallback to JSON
 
 ### Frontend
 - **Apple-inspired design** — clean white cards, `#0071e3` blue accent, hover lifts, stat animations
@@ -518,12 +660,27 @@ Hard-won insights from building this project.
 - **Mobile-responsive** — all stat grids use responsive font sizes (`text-[22px] sm:text-[36px]`) and `grid-cols-1 sm:grid-cols-3` to prevent overflow on small screens
 - **Decision Layer badge** — `🧩 Human Required` (violet) or `🔀 AI + Human` (sky blue) per task card
 - **Recommendation renderer** — splits on "Option 2" AND "Decision layer:" patterns, renders decision content in violet
+- **Live progress modal** — real SSE-driven steps (not a fake progress bar) during analysis
+- **Cold-start warming state** — explicit "waking up" UI instead of a blank fetch error on Render free-tier spin-up
+
+### Localization, Growth & Compliance
+- **Full EN/DE bilingual UI** — cookie-based locale layer, no routing changes; covers app, PDFs, and transactional emails
+- **3D flag language toggle** in the site header
+- **Programmatic SEO hub** — `/automatable/{role}` per-role pages + `/templates` industry sample gallery, both wired into `sitemap.ts`
+- **GDPR/TTDSG cookie consent banner** gating PostHog behind explicit opt-in, plus `/privacy` and `/impressum` pages
+- **Legal/accuracy disclaimer** standardised across every report surface
+
+### Growth & Retention
+- **Email-gated full report** — unlock the PDF + n8n export by email, capturing a named `ReportLead`
+- **Quick-win retention digest** — daily cron emails leads their best automation win 3 days after viewing a report
+- **Dual analytics** — PostHog (consent-gated product analytics) + a first-party, IP-hashed page-view tracker feeding the admin geo dashboard
 
 ### Infrastructure
 - **Turso custom DBAPI shim** — full SQLAlchemy compatibility via libSQL HTTP API
-- **Magic link / OTP auth** — Resend email provider, 4-char code, 5-analyses/24h rate limit
+- **Magic link / OTP auth** — Resend email provider, CSPRNG 4-digit code, brute-force lockout, DB-backed daily rate limit per IP + email
+- **Centralized secrets & config** — one `Settings` object (`app.core.config`) with fail-loud production checks; centralized, constant-time admin auth
 - **Keep-alive cron** — Vercel cron pings Render every 5 days to prevent free-tier spin-down
-- **Admin dashboard** — stats, all users, all submissions, direct result + share URLs
+- **Admin dashboard** — stats, geo breakdown, all users, all submissions, backfill + rate-limit-reset tools, direct result + share URLs
 
 ---
 
@@ -549,15 +706,15 @@ Contributions welcome — open an issue first to discuss.
 
 **Enhancement ideas:**
 - Recharts visualisations — donut score chart, effort/impact priority matrix
-- Streaming analysis with live progress updates (Server-Sent Events)
 - Integration with Jira / Asana — import tasks directly from project management tools
 - Real-time collaboration via WebSockets — teams analyse workflows together
-- Industry-specific workflow templates — pre-filled starting points
 - Playwright E2E tests — automated coverage of critical user journeys
 - React Native mobile app — share components with the web version
 - Chrome extension — capture repetitive tasks directly from any web app
-- Multi-language support (Next.js i18n)
+- Additional locales beyond EN/DE, built on the existing i18n layer
 - Fine-tuning on company-specific workflow data
+
+> ✅ Already shipped since the ideas above were first listed: SSE live-progress streaming, and full EN/DE localization — see [Analysis Intelligence](#analysis-intelligence) and [Localization](#localization-en--de).
 
 ### Planned & Tested — Not Currently Active
 
