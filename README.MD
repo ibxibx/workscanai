@@ -9,7 +9,7 @@
 *Submit your team's workflow → get a ranked automation plan with real ROI numbers in under 5 minutes.*
 
 
---
+</div>
 
 
 🌐 **Live:** [workscanai.vercel.app](https://workscanai.vercel.app) &nbsp;·&nbsp; **Repo:** [github.com/ibxibx/workscanai](https://github.com/ibxibx/workscanai)
@@ -62,9 +62,10 @@
 **The future of work starts with knowing what to automate.**
 **WorkScanAI analyzes your team's workflows and identifies automation opportunities in minutes, not months.**
 <div align="center">
-**Submit or describe your workflow, and get a valuable full AI automation report in 45 seconds!**
 
+**Submit or describe your workflow, and get an instant, valuable and full AI automation report in less than a minute!**
 
+</div>
 
 **Type any job title → AI researches the role → scores every task for automation readiness → generates ROI, roadmap, and ready-to-import n8n workflows — in under 45 seconds.**
 
