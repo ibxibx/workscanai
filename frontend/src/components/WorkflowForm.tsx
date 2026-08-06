@@ -8,6 +8,7 @@ import { saveMyWorkflowId } from '@/app/dashboard/page'
 import { persistSession } from '@/lib/auth'
 import { trackInputStarted, trackAnalysisSubmitted } from '@/lib/analytics'
 import { useT, useLocale } from '@/i18n/client'
+import { wakeBackend, fetchWithWake } from '@/lib/wake-ping'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type AnalysisContext = 'individual' | 'team' | 'company'
@@ -380,6 +381,10 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
 
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return
+    // Fire the wake ping the instant a file is chosen — it races the quota
+    // check and file read below, so by the time we actually POST the file
+    // the backend has had a head start on waking up from a Render cold sleep.
+    wakeBackend().catch(() => {})
     startWarmTimer()
     if (await checkQuotaLimit(setRateLimitMessage)) {
       stopWarmTimer()
@@ -406,14 +411,17 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
       // Use AbortController with 90s timeout to survive Render free-tier cold start (~50s)
       const BACKEND = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://workscanai.onrender.com').replace(/\/$/, '')
       const fd = new FormData(); fd.append('file', file)
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 90000)
-      let r: Response
-      try {
-        r = await fetch(`${BACKEND}/api/extract-tasks`, { method:'POST', body:fd, signal: controller.signal })
-      } finally {
-        clearTimeout(timeoutId)
-      }
+      // fetchWithWake retries on cold-start statuses (500/502/503/504) and
+      // network errors with backoff, instead of surfacing the first 500
+      // straight to the user — this is the actual fix for the "AI server
+      // may be warming up (HTTP 500)" error reported on document upload.
+      const r = await fetchWithWake(`${BACKEND}/api/extract-tasks`, {
+        method: 'POST',
+        body: fd,
+        attemptTimeoutMs: 90000,
+        maxRetries: 3,
+        onWarming: (warming) => setServerWarmingUp(warming),
+      })
       if (!r.ok) {
         const errText = await r.text().catch(() => '')
         throw new Error(`${t('upErrServer',{status:r.status})}${errText ? ': ' + errText.substring(0, 100) : ''}`)
@@ -504,19 +512,28 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
   const extractTasksFromText = async (text: string) => {
     setIsExtractingTasks(true); setExtractStatus('extracting')
     const BACKEND = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://workscanai.onrender.com').replace(/\/$/, '')
-    // Retry up to 3 times — Render free tier returns 500 on cold start then recovers
+    // fetchWithWake retries cold-start statuses (500/502/503/504) and network
+    // errors with real exponential backoff (1.5s → 8s) and a 60s per-attempt
+    // timeout, up to 4 retries — a total budget comfortably above Render's
+    // 30-50s free-tier cold start, unlike the old fixed 4s x 3 loop this
+    // replaces. A successful HTTP response with an empty tasks array is a
+    // real answer (not a cold-start symptom) so that case is not retried.
     let lastErr: any
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        if (attempt > 0) {
-          // Keep spinner visible and show retry message during wait
-          setUploadStage(t('upStgRetry',{n:attempt}))
-          setIsUploading(true)
-          setUploadProgress(92)
-          await new Promise(res => setTimeout(res, 4000))
-        }
-        const r = await fetch(`${BACKEND}/api/parse-tasks`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text}) })
-        if (!r.ok) { lastErr = new Error(`HTTP ${r.status}`); continue }
+    try {
+      const r = await fetchWithWake(`${BACKEND}/api/parse-tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+        maxRetries: 4,
+        attemptTimeoutMs: 60000,
+        onWarming: (warming) => {
+          setServerWarmingUp(warming)
+          if (warming) { setUploadStage(t('upStgRetry', { n: 1 })); setIsUploading(true); setUploadProgress(92) }
+        },
+      })
+      if (!r.ok) {
+        lastErr = new Error(`HTTP ${r.status}`)
+      } else {
         const d = await r.json()
         if (d.tasks?.length > 0) {
           setTasks(d.tasks)
@@ -529,12 +546,16 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
             setExtractStatus('idle')
             document.getElementById('context-selector')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }, 2000)
-          return // success — stop retrying
-        } else { lastErr = new Error('No tasks returned') }
-      } catch (e: any) { lastErr = e }
+          return // success
+        } else {
+          lastErr = new Error('No tasks returned')
+        }
+      }
+    } catch (e: any) {
+      lastErr = e
     }
-    // All retries exhausted — show error to user
-    setIsExtractingTasks(false); setExtractStatus('idle'); setIsUploading(false)
+    // Retries exhausted or a real (non-cold-start) failure — show error to user
+    setIsExtractingTasks(false); setExtractStatus('idle'); setIsUploading(false); setServerWarmingUp(false)
     onError(t('parseErrRetry',{err:lastErr?.message || 'Unknown error'}))
   }
 
