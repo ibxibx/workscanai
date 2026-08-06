@@ -471,12 +471,29 @@ Respond ONLY with this exact JSON (no markdown, no code fences, no commentary):
   ]
 }}"""
 
+    # Fixed max_tokens=3000 truncated Claude's JSON output mid-string for
+    # longer/denser inputs (e.g. a ~14KB multi-department briefing decomposes
+    # into 20+ tasks), which made json.loads() below throw a cryptic
+    # "Expecting value: line N column M" error — surfaced to users as a
+    # generic HTTP 500 that looked identical to (and was misdiagnosed as) a
+    # Render cold-start failure. Scale the budget with input size instead of
+    # using a flat cap, matching the pattern already used in ai_analyzer.py.
+    max_output_tokens = min(3000 + len(request.text) // 2, 8000)
+
     try:
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=3000,
+            max_tokens=max_output_tokens,
             messages=[{"role": "user", "content": prompt}]
         )
+
+        if message.stop_reason == "max_tokens":
+            # Response was cut off mid-JSON even at the scaled budget — fail
+            # with an actionable message instead of a raw JSON parse error.
+            raise HTTPException(
+                status_code=422,
+                detail="This document has too many distinct tasks for a single pass. Try splitting it into smaller sections, or use Manual Entry.",
+            )
 
         response_text = message.content[0].text.strip()
         if response_text.startswith('```'):
@@ -486,6 +503,8 @@ Respond ONLY with this exact JSON (no markdown, no code fences, no commentary):
         parsed = json.loads(response_text)
         return ParsedTasksResponse(**parsed)
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error parsing tasks: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to parse tasks: {str(e)}")
