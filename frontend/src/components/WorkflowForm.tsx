@@ -556,7 +556,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
     }
     // Retries exhausted or a real (non-cold-start) failure — show error to user
     setIsExtractingTasks(false); setExtractStatus('idle'); setIsUploading(false); setServerWarmingUp(false)
-    onError(t('parseErrRetry',{err:lastErr?.message || 'Unknown error'}))
+    onError(t(inputMode === 'voice' ? 'parseErrRetryVoice' : 'parseErrRetry', {err:lastErr?.message || 'Unknown error'}))
   }
 
   // Safe JSON parser — never throws on non-JSON responses (e.g. "Internal Server Error")
@@ -991,7 +991,7 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
                 : <Loader2 className="h-[28px] w-[28px] text-[#0071e3] animate-spin"/>}
             </div>
             <h3 className="text-[20px] font-semibold text-[#1d1d1f] mb-[6px]">
-              {uploadProgress >= 100 ? t('upExtracted') : t('upAnalysing')}
+              {uploadProgress >= 100 ? t('upExtracted') : (inputMode === 'voice' ? t('upAnalysingVoice') : t('upAnalysing'))}
             </h3>
             <p className="text-[14px] text-[#6e6e73] mb-[28px]">{uploadStage}</p>
             <div className="w-full mb-[12px]">
@@ -1001,7 +1001,10 @@ export default function WorkflowForm({ onAnalysisComplete, onError, referredByCo
               </div>
             </div>
             <div className="flex flex-wrap justify-center gap-[6px] mt-[16px]">
-              {[t('upStepReading'),t('upStepExtracting'),t('upStepParsing'),t('upStepPopulating')].map((s,i) => {
+              {(inputMode === 'voice'
+                ? [t('upStepVoiceCaptured'),t('upStepTranscribing'),t('upStepParsing'),t('upStepPopulating')]
+                : [t('upStepReading'),t('upStepExtracting'),t('upStepParsing'),t('upStepPopulating')]
+              ).map((s,i) => {
                 const thresholds=[5,25,55,90]; const done = uploadProgress >= thresholds[i]
                 return <span key={s} className={`text-[11px] px-[10px] py-[4px] rounded-full border font-medium transition-all ${uploadProgress>=100?'bg-green-50 border-green-200 text-green-700':done?'bg-[#0071e3]/10 border-[#0071e3]/30 text-[#0071e3]':'bg-white border-[#e8e8ed] text-[#86868b]'}`}>{done && uploadProgress < 100 ? '✓ ' : ''}{s}</span>
               })}
