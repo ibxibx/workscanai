@@ -2,7 +2,7 @@
 
 - **Roadmap item:** `specs/roadmap.md` → Phase 1, item 002
 - **Branch:** `feat/002-eval-harness`
-- **Status:** agreed 2026-09-24 (answers below); implementation in progress
+- **Status:** implemented
 
 ## Problem
 

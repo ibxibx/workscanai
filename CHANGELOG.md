@@ -13,3 +13,6 @@ item adds a line under **Unreleased** in the same PR.
 - Seven vetted Claude Code skills in `.claude/skills/` (TDD, debugging,
   verification, code review, branch finishing, Playwright testing, OWASP incl.
   LLM Top 10). (#2)
+- Evaluation harness `evals/`: 50 labelled tasks, metrics, subscription-backed
+  runner with replayable reports, and a committed baseline (Spearman 0.93,
+  band accuracy 72%, 36% prompt-rule violations). (002)
