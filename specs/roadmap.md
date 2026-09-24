@@ -33,7 +33,8 @@ shows up as a number.
 
 ## Phase 1: Measure (unstructured text → scores, with proper evaluation)
 
-- [ ] **002 Evaluation harness + labelled task set** (`feat/002-eval-harness`)
+- [x] **002 Evaluation harness + labelled task set** (`feat/002-eval-harness`,
+      spec: `specs/features/002-eval-harness/`)
       `evals/` with ~50 human-labelled tasks (expected score band, decision
       layer, difficulty, short rationale) and a runner that scores them with the
       production analyzer and reports: band accuracy, MAE to band midpoint,
@@ -41,6 +42,8 @@ shows up as a number.
       parse-failure rate, rule-violation rate, run-to-run spread, cost, latency,
       and whether "high confidence" tasks really miss less.
       Done when: baseline report for the current prompt is committed.
+      Baseline: Spearman 0.93, band accuracy 72%, decision layer 86%,
+      rule violations 36%, confidence carries no signal (`evals/README.md`).
 
 ## Phase 2: Self-checking pipeline
 
@@ -82,6 +85,9 @@ shows up as a number.
       hand-annotated samples: precision, recall, duplicate rate.
 
 ## Backlog (hygiene, pick up between features)
+
+- [ ] Human review of `evals/data/tasks_v1.jsonl` labels → `tasks_v2` (settles
+      whether the low-band gap is the model or the labels).
 
 - [ ] Remove unused `langchain*` from `backend/requirements.txt`.
 - [ ] Delete dead `AIAnalyzer._parse_block_unused`.
