@@ -1,0 +1,4 @@
+runs/*
+!runs/baseline-*
+reports/*
+!reports/baseline-*
