@@ -13,3 +13,8 @@ item adds a line under **Unreleased** in the same PR.
 - Seven vetted Claude Code skills in `.claude/skills/` (TDD, debugging,
   verification, code review, branch finishing, Playwright testing, OWASP incl.
   LLM Top 10). (#2)
+
+### Fixed
+- Pre-commit secret scanner decodes staged files as UTF-8. On Windows it used
+  cp1252, failed on some UTF-8 characters and skipped those files without
+  blocking the commit. Regression tests added. (001)

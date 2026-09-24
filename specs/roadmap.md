@@ -24,7 +24,8 @@ shows up as a number.
 - [x] **Claude Code skills vendored** (`.claude/skills/`, PR #2)
 - [x] **Project constitution**: `specs/` (mission, tech stack, roadmap, process),
       `CHANGELOG.md`, `CLAUDE.md`, project skill `sdd-feature` (PR #3)
-- [ ] **001 Secret scanner reads staged files as UTF-8** (`fix/001-secret-scan-utf8`)
+- [x] **001 Secret scanner reads staged files as UTF-8** (`fix/001-secret-scan-utf8`,
+      spec: `specs/features/001-secret-scan-utf8/`)
       The pre-commit scanner decodes with Windows cp1252; files with some UTF-8
       characters fail to decode and are skipped without blocking the commit.
       Done when: a test that stages a secret next to UTF-8 text fails on the old
