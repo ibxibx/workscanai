@@ -100,7 +100,7 @@ def live_run(dataset: Path, backend_name: str, repeats: int, only: set[str] | No
                                      "task_ids": [r["id"] for r in group], "raw_text": None,
                                      "error": "no model call recorded"}
         status = "ERROR " + rec["error"] if rec.get("error") else f"{rec.get('latency_ms')} ms"
-        print(f"  repeat {rep} | {rec["workflow_id"]:8} | {len(group)} tasks | {status}", flush=True)
+        print(f"  repeat {rep} | {rec['workflow_id']:8} | {len(group)} tasks | {status}", flush=True)
         return {"type": "call", **rec}
 
     print(f"{len(jobs_list)} calls via backend '{backend_name}' ({jobs} in parallel)")
