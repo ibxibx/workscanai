@@ -46,14 +46,19 @@ ALLOW_PATH_SUBSTRINGS = (
 def staged_files():
     out = subprocess.run(
         ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     return [f for f in out.stdout.splitlines() if f.strip()]
 
 
 def staged_blob(path):
     # Read the staged version (":path"), not the working tree.
-    out = subprocess.run(["git", "show", f":{path}"], capture_output=True, text=True)
+    # Decode explicitly as UTF-8: the locale default (cp1252 on Windows) raises on
+    # some UTF-8 bytes, which used to leave stdout empty and skip the file (fail-open).
+    out = subprocess.run(
+        ["git", "show", f":{path}"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
     return out.stdout if out.returncode == 0 else ""
 
 
