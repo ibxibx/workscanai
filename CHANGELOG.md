@@ -15,4 +15,9 @@ item adds a line under **Unreleased** in the same PR.
   LLM Top 10). (#2)
 - Evaluation harness `evals/`: 50 labelled tasks, metrics, subscription-backed
   runner with replayable reports, and a committed baseline (Spearman 0.93,
-  band accuracy 72%, 36% prompt-rule violations). (002)
+  band accuracy 72%, 36% prompt-rule violations). (002, #5)
+
+### Fixed
+- Pre-commit secret scanner decodes staged files as UTF-8. On Windows it used
+  cp1252, failed on some UTF-8 characters and skipped those files without
+  blocking the commit. Regression tests added. (001, #4)
