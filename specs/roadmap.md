@@ -32,7 +32,8 @@ shows up as a number.
 
 ## Phase 1: Measure (unstructured text → scores, with proper evaluation)
 
-- [ ] **002 Evaluation harness + labelled task set** (`feat/002-eval-harness`)
+- [~] **002 Evaluation harness + labelled task set** (`feat/002-eval-harness`,
+      spec: `specs/features/002-eval-harness/`)
       `evals/` with ~50 human-labelled tasks (expected score band, decision
       layer, difficulty, short rationale) and a runner that scores them with the
       production analyzer and reports: band accuracy, MAE to band midpoint,
