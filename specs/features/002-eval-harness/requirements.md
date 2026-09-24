@@ -2,7 +2,7 @@
 
 - **Roadmap item:** `specs/roadmap.md` → Phase 1, item 002
 - **Branch:** `feat/002-eval-harness`
-- **Status:** draft (waiting for agreement on open questions)
+- **Status:** agreed 2026-09-24 (answers below); implementation in progress
 
 ## Problem
 
@@ -32,10 +32,13 @@ human labels, so every later change is judged by numbers.
 ## In scope
 
 1. **Labelled dataset** `evals/data/tasks_v1.jsonl`, ~50 tasks:
-   - Fields: `id`, `name`, `description`, `frequency`, `time_per_task`,
+   - Tasks are grouped into realistic workflows (`workflow_id`); one workflow
+     is one analyzer batch, because the analyzer takes `analysis_context` and
+     `industry` from the first task of a batch.
+   - Fields: `id`, `workflow_id`, `task_type`, `edge_case`, `name`, `description`, `frequency`, `time_per_task`,
      `category`, `complexity`, `industry`, `analysis_context`, `source`, and
      `label` = `{score_min, score_max, band, decision_layer, difficulty,
-     rationale, labeled_by, labeled_at}`.
+     sensitive, evidence, rationale, labeled_by, labeled_at, reviewed_by}`.
    - Bands: `low` 0–39, `mid` 40–69, `high` 70–100; `score_min/max` is the
      labeller's acceptable range inside or across a band.
    - Coverage: ≥ 12 tasks per band; data-processing, communication, creative,
@@ -46,8 +49,8 @@ human labels, so every later change is judged by numbers.
      worked examples, and the rule that labels are written **before** seeing
      any model output.
 2. **Runner** `python -m evals.run` that calls the production
-   `AIAnalyzer.analyze_tasks_batch` unchanged, in fixed batches (default 8,
-   fixed order), `--repeats N` (default 3), and records every raw response,
+   `AIAnalyzer.analyze_tasks_batch` unchanged, one batch per workflow,
+   `--repeats N` (default 3), and records every raw response,
    token usage and latency to `evals/runs/<timestamp>.jsonl`.
 3. **Metrics** (pure functions, unit-tested with fixtures):
    - Band accuracy; distance-to-range MAE (0 when inside the labelled range);
@@ -78,26 +81,23 @@ human labels, so every later change is judged by numbers.
 | Rank metric | Spearman, implemented in stdlib | Ordering tasks correctly matters more than exact numbers; no new dependency. |
 | Dataset format | JSONL, one task per line | Diff-friendly, reviewable in PRs, easy to append. |
 | Raw responses | Committed for the baseline run only | Makes replay and later comparisons reproducible; later runs stay local. |
+| Who labels (Q1) | Claude writes tasks **and** labels, blind, anchored in MGI 2017 activity-type evidence (`evals/LABELING.md`); `reviewed_by` left empty for a later human pass | Owner's decision for speed. Limitation (model labels, model scorer) is printed in every report. |
+| Second labeller (Q2) | None for v1 | Owner's decision; revisit with the human review. |
+| Model access (Q3) | Default backend = Claude Code CLI on the owner's Claude subscription (`--backend cli`); `--backend api` kept for production-identical runs | No API credit spent. Known differences (neutral system prompt, no `max_tokens`) printed in the report. |
 | Privacy | Invented or public-source task text only (e.g. O*NET task statements, own sample tasks); no real user submissions | No PII in the repo. |
 
 ## Context and constraints
 
 - Mission principles 2 (traceable) and 3 (measured, not assumed).
-- API spend: Haiku, batched; ~50 tasks × 3 repeats ≈ 20 calls per full run.
-  Report shows actual tokens.
-- Must run on the Windows laptop with `backend/venv`; reads
-  `ANTHROPIC_API_KEY` from `backend/.env` (as `app/core/config.py` does),
-  never printed or logged.
+- Model spend: default CLI backend runs on the owner's Claude subscription;
+  8 workflows × 3 repeats = 24 calls per full run. Report shows tokens and
+  API-equivalent cost.
+- Must run on the Windows laptop with `backend/venv`. The `api` backend reads
+  `ANTHROPIC_API_KEY` from `backend/.env` (as `app/core/config.py` does); the key
+  is never printed or logged, and is removed from the CLI backend's environment.
 
-## Open questions (need Ian)
+## Answered questions
 
-- [ ] Q1 **Who labels?** (a) Ian writes the task texts and labels them;
-      (b) Claude drafts the ~50 task texts to hit the coverage targets, Ian
-      labels them blind from the guide (recommended: fast, and the labels are
-      real human ground truth); (c) Claude drafts labels too, Ian corrects:
-      fastest, but the labels inherit a model's opinion, which weakens the
-      eval story.
-- [ ] Q2 **Second labeller for 15 tasks?** Lets us report inter-rater
-      agreement, i.e. how good a human gets. Optional.
-- [ ] Q3 **OK to spend API credit** on ~3 full runs while building (cents to
-      low single-digit euros on Haiku)?
+- [x] Q1 Who labels? → Claude, on its own, from evidence and practice.
+- [x] Q2 Second labeller? → No, not for v1.
+- [x] Q3 API credit? → No; use the Claude subscription first (CLI backend).

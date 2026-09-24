@@ -11,11 +11,11 @@ Merge when every box is ticked with evidence pasted below.
 - [ ] A3 Metric functions have unit tests with hand-computed expected values
       (band accuracy, distance MAE, Spearman incl. ties, confusion matrix,
       silent-failure and violation detection). No API key needed.
-- [ ] A4 A live run completes: `python -m evals.run --repeats 3` writes a run
-      file and a report; API key never appears in output or files
-      (secret scan clean).
+- [ ] A4 A live run completes: `python -m evals.run --repeats 3` (CLI backend,
+      subscription) writes a run file and a report; no API key in output or
+      files (secret scan clean).
 - [ ] A5 `python -m evals.run --replay <baseline run>` reproduces the committed
-      baseline report byte-for-byte (except the timestamp line).
+      baseline report byte-for-byte (the report has no wall-clock timestamp).
 - [ ] A6 Baseline report committed with every metric listed in requirements
       and the 10 worst tasks.
 - [ ] A7 `ai_analyzer.py` unchanged in the diff.

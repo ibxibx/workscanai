@@ -1,35 +1,38 @@
 # 002 · Evaluation harness + labelled task set: plan
 
-Draft; finalised once the open questions in `requirements.md` are answered.
-
 ## 1. Dataset and guide
 
-- [ ] 1.1 `evals/LABELING.md`: rubric (same four dimensions as the prompt),
-      band definitions, decision-layer definitions, 3 worked examples.
-- [ ] 1.2 `evals/schema.py` + `python -m evals.check_data`: validates records
-      and prints coverage counts.
-- [ ] 1.3 Task texts (~50) written to `evals/data/tasks_v1.jsonl` with empty labels.
-- [ ] 1.4 Labels filled per Q1 decision; check_data passes.
+- [x] 1.1 `evals/LABELING.md`: rubric (same four dimensions as the prompt),
+      bands, decision-layer definitions, evidence classes (MGI 2017 Exhibit E3),
+      worked examples, provenance of v1.
+- [x] 1.2 `evals/schema.py` + `python -m evals.check_data`: validates records,
+      checks workflows share context/industry, prints coverage counts.
+- [x] 1.3 50 tasks in 8 workflows written to `evals/data/tasks_v1.jsonl`.
+- [x] 1.4 Labels written blind (before any analyzer run); check_data passes.
 
 ## 2. Metrics (tests first)
 
-- [ ] 2.1 `backend/tests/test_eval_metrics.py` with hand-computed fixtures.
-- [ ] 2.2 `evals/metrics.py`: band accuracy, distance MAE, Spearman (ties),
-      confusion matrix, silent-failure detection, rule violations, stability,
-      confidence buckets.
+- [x] 2.1 `backend/tests/test_eval_metrics.py` with hand-computed fixtures (red first).
+- [x] 2.2 `evals/metrics.py`: band accuracy, distance MAE, signed error, Spearman
+      (ties), confusion matrix, silent failures, rule violations, stability,
+      confidence buckets, per-band breakdown.
 
 ## 3. Runner
 
-- [ ] 3.1 `evals/run.py`: loads dataset, batches, calls `AIAnalyzer` with a
-      usage-capturing client wrapper, writes run JSONL.
-- [ ] 3.2 `--replay` path; report writer `evals/report.py` (Markdown).
-- [ ] 3.3 Tests for replay determinism using a tiny recorded fixture.
+- [x] 3.1 `evals/backends.py`: recording client in place of the Anthropic client;
+      CLI backend (subscription, API key stripped) and API backend.
+- [x] 3.2 `evals/run.py`: one batch per workflow, repeats, parallel jobs, run
+      JSONL; results always re-derived from the run file with the production parser.
+- [x] 3.3 `evals/report.py`: deterministic Markdown report; `--replay`.
+- [x] 3.4 `backend/tests/test_eval_runner.py`: fake backend, error + missing-block
+      handling, labels never in the prompt, replay byte-identical.
 
 ## 4. Baseline
 
-- [ ] 4.1 Live run `--repeats 3`; commit run file + `evals/reports/<date>-baseline.md`.
-- [ ] 4.2 Short findings section in the report (what the numbers say).
+- [ ] 4.1 Smoke run (1 workflow, 1 repeat) on the laptop via the CLI backend.
+- [ ] 4.2 Full run `--name baseline` (3 repeats); commit run file + report.
+- [ ] 4.3 Findings written into `evals/README.md` ("Baseline results").
 
 ## 5. Docs
 
-- [ ] 5.1 Roadmap `[x]`, CHANGELOG, README "Evaluation" section with headline numbers.
+- [ ] 5.1 Roadmap `[x]`, CHANGELOG, README "Evaluation" pointer with headline numbers.
