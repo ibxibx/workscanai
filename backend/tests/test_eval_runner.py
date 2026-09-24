@@ -90,3 +90,24 @@ def test_replay_cli_writes_identical_report(fake, tmp_path):
     assert runner.main(["--replay", str(run_path), "--out", str(out1)]) == 0
     assert runner.main(["--replay", str(run_path), "--out", str(out2)]) == 0
     assert out1.read_bytes() == out2.read_bytes()
+
+
+def test_over_long_response_is_truncated_like_the_api():
+    # 3 blocks, 1000 recorded tokens, cap 500 -> keep the first half of the text,
+    # so block 3 is lost and becomes a silent failure, as it would in production.
+    block = "---TASK_{n}---\nSCORE_REPEATABILITY: 80\nSCORE_DATA: 80\nSCORE_ERROR: 60\nSCORE_INTEGRATION: 60\n"
+    text = "".join(block.format(n=n) for n in (1, 2, 3))
+    call = {"type": "call", "task_ids": ["a", "b", "c"], "raw_text": text, "error": None,
+            "output_tokens": 1000, "max_tokens": 500}
+    assert runner.exceeds_max_tokens(call)
+    visible = runner.production_visible_text(call)
+    assert len(visible) == len(text) // 2
+    results = runner.results_from_calls([call])
+    assert results["a"][0]["score_repeatability"] == 80
+    assert results["c"][0]["score_repeatability"] is None
+
+
+def test_response_within_cap_is_untouched():
+    call = {"raw_text": "abc", "output_tokens": 10, "max_tokens": 500}
+    assert not runner.exceeds_max_tokens(call)
+    assert runner.production_visible_text(call) == "abc"
