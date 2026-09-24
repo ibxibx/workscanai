@@ -50,6 +50,14 @@ class ClaudeCliBackend:
         self.env = {k: v for k, v in os.environ.items()
                     if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
 
+    def check(self, model: str) -> None:
+        """Fail fast with a clear message if the CLI cannot answer (e.g. not logged in)."""
+        try:
+            self.complete(model, 16, "Reply with exactly: OK", 60)
+        except Exception as e:
+            raise RuntimeError(f"{e}\nThe Claude Code CLI could not answer. Run `claude` in a "
+                               "terminal, use /login, then retry.") from None
+
     def complete(self, model, max_tokens, prompt, timeout):
         cmd = [self.executable, "-p", "--model", model, "--system-prompt", CLI_SYSTEM_PROMPT,
                "--tools", "", "--no-session-persistence", "--output-format", "json",
@@ -83,6 +91,9 @@ class AnthropicApiBackend:
         if not key:
             raise RuntimeError("ANTHROPIC_API_KEY not set (backend/.env)")
         self.client = Anthropic(api_key=key)
+
+    def check(self, model: str) -> None:
+        pass
 
     def complete(self, model, max_tokens, prompt, timeout):
         msg = self.client.messages.create(model=model, max_tokens=max_tokens,
