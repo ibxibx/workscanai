@@ -4,6 +4,12 @@ Skills are loaded automatically by Claude Code from this folder. Each one is a
 repeatable procedure the agent follows; they carry no project context on their
 own, so the project rules live in the spec/constitution docs, not here.
 
+## Project skills (written for this repo)
+
+| Skill | What it does |
+|---|---|
+| `sdd-feature` | Runs one roadmap item through the spec-driven loop in `specs/README.md`, calling the vendored skills below at the right steps |
+
 ## Vendored third-party skills
 
 Copied verbatim (no edits) from pinned commits, selected from
