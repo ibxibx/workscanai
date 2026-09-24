@@ -29,10 +29,13 @@
 
 ## 4. Baseline
 
-- [ ] 4.1 Smoke run (1 workflow, 1 repeat) on the laptop via the CLI backend.
-- [ ] 4.2 Full run `--name baseline` (3 repeats); commit run file + report.
-- [ ] 4.3 Findings written into `evals/README.md` ("Baseline results").
+- [x] 4.1 Smoke run (1 workflow, 1 repeat) on the laptop via the CLI backend.
+- [x] 4.2 Full run `--name baseline` (3 repeats); commit run file + report.
+- [x] 4.3 Findings written into `evals/README.md` ("Baseline results").
+
+- [x] 4.4 Smoke run exposed default extended thinking in the CLI; disabled it and
+      added max_tokens emulation before the baseline (commit db72a1b).
 
 ## 5. Docs
 
-- [ ] 5.1 Roadmap `[x]`, CHANGELOG, README "Evaluation" pointer with headline numbers.
+- [x] 5.1 Roadmap `[x]`, CHANGELOG, README "Evaluation" pointer with headline numbers.

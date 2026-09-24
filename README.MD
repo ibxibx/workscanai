@@ -48,6 +48,7 @@
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
 - [Deployment](#deployment)
+- [Evaluation](#evaluation)
 - [Key Engineering Lessons](#key-engineering-lessons)
 - [Example Output](#example-output)
 - [Contributing](#contributing)
@@ -719,6 +720,25 @@ Three endpoints bypass the Vercel proxy because they exceed the 10s serverless l
 | `POST /api/extract-tasks` | variable (doc upload) | Called directly from browser to Render |
 
 This is handled in `WorkflowForm.tsx` using `NEXT_PUBLIC_BACKEND_URL`.
+
+---
+
+## Evaluation
+
+Scoring quality is measured, not assumed. [`evals/`](evals/) runs the production
+analyzer over 50 labelled tasks in 8 realistic workflows, three times each, and
+reports ranking quality, band accuracy, decision-layer accuracy, silent failures,
+rule violations and run-to-run stability. Any report can be replayed from its
+recorded run without calling a model.
+
+| Baseline (2026-09-24) | |
+|---|---|
+| Rank correlation with labels (Spearman ρ) | 0.93 |
+| Band accuracy · decision-layer accuracy | 72% · 86% |
+| Results breaking the prompt's own rules | 36% (next fix: roadmap item 003) |
+
+Details and caveats (model-written v1 labels): [`evals/README.md`](evals/README.md).
+Roadmap and specs: [`specs/`](specs/).
 
 ---
 
