@@ -26,6 +26,7 @@ from evals.report import render_report
 from evals.schema import DEFAULT_DATASET, EVALS_DIR, REPO_ROOT, load_dataset, to_analyzer_task, workflows
 
 RUNS_DIR = EVALS_DIR / "runs"
+ANALYZER_MODEL = "claude-haiku-4-5-20251001"   # only used for the backend pre-flight check
 REPORTS_DIR = EVALS_DIR / "reports"
 
 
@@ -74,7 +75,10 @@ def live_run(dataset: Path, backend_name: str, repeats: int, only: set[str] | No
              jobs: int, name: str) -> Path:
     records = load_dataset(dataset)
     groups = [g for g in workflows(records) if not only or g[0]["workflow_id"] in only]
-    client = RecordingClient(make_backend(backend_name))
+    backend = make_backend(backend_name)
+    if hasattr(backend, "check"):
+        backend.check(ANALYZER_MODEL)
+    client = RecordingClient(backend)
     analyzer = _bare_analyzer(client)
 
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
@@ -96,7 +100,7 @@ def live_run(dataset: Path, backend_name: str, repeats: int, only: set[str] | No
                                      "task_ids": [r["id"] for r in group], "raw_text": None,
                                      "error": "no model call recorded"}
         status = "ERROR " + rec["error"] if rec.get("error") else f"{rec.get('latency_ms')} ms"
-        print(f"  repeat {rep} · {rec['workflow_id']:8} · {len(group)} tasks · {status}", flush=True)
+        print(f"  repeat {rep} | {rec["workflow_id"]:8} | {len(group)} tasks | {status}", flush=True)
         return {"type": "call", **rec}
 
     print(f"{len(jobs_list)} calls via backend '{backend_name}' ({jobs} in parallel)")
@@ -161,9 +165,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", type=Path, help="report path (default evals/reports/<run file stem>.md)")
     a = p.parse_args(argv)
 
-    run_path = a.replay.resolve() if a.replay else live_run(
-        a.dataset.resolve(), a.backend, a.repeats,
-        set(a.workflows.split(",")) if a.workflows else None, a.jobs, a.name)
+    try:
+        run_path = a.replay.resolve() if a.replay else live_run(
+            a.dataset.resolve(), a.backend, a.repeats,
+            set(a.workflows.split(",")) if a.workflows else None, a.jobs, a.name)
+    except RuntimeError as e:
+        print(f"error: {e}")
+        return 2
     report = build_report(run_path)
     out = a.out or (REPORTS_DIR / f"{run_path.stem}.md")
     out.parent.mkdir(parents=True, exist_ok=True)
