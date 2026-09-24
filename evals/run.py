@@ -124,6 +124,24 @@ def read_run(run_path: Path) -> tuple[dict, list[dict]]:
     return meta, [line for line in lines if line["type"] == "call"]
 
 
+def exceeds_max_tokens(call: dict) -> bool:
+    out, cap = call.get("output_tokens"), call.get("max_tokens")
+    return bool(out and cap and out > cap)
+
+
+def production_visible_text(call: dict) -> str:
+    """The text production would have received.
+
+    The API stops at max_tokens; the CLI backend cannot enforce it. If a recorded
+    response is longer than the cap, keep the same fraction of characters, which
+    approximates where the API would have cut it off.
+    """
+    text = call["raw_text"]
+    if exceeds_max_tokens(call):
+        return text[: int(len(text) * call["max_tokens"] / call["output_tokens"])]
+    return text
+
+
 def results_from_calls(calls: list[dict]) -> dict[str, list[dict]]:
     """Re-parse each recorded response with the production parser.
 
@@ -136,7 +154,7 @@ def results_from_calls(calls: list[dict]) -> dict[str, list[dict]]:
         if call.get("error") or call.get("raw_text") is None:
             parsed = [analyzer._defaults() for _ in ids]
         else:
-            parsed = analyzer._parse_batch_response(call["raw_text"], len(ids))
+            parsed = analyzer._parse_batch_response(production_visible_text(call), len(ids))
         for tid, res in zip(ids, parsed):
             results.setdefault(tid, []).append(res)
     return results

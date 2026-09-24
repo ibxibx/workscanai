@@ -49,6 +49,10 @@ class ClaudeCliBackend:
             raise RuntimeError("Claude Code CLI not found on PATH (install it or use --backend api)")
         self.env = {k: v for k, v in os.environ.items()
                     if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
+        # Claude Code enables extended thinking by default; production calls do not
+        # use it. Measured on a 6-task batch: 14.6k output tokens / 165 s with
+        # thinking vs ~3.8k visible tokens. Disable it to match production.
+        self.env["MAX_THINKING_TOKENS"] = "0"
 
     def check(self, model: str) -> None:
         """Fail fast with a clear message if the CLI cannot answer (e.g. not logged in)."""

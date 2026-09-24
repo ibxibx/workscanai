@@ -46,6 +46,9 @@ def render_report(meta: dict, calls: list[dict], records: list[dict], s: dict[st
     w(f"| Model | {', '.join(f'`{m}`' for m in models) or 'n/a'} |")
     w(f"| Dataset | `{meta['dataset']}` (sha `{meta['dataset_sha']}`) |")
     w(f"| Analyzer | `ai_analyzer.py` sha `{meta['analyzer_sha']}` at commit `{meta['git_commit']}` |")
+    truncated = [c for c in ok_calls if c.get("output_tokens") and c.get("max_tokens")
+                 and c["output_tokens"] > c["max_tokens"]]
+    w(f"| Responses over `max_tokens` | {len(truncated)} (truncated as production would) |")
     w(f"| Tasks × repeats | {s['n_tasks']} × {meta['repeats']} = {s['n_results']} results "
       f"in {len(calls)} calls ({len(calls) - len(ok_calls)} failed) |")
     w("")
@@ -56,8 +59,9 @@ def render_report(meta: dict, calls: list[dict], records: list[dict], s: dict[st
       "habits can make agreement look better than it is.")
     if meta["backend"] == "cli":
         w("- Backend `cli` runs the production prompt through the Claude Code CLI on a Claude "
-          "subscription. Differences from production: a one-line neutral system prompt is "
-          "present (production sends none), and `max_tokens` is not enforced.")
+          "subscription, with extended thinking disabled as in production. Differences: a "
+          "one-line neutral system prompt (production sends none), and `max_tokens` is "
+          "emulated by truncating over-long responses proportionally.")
     w("")
 
     w("## Headline metrics")
