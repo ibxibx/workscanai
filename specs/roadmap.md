@@ -45,12 +45,14 @@ shows up as a number.
       Baseline: Spearman 0.93, band accuracy 72%, decision layer 86%,
       rule violations 36%, confidence carries no signal (`evals/README.md`).
 
-- [~] **010 Labelled task set v2: 100 tasks** (`feat/010-eval-dataset-v2`,
+- [x] **010 Labelled task set v2: 100 tasks** (`feat/010-eval-dataset-v2`,
       spec: `specs/features/010-eval-dataset-v2/`)
       v1 unchanged + 50 complementary tasks in 8 new workflows: more mid-band
       and individual-context tasks, German input, a prompt-injection attempt,
       one-word and compound tasks, physical work. Edge-case section in reports.
       Done when: baseline on v2 committed with findings.
+      Baseline v2: Spearman 0.93, band 74%, decision layer 77%, rule
+      violations 37%, 1% malformed results (`evals/README.md`).
 
 ## Phase 2: Self-checking pipeline
 
@@ -93,6 +95,8 @@ shows up as a number.
 
 ## Backlog (hygiene, pick up between features)
 
+- [ ] Paired control tasks for every injection/language edge case, so an
+      effect can be attributed (first probe: injection had no effect).
 - [ ] Human review of `evals/data/tasks_v2.jsonl` labels → `tasks_v3` (settles
       whether the low-band gap is the model or the labels).
 
