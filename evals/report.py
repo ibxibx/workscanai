@@ -74,7 +74,9 @@ def render_report(meta: dict, calls: list[dict], records: list[dict], s: dict[st
     w(f"| Mean signed error | {_signed(s['mean_signed_error'])} pts | + = scores too high, − = too low |")
     w(f"| Spearman ρ | {_num(s['spearman'], 3)} | ranks tasks in the same order as the labels |")
     w(f"| Decision-layer accuracy | {_pct(s['decision_accuracy'])} | none / partial / full matches the label |")
-    w(f"| Silent-failure rate | {_pct(s['silent_failure_rate'])} | results that are defaults (score 50) shown as if real |")
+    w(f"| Incomplete results | {_pct(s['silent_failure_rate'])} | a sub-score is missing, yet a score is shown as if complete |")
+    w(f"| · of which defaults | {_pct(s['default_rate'])} | all sub-scores missing: API error or missing block, score 50 |")
+    w(f"| · of which malformed | {_pct(s['malformed_rate'])} | block present but a sub-score missing or misnamed |")
     w(f"| Rule-violation rate | {_pct(s['violation_rate'])} | valid results breaking the prompt's own rules |")
     w(f"| Run-to-run SD (mean / max) | {_num(s['stability_mean_sd'])} / {_num(s['stability_max_sd'])} pts | same task, different repeats |")
     if s["tasks_without_valid_result"]:
