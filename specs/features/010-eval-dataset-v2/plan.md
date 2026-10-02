@@ -20,9 +20,13 @@
 
 ## 4. Baseline v2
 
-- [ ] 4.1 Full run `--name baseline-v2` (3 repeats); commit run file + report.
-- [ ] 4.2 Findings in `evals/README.md`, incl. v1 subset vs v1 baseline.
+- [x] 4.1 Full run `--name baseline-v2` (3 repeats); commit run file + report.
+- [x] 4.2 Findings in `evals/README.md`, incl. v1 subset vs v1 baseline.
+
+- [x] 4.3 Malformed output found in the run → metrics split incomplete results
+      into defaults vs malformed (test first); both baseline reports regenerated.
+- [x] 4.4 Control run for the injection task (same workflow, sentence removed).
 
 ## 5. Docs
 
-- [ ] 5.1 Roadmap `[x]`, CHANGELOG, root README numbers.
+- [x] 5.1 Roadmap `[x]`, CHANGELOG, root README numbers.

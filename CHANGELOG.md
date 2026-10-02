@@ -16,6 +16,9 @@ item adds a line under **Unreleased** in the same PR.
 - Evaluation harness `evals/`: 50 labelled tasks, metrics, subscription-backed
   runner with replayable reports, and a committed baseline (Spearman 0.93,
   band accuracy 72%, 36% prompt-rule violations). (002, #5)
+- `tasks_v2`: 50 more labelled tasks in 8 new workflows (German input, prompt
+  injection, terse and compound tasks, physical work), edge-case and
+  malformed-output reporting, and a 100-task baseline. (010)
 
 ### Fixed
 - Pre-commit secret scanner decodes staged files as UTF-8. On Windows it used
