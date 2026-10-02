@@ -726,16 +726,18 @@ This is handled in `WorkflowForm.tsx` using `NEXT_PUBLIC_BACKEND_URL`.
 ## Evaluation
 
 Scoring quality is measured, not assumed. [`evals/`](evals/) runs the production
-analyzer over 50 labelled tasks in 8 realistic workflows, three times each, and
+analyzer over 100 labelled tasks in 16 realistic workflows (incl. German input and a
+prompt-injection attempt), three times each, and
 reports ranking quality, band accuracy, decision-layer accuracy, silent failures,
 rule violations and run-to-run stability. Any report can be replayed from its
 recorded run without calling a model.
 
-| Baseline (2026-09-24) | |
+| Baseline v2 (2026-10-02, 100 tasks in 16 workflows) | |
 |---|---|
 | Rank correlation with labels (Spearman ρ) | 0.93 |
-| Band accuracy · decision-layer accuracy | 72% · 86% |
-| Results breaking the prompt's own rules | 36% (next fix: roadmap item 003) |
+| Band accuracy · decision-layer accuracy | 74% · 77% |
+| Results breaking the prompt's own rules | 37% (next fix: roadmap item 003) |
+| Malformed or incomplete results shown as complete | 1% |
 
 Details and caveats (model-written v1 labels): [`evals/README.md`](evals/README.md).
 Roadmap and specs: [`specs/`](specs/).
