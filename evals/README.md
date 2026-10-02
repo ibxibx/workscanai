@@ -7,7 +7,8 @@ Spec: `specs/features/002-eval-harness/`.
 ```
 evals/
 ├── LABELING.md           how labels are written (rubric, evidence classes, provenance)
-├── data/tasks_v1.jsonl   50 labelled tasks in 8 realistic workflows
+├── data/tasks_v1.jsonl   50 labelled tasks, 8 workflows (frozen; first baseline)
+├── data/tasks_v2.jsonl   v1 + 50 tasks, 16 workflows (default since item 010)
 ├── schema.py             dataset schema + validation
 ├── check_data.py         python -m evals.check_data  → coverage counts
 ├── metrics.py            pure metric functions (unit-tested)
@@ -27,8 +28,11 @@ backend\venv\Scripts\python.exe -m evals.check_data
 # 2. Quick smoke run: one workflow, one repeat
 backend\venv\Scripts\python.exe -m evals.run --repeats 1 --workflows mkt --name smoke
 
-# 3. Full run (8 workflows x 3 repeats = 24 model calls)
-backend\venv\Scripts\python.exe -m evals.run --name baseline
+# 3. Full run (16 workflows x 3 repeats = 48 model calls)
+backend\venv\Scripts\python.exe -m evals.run --name baseline-v2
+
+#    or the frozen v1 set
+backend\venv\Scripts\python.exe -m evals.run --dataset evals\data\tasks_v1.jsonl
 
 # 4. Rebuild a report from a run file without any model calls
 backend\venv\Scripts\python.exe -m evals.run --replay evals\runs\<file>.jsonl
@@ -107,4 +111,4 @@ v2 label review before any prompt tuning.
   the labels is the first planned improvement.
 - The CLI backend adds a one-line neutral system prompt and ignores `max_tokens`;
   use `--backend api` for a production-identical run.
-- 50 tasks is a small set: treat differences of a few points as noise.
+- 100 tasks is still a small set: treat differences of a few points as noise.
