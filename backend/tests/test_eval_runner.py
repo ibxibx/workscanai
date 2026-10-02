@@ -71,7 +71,8 @@ def test_live_run_records_and_replay_matches(fake, tmp_path):
     assert report_live == report_replay
     # 13 tasks x 2 repeats = 26 results. Silent failures: the missing last block in
     # 3 successful calls (3) + every task of the failed call (6 or 7).
-    assert "| Silent-failure rate |" in report_live
+    assert "| Incomplete results |" in report_live
+    assert "| · of which defaults |" in report_live
     assert "Backend | `fake`" in report_live
 
 
