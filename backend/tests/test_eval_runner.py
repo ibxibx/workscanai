@@ -111,3 +111,16 @@ def test_response_within_cap_is_untouched():
     call = {"raw_text": "abc", "output_tokens": 10, "max_tokens": 500}
     assert not runner.exceeds_max_tokens(call)
     assert runner.production_visible_text(call) == "abc"
+
+
+def test_report_lists_every_edge_case_task(fake):
+    run_path = runner.live_run(DEFAULT_DATASET, "fake", repeats=1, only={"mkt", "pm", "ecom"},
+                               jobs=1, name="edge")
+    report = runner.build_report(run_path)
+    assert "## Edge cases" in report
+    edge_ids = [r["id"] for r in load_dataset(DEFAULT_DATASET)
+                if r["workflow_id"] in {"mkt", "pm", "ecom"} and r["edge_case"]]
+    assert edge_ids
+    section = report.split("## Edge cases", 1)[1].split("\n## ", 1)[0]
+    for tid in edge_ids:
+        assert f"`{tid}`" in section

@@ -144,6 +144,24 @@ def render_report(meta: dict, calls: list[dict], records: list[dict], s: dict[st
           f"{scores} | {lab['decision_layer']} → {t.get('decision', 'n/a')} | {lab['rationale']} |")
     w("")
 
+    edge = [t for t in s["per_task"] if by_id[t["id"]].get("edge_case")]
+    if edge:
+        w("## Edge cases")
+        w("")
+        w("Every task marked `edge_case`, so failures on unusual input (other languages, "
+          "prompt injection, one-word or compound tasks) cannot hide in an average.")
+        w("")
+        w("| Task | Why it is an edge case | Label range | Model scores | In range |")
+        w("|---|---|---|---|---|")
+        for t in edge:
+            rec = by_id[t["id"]]
+            lab = rec["label"]
+            tags = ", ".join(rec.get("edge_tags", [])) or "edge case"
+            scores = ", ".join(f"{x:.0f}" for x in t.get("scores", [])) or "no valid result"
+            w(f"| `{t['id']}` {rec['name']} | {tags} | {lab['score_min']}–{lab['score_max']} | "
+              f"{scores} | {'yes' if t.get('in_range') else 'no'} |")
+        w("")
+
     w("## All tasks")
     w("")
     w("<details><summary>Per-task table</summary>")
