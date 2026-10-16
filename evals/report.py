@@ -49,6 +49,8 @@ def render_report(meta: dict, calls: list[dict], records: list[dict], s: dict[st
     truncated = [c for c in ok_calls if c.get("output_tokens") and c.get("max_tokens")
                  and c["output_tokens"] > c["max_tokens"]]
     w(f"| Responses over `max_tokens` | {len(truncated)} (truncated as production would) |")
+    if meta.get("split"):
+        w(f"| Split | **{meta['split']}** only (`evals/data/splits_v2.json`) |")
     w(f"| Tasks × repeats | {s['n_tasks']} × {meta['repeats']} = {s['n_results']} results "
       f"in {len(calls)} calls ({len(calls) - len(ok_calls)} failed) |")
     w("")

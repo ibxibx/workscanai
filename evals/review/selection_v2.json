@@ -1,0 +1,156 @@
+{
+ "seed": "workscanai-label-review-v2",
+ "baseline": "baseline-v2-20261002T090155Z.jsonl",
+ "selection": [
+  {
+   "review_id": "R01",
+   "task_id": "acct-05",
+   "reason": "targeted"
+  },
+  {
+   "review_id": "R02",
+   "task_id": "edu-03",
+   "reason": "random"
+  },
+  {
+   "review_id": "R03",
+   "task_id": "pm-01",
+   "reason": "random"
+  },
+  {
+   "review_id": "R04",
+   "task_id": "clinic-06",
+   "reason": "targeted"
+  },
+  {
+   "review_id": "R05",
+   "task_id": "edu-04",
+   "reason": "random"
+  },
+  {
+   "review_id": "R06",
+   "task_id": "pm-04",
+   "reason": "random"
+  },
+  {
+   "review_id": "R07",
+   "task_id": "devops-03",
+   "reason": "random"
+  },
+  {
+   "review_id": "R08",
+   "task_id": "support-06",
+   "reason": "random"
+  },
+  {
+   "review_id": "R09",
+   "task_id": "devops-02",
+   "reason": "random"
+  },
+  {
+   "review_id": "R10",
+   "task_id": "hr-04",
+   "reason": "targeted"
+  },
+  {
+   "review_id": "R11",
+   "task_id": "estate-04",
+   "reason": "random"
+  },
+  {
+   "review_id": "R12",
+   "task_id": "clinic-05",
+   "reason": "random"
+  },
+  {
+   "review_id": "R13",
+   "task_id": "claims-05",
+   "reason": "targeted"
+  },
+  {
+   "review_id": "R14",
+   "task_id": "devops-06",
+   "reason": "random"
+  },
+  {
+   "review_id": "R15",
+   "task_id": "devops-05",
+   "reason": "targeted"
+  },
+  {
+   "review_id": "R16",
+   "task_id": "studio-04",
+   "reason": "targeted"
+  },
+  {
+   "review_id": "R17",
+   "task_id": "ngo-06",
+   "reason": "random"
+  },
+  {
+   "review_id": "R18",
+   "task_id": "logi-04",
+   "reason": "random"
+  },
+  {
+   "review_id": "R19",
+   "task_id": "pm-02",
+   "reason": "random"
+  },
+  {
+   "review_id": "R20",
+   "task_id": "legal-06",
+   "reason": "targeted"
+  },
+  {
+   "review_id": "R21",
+   "task_id": "estate-05",
+   "reason": "targeted"
+  },
+  {
+   "review_id": "R22",
+   "task_id": "support-05",
+   "reason": "random"
+  },
+  {
+   "review_id": "R23",
+   "task_id": "estate-06",
+   "reason": "targeted"
+  },
+  {
+   "review_id": "R24",
+   "task_id": "pm-03",
+   "reason": "random"
+  },
+  {
+   "review_id": "R25",
+   "task_id": "ecom-06",
+   "reason": "random"
+  },
+  {
+   "review_id": "R26",
+   "task_id": "ecom-02",
+   "reason": "random"
+  },
+  {
+   "review_id": "R27",
+   "task_id": "pm-06",
+   "reason": "random"
+  },
+  {
+   "review_id": "R28",
+   "task_id": "studio-07",
+   "reason": "targeted"
+  },
+  {
+   "review_id": "R29",
+   "task_id": "studio-02",
+   "reason": "random"
+  },
+  {
+   "review_id": "R30",
+   "task_id": "logi-03",
+   "reason": "random"
+  }
+ ]
+}

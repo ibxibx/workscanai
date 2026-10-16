@@ -15,6 +15,11 @@ evals/
 ├── backends.py           Claude Code CLI (subscription) or Anthropic API
 ├── run.py                python -m evals.run  → run file + report
 ├── report.py             Markdown report
+├── splits.py             dev / holdout split (data/splits_v2.json)
+├── compare.py            python -m evals.compare  → run vs run, bootstrap intervals
+├── canary.py             python -m evals.canary   → proves the harness detects breakage
+├── review.py             python -m evals.review   → blind human label review (xlsx)
+├── review/               review sheet + task mapping
 ├── runs/                 raw model responses (baseline committed)
 └── reports/              generated reports
 ```
@@ -43,6 +48,48 @@ Claude Code CLI (`claude -p`), billed to your Claude subscription. The runner
 removes `ANTHROPIC_API_KEY` from the CLI's environment, so it cannot fall back to
 API billing. If the CLI says it is not logged in, run `claude` once and use
 `/login`. `--backend api` uses `backend/.env` and costs API credit.
+
+## Can the numbers be trusted? (item 011)
+
+Four checks to run before using a result:
+
+```powershell
+# 1. Does the harness notice breakage? (no model calls; exit code 1 if not)
+backend\venv\Scripts\python.exe -m evals.canary evals\runs\baseline-v2-20261002T090155Z.jsonl
+
+# 2. Is a difference real or noise? (95% paired-bootstrap intervals over tasks)
+backend\venv\Scripts\python.exe -m evals.compare <base run> <new run> --split holdout
+
+# 3. Tune on dev, report on holdout (50/50, committed in data/splits_v2.json)
+backend\venv\Scripts\python.exe -m evals.run --replay <run file> --split holdout
+
+# 4. Do humans agree with the labels? (blind review of 30 tasks)
+backend\venv\Scripts\python.exe -m evals.review import evals\review\review_v2.xlsx --reviewer ian
+```
+
+**Canary result on both baselines: all 5 mutations detected.**
+
+| Mutation of the recorded answers | Metric that must react | v2 baseline → mutated |
+|---|---|---|
+| drop the last task block | incomplete results ↑ | 1.0% → 16.3% |
+| composite score +15 | rule violations ↑ | 37.4% → 100% |
+| invert every score | Spearman ↓ | 0.926 → −0.926 |
+| every decision "none" | decision-layer accuracy ↓ | 77.0% → 25.0% |
+| `SCORE_INTEGRATION` → `RISK_INTEGRATION` | malformed ↑ | 1.0% → 100% |
+
+**Noise check.** Comparing the v1 baseline with the v1 tasks re-run two weeks
+later (same code) flags *no* metric: every 95% interval contains 0 (e.g. band
+accuracy +2.0 pts, interval −4 to +10). That is the expected result for an
+unchanged system, and it shows how wide "noise" is on 50 tasks.
+
+**Holdout baseline (the numbers later items must beat):** 50 tasks, band
+accuracy 72.0% (mid 41%), Spearman 0.914, decision layer 80.0%, rule violations
+38.0%, incomplete 0.0%. Report: `reports/baseline-v2-20261002T090155Z-holdout.md`.
+
+**Label review.** `review/review_v2.xlsx` holds 30 tasks: 20 random (stratified
+by band, the unbiased estimate) and 10 targeted (largest model–label gaps). The
+sheet shows task text only. Do not open `review/selection_v2.json` while
+reviewing: it maps rows to tasks.
 
 ## What gets measured
 
