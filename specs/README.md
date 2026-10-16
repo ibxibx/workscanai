@@ -38,7 +38,11 @@ specs/
    on its own `replan/*` branch that edits only the constitution files.
 9. **Fresh context per feature.** Start a new agent session (or `/clear`) when
    picking up the next item, so the specs, not old chat, carry the context.
-10. **Periodic sweep.** After each phase: full test + eval run, refactor pass on
+10. **Trust the numbers before using them** (from item 011): run `evals.canary`
+    on any new baseline; tune on the **dev** split and report the **holdout**
+    split; call a metric improved only when `evals.compare` says its 95%
+    interval excludes 0.
+11. **Periodic sweep.** After each phase: full test + eval run, refactor pass on
     what the phase touched, results committed.
 
 The project skill `.claude/skills/sdd-feature` walks an agent through this loop.

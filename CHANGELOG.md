@@ -19,6 +19,9 @@ item adds a line under **Unreleased** in the same PR.
 - `tasks_v2`: 50 more labelled tasks in 8 new workflows (German input, prompt
   injection, terse and compound tasks, physical work), edge-case and
   malformed-output reporting, and a 100-task baseline. (010)
+- Eval trust checks: `evals.canary` (proves breakage is detected), `evals.compare`
+  (paired-bootstrap intervals), dev/holdout split, and a blind label-review sheet
+  with agreement report `evals.review`. (011)
 
 ### Fixed
 - Pre-commit secret scanner decodes staged files as UTF-8. On Windows it used
