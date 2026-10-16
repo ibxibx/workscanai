@@ -24,6 +24,7 @@ from evals import metrics
 from evals.backends import RecordingClient, analyzer_source_path, make_backend
 from evals.report import render_report
 from evals.schema import DEFAULT_DATASET, EVALS_DIR, REPO_ROOT, load_dataset, to_analyzer_task, workflows
+from evals.splits import filter_records
 
 RUNS_DIR = EVALS_DIR / "runs"
 ANALYZER_MODEL = "claude-haiku-4-5-20251001"   # only used for the backend pre-flight check
@@ -160,12 +161,15 @@ def results_from_calls(calls: list[dict]) -> dict[str, list[dict]]:
     return results
 
 
-def build_report(run_path: Path, dataset_path: Path | None = None) -> str:
+def build_report(run_path: Path, dataset_path: Path | None = None, split: str = "all") -> str:
     meta, calls = read_run(run_path)
     dataset = dataset_path or (REPO_ROOT / meta["dataset"])
     records = [r for r in load_dataset(dataset) if r["workflow_id"] in meta["workflows"]]
     if _sha256(dataset) != meta["dataset_sha"]:
         print(f"warning: dataset changed since the run ({_sha256(dataset)} != {meta['dataset_sha']})")
+    if split != "all":
+        records = filter_records(records, split)
+        meta = {**meta, "split": split}
     summary = metrics.summarize(records, results_from_calls(calls))
     return render_report(meta, calls, records, summary, _rel(run_path))
 
@@ -181,6 +185,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--name", default="run", help="prefix for run and report files")
     p.add_argument("--replay", type=Path, help="rebuild the report from a run file, no model calls")
     p.add_argument("--out", type=Path, help="report path (default evals/reports/<run file stem>.md)")
+    p.add_argument("--split", default="all", choices=["dev", "holdout", "all"],
+                   help="report on the dev or holdout half only (see evals/splits.py)")
     a = p.parse_args(argv)
 
     try:
@@ -190,8 +196,9 @@ def main(argv: list[str] | None = None) -> int:
     except RuntimeError as e:
         print(f"error: {e}")
         return 2
-    report = build_report(run_path)
-    out = a.out or (REPORTS_DIR / f"{run_path.stem}.md")
+    report = build_report(run_path, split=a.split)
+    suffix = "" if a.split == "all" else f"-{a.split}"
+    out = a.out or (REPORTS_DIR / f"{run_path.stem}{suffix}.md")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(report, encoding="utf-8", newline="\n")
     print(f"run file: {_rel(run_path)}")
