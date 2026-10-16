@@ -54,6 +54,13 @@ shows up as a number.
       Baseline v2: Spearman 0.93, band 74%, decision layer 77%, rule
       violations 37%, 1% malformed results (`evals/README.md`).
 
+- [x] **011 Trust checks for the harness** (`feat/011-eval-trust`,
+      spec: `specs/features/011-eval-trust/`)
+      Blind label-review sheet (30 tasks) with agreement report, canary check
+      (5 known-bad mutations, all detected), run comparison with bootstrap
+      intervals, committed dev/holdout split.
+      Holdout baseline: band 72%, Spearman 0.91, decision layer 80%, violations 38%.
+
 ## Phase 2: Self-checking pipeline
 
 - [ ] **003 Validated structured output + targeted repair** (`feat/003-validated-scoring`)
