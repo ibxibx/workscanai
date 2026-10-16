@@ -7,7 +7,7 @@ from typing import Any
 
 EVALS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = EVALS_DIR.parent
-DEFAULT_DATASET = EVALS_DIR / "data" / "tasks_v1.jsonl"
+DEFAULT_DATASET = EVALS_DIR / "data" / "tasks_v2.jsonl"   # v1 is frozen; v2 = v1 + 50 tasks
 
 # Score bands on the 0-100 AI-readiness scale. Upper bound inclusive.
 BANDS = {"low": (0, 39), "mid": (40, 69), "high": (70, 100)}
@@ -24,7 +24,10 @@ TASK_TYPES = {"data_processing", "communication", "creative", "relationship",
               "strategic", "operational"}
 # Work-activity evidence classes, see evals/LABELING.md.
 EVIDENCE = {"process_data", "collect_data", "predictable_ops", "stakeholder_interaction",
-            "apply_expertise", "manage_people", "creative_judgement"}
+            "apply_expertise", "manage_people", "creative_judgement", "unpredictable_physical"}
+# Optional tags saying *why* a task is an edge case (v2+).
+EDGE_TAGS = {"german", "prompt_injection", "terse", "compound", "physical", "sensitive_minor",
+             "ambiguous", "high_stakes"}
 
 TASK_FIELDS = ("name", "description", "frequency", "time_per_task", "category",
                "complexity", "industry", "analysis_context")
@@ -59,6 +62,10 @@ def validate_record(rec: dict[str, Any]) -> list[str]:
     need(rec.get("analysis_context") in CONTEXTS, f"analysis_context must be one of {sorted(CONTEXTS)}")
     need(rec.get("task_type") in TASK_TYPES, f"task_type must be one of {sorted(TASK_TYPES)}")
     need(isinstance(rec.get("edge_case"), bool), "edge_case must be true/false")
+    tags = rec.get("edge_tags", [])
+    need(isinstance(tags, list) and all(t in EDGE_TAGS for t in tags),
+         f"edge_tags must be a list from {sorted(EDGE_TAGS)}")
+    need(not tags or rec.get("edge_case") is True, "edge_tags require edge_case: true")
 
     lab = rec.get("label")
     if not isinstance(lab, dict):

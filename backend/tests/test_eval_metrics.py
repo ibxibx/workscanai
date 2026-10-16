@@ -140,3 +140,18 @@ class TestSummarize:
         s = m.summarize(records, results)
         assert s["band_accuracy"] == 0
         assert s["tasks_without_valid_result"] == ["x"]
+
+
+class TestIncompleteResults:
+    def test_defaults_and_malformed_are_counted_separately(self):
+        # Defaults: all four sub-scores missing (API error / missing block).
+        # Malformed: the block exists but some sub-scores are missing or misnamed.
+        records = [{"id": "a", "label": _label(80, 95, "high")}]
+        results = {"a": [_result(80.0),
+                         _result(50.0, r=None, d=None, e=None, i=None),
+                         _result(85.0, i=None),
+                         _result(84.0, r=None)]}
+        s = m.summarize(records, results)
+        assert s["silent_failure_rate"] == pytest.approx(3 / 4)   # all incomplete results
+        assert s["default_rate"] == pytest.approx(1 / 4)
+        assert s["malformed_rate"] == pytest.approx(2 / 4)

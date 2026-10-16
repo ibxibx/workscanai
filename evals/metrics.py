@@ -110,6 +110,8 @@ def summarize(records: list[dict[str, Any]], results: dict[str, list[dict[str, A
     n_results = sum(len(results.get(r["id"], [])) for r in records)
     per_task, violations, conf_rows = [], Counter(), []
     n_valid = n_valid_with_violation = 0
+    n_defaults = sum(1 for r in records for x in results.get(r["id"], [])
+                     if all(x.get(k) is None for k in SUB_SCORES))
 
     for rec in records:
         label = rec["label"]
@@ -154,6 +156,8 @@ def summarize(records: list[dict[str, Any]], results: dict[str, list[dict[str, A
         "n_tasks": n,
         "n_results": n_results,
         "silent_failure_rate": (n_results - n_valid) / n_results if n_results else 0.0,
+        "default_rate": n_defaults / n_results if n_results else 0.0,
+        "malformed_rate": (n_results - n_valid - n_defaults) / n_results if n_results else 0.0,
         "tasks_without_valid_result": [t["id"] for t in per_task if not t["n_valid"]],
         "band_accuracy": sum(t.get("band") == t["label"]["band"] for t in per_task) / n if n else 0.0,
         "in_range_rate": sum(bool(t.get("in_range")) for t in per_task) / n if n else 0.0,
